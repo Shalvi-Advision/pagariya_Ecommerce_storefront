@@ -1,165 +1,166 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
 const LoginPage = () => {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-  });
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState('');
   const [errors, setErrors] = useState({});
+  const [info, setInfo] = useState('');
 
-  const { login, loading, error, clearError } = useAuth();
+  const { requestPhoneOtp, verifyPhoneOtp, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/';
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  useEffect(() => {
+    if (error) setInfo('');
+  }, [error]);
 
-    // Clear field-specific error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-
-    // Clear general error
-    if (error) {
-      clearError();
-    }
-  };
-
-  const validateForm = () => {
+  const validatePhone = () => {
     const newErrors = {};
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-
+    const cleaned = phone.replace(/\D/g, '');
+    if (!cleaned) newErrors.phone = 'Phone is required';
+    else if (cleaned.length < 10) newErrors.phone = 'Enter a valid phone number';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const validateOtp = () => {
+    const newErrors = {};
+    if (!otp.trim()) newErrors.otp = 'Enter the OTP';
+    else if (otp.trim().length < 4) newErrors.otp = 'OTP must be at least 4 digits';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleRequestOtp = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
-
-    const result = await login(formData);
-
-    if (result.success) {
-      navigate(from, { replace: true });
+    if (!validatePhone()) return;
+    if (error) clearError();
+    const res = await requestPhoneOtp(phone);
+    if (res?.success) {
+      setOtpToken(res.otpToken);
+      setStep('otp');
+      setInfo(`OTP sent to ${phone}. ${res.demoOtp ? `Demo OTP: ${res.demoOtp}` : ''}`);
     }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!validateOtp()) return;
+    const result = await verifyPhoneOtp({ phone, code: otp, otpToken });
+    if (result.success) navigate(from, { replace: true });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Sign in to your account</h2>
-          <p className="mt-2 text-gray-600">
-            Or{' '}
-            <Link to="/register" className="text-primary-600 hover:text-primary-500 font-medium">
-              create a new account
-            </Link>
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900">Sign in with OTP</h2>
         </div>
 
         <Card>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
+          <form onSubmit={step === 'phone' ? handleRequestOtp : handleVerifyOtp} className="space-y-6">
+            {(error || info) && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800 text-sm">{error}</p>
+                {error && <p className="text-red-800 text-sm">{error}</p>}
+                {!error && info && <p className="text-green-700 text-sm">{info}</p>}
               </div>
             )}
 
-            <Input
-              label="Username"
-              name="username"
-              type="text"
-              value={formData.username}
-              onChange={handleChange}
-              error={errors.username}
-              placeholder="Enter your username"
-              required
-            />
-
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              placeholder="Enter your password"
-              required
-            />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+            {step === 'phone' && (
+              <>
+                <Input
+                  label="Phone Number"
+                  name="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
+                    if (error) clearError();
+                  }}
+                  error={errors.phone}
+                  placeholder="Enter your phone number"
+                  required
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
 
-              <div className="text-sm">
-                <a href="#" className="text-primary-600 hover:text-primary-500 font-medium">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
+                <Button type="submit" disabled={loading} className="w-full" size="large">
+                  {loading ? 'Sending OTP...' : 'Send OTP'}
+                </Button>
+              </>
+            )}
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full"
-              size="large"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
+            {step === 'otp' && (
+              <>
+                <Input
+                  label="Enter OTP"
+                  name="otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value);
+                    if (errors.otp) setErrors((prev) => ({ ...prev, otp: '' }));
+                    if (error) clearError();
+                  }}
+                  error={errors.otp}
+                  placeholder="6-digit code"
+                  required
+                />
+
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    className="text-sm text-primary-600 hover:text-primary-500 font-medium"
+                    onClick={async () => {
+                      const res = await requestPhoneOtp(phone);
+                      if (res?.success) {
+                        setOtp('');
+                        setOtpToken(res.otpToken);
+                        setInfo(`OTP resent. ${res.demoOtp ? `Demo OTP: ${res.demoOtp}` : ''}`);
+                      }
+                    }}
+                  >
+                    Resend OTP
+                  </button>
+
+                  <button
+                    type="button"
+                    className="text-sm text-gray-600 hover:text-gray-800"
+                    onClick={() => {
+                      setStep('phone');
+                      setOtp('');
+                      setInfo('');
+                    }}
+                  >
+                    Change phone
+                  </button>
+                </div>
+
+                <Button type="submit" disabled={loading} className="w-full" size="large">
+                  {loading ? 'Verifying...' : 'Verify & Sign in'}
+                </Button>
+              </>
+            )}
           </form>
         </Card>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary-600 hover:text-primary-500 font-medium">
-              Sign up now
-            </Link>
-          </p>
-        </div>
+        {/* Removed sign-up link per requirement */}
 
-        {/* Demo Credentials */}
+        {/* OTP Info */}
         <Card className="mt-8">
           <div className="text-center">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials</h3>
-            <p className="text-xs text-gray-600 mb-4">
-              For testing purposes, you can use any username and password
+            <h3 className="text-sm font-medium text-gray-900 mb-2">About OTP Demo</h3>
+            <p className="text-xs text-gray-600">
+              This environment uses a demo OTP flow. The OTP is generated locally and displayed after sending for testing purposes. Integrate with your backend SMS provider for production.
             </p>
-            <div className="text-xs text-gray-500">
-              <p>Username: any</p>
-              <p>Password: any</p>
-            </div>
           </div>
         </Card>
       </div>
