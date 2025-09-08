@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout } from '../api/authApi';
+import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout, requestOtp, verifyOtp } from '../api/authApi';
 
 // Auth Context
 const AuthContext = createContext();
@@ -195,6 +195,38 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: authActions.CLEAR_ERROR });
   };
 
+  // OTP: request and verify
+  const requestPhoneOtp = async (phone) => {
+    dispatch({ type: authActions.LOGIN_START });
+    try {
+      const res = await requestOtp(phone);
+      return res; // { success, otpToken, demoOtp }
+    } catch (error) {
+      dispatch({ type: authActions.LOGIN_FAILURE, payload: error.message || 'Failed to request OTP' });
+      return { success: false, error: error.message };
+    }
+  };
+
+  const verifyPhoneOtp = async ({ phone, code, otpToken }) => {
+    dispatch({ type: authActions.LOGIN_START });
+    try {
+      const res = await verifyOtp({ phone, code, otpToken });
+      if (!res.success) {
+        dispatch({ type: authActions.LOGIN_FAILURE, payload: res.error || 'Invalid OTP' });
+        return res;
+      }
+
+      const { token, user } = res;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      dispatch({ type: authActions.LOGIN_SUCCESS, payload: { user, token } });
+      return { success: true };
+    } catch (error) {
+      dispatch({ type: authActions.LOGIN_FAILURE, payload: error.message || 'OTP verification failed' });
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     user: state.user,
     token: state.token,
@@ -205,6 +237,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     clearError,
+    requestPhoneOtp,
+    verifyPhoneOtp,
   };
 
   return (

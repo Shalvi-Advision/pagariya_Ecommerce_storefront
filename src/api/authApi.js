@@ -73,3 +73,57 @@ export const logout = async () => {
     throw error;
   }
 };
+
+// ---------------------------------------------------------------------------
+// OTP-based Authentication (Demo-friendly)
+// In a production app, wire these to your backend SMS provider (e.g., Twilio)
+// ---------------------------------------------------------------------------
+
+// Request OTP for a phone number
+export const requestOtp = async (phone) => {
+  try {
+    // Simulate API delay
+    await new Promise((r) => setTimeout(r, 600));
+    // For demo: generate a 6-digit OTP and return (never do this client-side in prod)
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    // Return masked phone and otp token (in real backend, never return raw OTP)
+    return {
+      success: true,
+      phone,
+      otpToken: btoa(`${phone}:${otp}`),
+      // Only for local demo/testing – display OTP for convenience
+      demoOtp: otp,
+      message: 'OTP sent successfully',
+    };
+  } catch (error) {
+    console.error('Error requesting OTP:', error);
+    throw error;
+  }
+};
+
+// Verify the OTP with an otpToken
+export const verifyOtp = async ({ phone, code, otpToken }) => {
+  try {
+    await new Promise((r) => setTimeout(r, 500));
+    // Demo-only verification
+    const decoded = atob(otpToken || '');
+    const expected = decoded.split(':')[1];
+    const ok = expected && code && expected === code;
+    if (!ok) {
+      return { success: false, error: 'Invalid OTP' };
+    }
+
+    // Issue a fake token and user
+    const token = `demo-${Date.now()}`;
+    const user = {
+      id: 1,
+      phone,
+      name: 'OTP User',
+      role: 'customer',
+    };
+    return { success: true, token, user };
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    throw error;
+  }
+};
