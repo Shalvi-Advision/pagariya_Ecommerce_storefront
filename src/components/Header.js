@@ -62,7 +62,7 @@ const Header = () => {
   return (
     <header className="bg-white border-b border-gray-200">
       {/* Top bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-3 gap-4">
           {/* Left: Logo + Location */}
           <div className="flex items-center gap-4 min-w-[200px]">
@@ -83,12 +83,10 @@ const Header = () => {
             <span>
               Earliest <span className="text-primary-600 font-medium">Home Delivery</span> available
             </span>
-            <span className="mx-2">•</span>
-            <span className="font-medium">Tomorrow 06:00 PM - 08:00 PM</span>
           </div>
 
           {/* Search */}
-          <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl w-full">
+          <form onSubmit={handleSearchSubmit} className="flex-1 max-w-4xl w-full">
             <div className="flex">
               <div className="flex items-center gap-2 flex-1 border border-gray-300 rounded-l-lg px-3 focus-within:ring-2 focus-within:ring-primary-500">
                 <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
@@ -109,7 +107,7 @@ const Header = () => {
           {/* Right: Actions */}
           <div className="flex items-center gap-4 min-w-[180px] justify-end">
             <Link to="/login" className="hidden md:flex items-center text-gray-700 hover:text-primary-700 text-sm font-medium">
-              <span>Sign In / Register</span>
+              <span>Sign In</span>
             </Link>
             <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-gray-100">
               <BellIcon className="w-6 h-6 text-primary-600" />
@@ -128,7 +126,7 @@ const Header = () => {
 
       {/* Category bar */}
       <div className="border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4">
           <div className="flex items-center gap-6 h-12 overflow-x-auto">
             <button
               className="inline-flex items-center gap-2 text-gray-800 hover:text-primary-700 font-medium whitespace-nowrap"
