@@ -8,6 +8,7 @@ import Loading from '../components/Loading';
 import Carousel from '../components/Carousel';
 import PopularCategories from '../components/PopularCategories';
 import SeasonalCategories from '../components/SeasonalCategories';
+import ProductCard from '../components/ProductCard';
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
@@ -57,7 +58,13 @@ const HomePage = () => {
   return (
     <div>
       {/* Hero Carousel */}
-      <Carousel />
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-4">
+        <div className="container mx-auto px-4">
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+            <Carousel />
+          </div>
+        </div>
+      </div>
 
       {/* Popular Categories */}
       <PopularCategories />
@@ -66,48 +73,36 @@ const HomePage = () => {
       <SeasonalCategories />
 
       {/* Products Section */}
-      <div className="container mx-auto px-4 py-8" id="products">
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map(product => (
-            <Card key={product.id} className="overflow-hidden">
-              <Link to={`/product/${product.id}`}>
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-48 object-contain mb-4 hover:scale-105 transition-transform duration-200"
-                />
-              </Link>
-              <div className="p-4">
-                <Link to={`/product/${product.id}`}>
-                  <h3 className="text-lg font-semibold mb-2 line-clamp-2 hover:text-primary-600 transition-colors">
-                    {product.title}
-                  </h3>
-                </Link>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                  {product.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-primary-600">
-                    ${product.price}
-                  </span>
-                  <Button
-                    onClick={() => handleAddToCart(product)}
-                    size="small"
-                  >
-                    Add to Cart
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {products.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No products found.</p>
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-8" id="products">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Fresh Products</h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Discover our wide range of fresh groceries, household items, and daily essentials
+            </p>
           </div>
-        )}
+          
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map(product => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
+
+          {products.length === 0 && !loading && (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl text-gray-400">📦</span>
+              </div>
+              <p className="text-gray-500 text-lg mb-4">No products found.</p>
+              <p className="text-gray-400 text-sm">Check back later for fresh products!</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
