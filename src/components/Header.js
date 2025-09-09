@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Button from './Button';
+import CategoriesDrawer from './CategoriesDrawer';
 import { fetchCategories } from '../api/productsApi';
 import {
   MapPinIcon,
@@ -22,6 +23,7 @@ const Header = () => {
   // Local UI state
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [categories, setCategories] = useState([]);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const currentCategory = useMemo(() => searchParams.get('category') || 'all', [searchParams]);
 
   useEffect(() => {
@@ -57,6 +59,11 @@ const Header = () => {
     if (cat && cat !== 'all') params.category = cat;
     setSearchParams(params);
     navigate({ pathname: '/', search: `?${new URLSearchParams(params).toString()}` });
+    setIsDrawerOpen(false); // Close drawer when navigating
+  };
+
+  const handleAllCategoriesClick = () => {
+    setIsDrawerOpen(true);
   };
 
   return (
@@ -130,7 +137,7 @@ const Header = () => {
           <div className="flex items-center gap-6 h-12 overflow-x-auto">
             <button
               className="inline-flex items-center gap-2 text-gray-800 hover:text-primary-700 font-medium whitespace-nowrap"
-              onClick={() => goToCategory('all')}
+              onClick={handleAllCategoriesClick}
             >
               <Bars3Icon className="w-5 h-5" />
               All Categories
@@ -151,6 +158,12 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Categories Drawer */}
+      <CategoriesDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+      />
     </header>
   );
 };
