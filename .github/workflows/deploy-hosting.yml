@@ -1,11 +1,7 @@
 name: Deploy to Hosting Control Panel (DISABLED - Using DirectAdmin)
 
 on:
-  # Disabled - using deploy-directadmin.yml instead
-  # push:
-  #   branches: [ main, master ]
-  # pull_request:
-  #   branches: [ main, master ]
+  workflow_dispatch:  # Manual trigger only - disabled for automatic runs
 
 jobs:
   test:
