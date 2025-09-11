@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -15,8 +15,36 @@ import NotFoundPage from './pages/NotFoundPage';
 // Import components
 import Header from './components/Header';
 import Footer from './components/Footer';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import PWAStatus from './components/PWAStatus';
+
+// Import PWA utilities
+import pwaUtils from './utils/pwa';
 
 function App() {
+  useEffect(() => {
+    // Register service worker when app loads
+    const registerPWA = async () => {
+      try {
+        await pwaUtils.registerServiceWorker();
+        console.log('PWA: Service worker registered successfully');
+      } catch (error) {
+        console.error('PWA: Failed to register service worker', error);
+      }
+    };
+
+    registerPWA();
+
+    // Check for updates periodically
+    const updateInterval = setInterval(() => {
+      pwaUtils.checkForUpdates();
+    }, 60000); // Check every minute
+
+    return () => {
+      clearInterval(updateInterval);
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <CartProvider>
@@ -35,6 +63,8 @@ function App() {
               </Routes>
             </main>
             <Footer />
+            <PWAInstallPrompt />
+            <PWAStatus />
           </div>
         </Router>
       </CartProvider>
