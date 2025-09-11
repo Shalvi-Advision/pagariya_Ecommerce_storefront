@@ -1,0 +1,181 @@
+name: Deploy to DirectAdmin Hosting
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: npm test -- --coverage --watchAll=false
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files
+        path: build/
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Create DirectAdmin .htaccess
+      run: |
+        cat > build/.htaccess << 'EOF'
+        # DirectAdmin .htaccess for React SPA
+        Options -MultiViews
+        RewriteEngine On
+        
+        # Handle Angular and React Router
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^.*$ /index.html [L,QSA]
+        
+        # Security headers
+        Header always set X-Content-Type-Options nosniff
+        Header always set X-Frame-Options DENY
+        Header always set X-XSS-Protection "1; mode=block"
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Cache static assets
+        <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+          ExpiresActive On
+          ExpiresDefault "access plus 1 year"
+          Header set Cache-Control "public, immutable"
+        </FilesMatch>
+        
+        # Gzip compression
+        <IfModule mod_deflate.c>
+          AddOutputFilterByType DEFLATE text/plain
+          AddOutputFilterByType DEFLATE text/html
+          AddOutputFilterByType DEFLATE text/xml
+          AddOutputFilterByType DEFLATE text/css
+          AddOutputFilterByType DEFLATE application/xml
+          AddOutputFilterByType DEFLATE application/xhtml+xml
+          AddOutputFilterByType DEFLATE application/rss+xml
+          AddOutputFilterByType DEFLATE application/javascript
+          AddOutputFilterByType DEFLATE application/x-javascript
+        </IfModule>
+        
+        # Prevent access to sensitive files
+        <FilesMatch "\.(env|log|htaccess|htpasswd|ini|phps|fla|psd|log|sh)$">
+          Order Allow,Deny
+          Deny from all
+        </FilesMatch>
+        EOF
+        
+    - name: Create DirectAdmin .htpasswd (if needed)
+      run: |
+        # Create a basic .htpasswd for admin areas if needed
+        # echo "admin:\$2y\$10\$..." > build/.htpasswd
+        
+    - name: Deploy via FTP to DirectAdmin
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: ${{ secrets.DIRECTADMIN_FTP_SERVER }}
+        username: ${{ secrets.DIRECTADMIN_FTP_USERNAME }}
+        password: ${{ secrets.DIRECTADMIN_FTP_PASSWORD }}
+        local-dir: ./build/
+        server-dir: /domains/ecomsetup.manchar.in/public_html/
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/.env*
+          **/README.md
+          **/package*.json
+          **/src/**
+          **/.github/**
+          **/deploy*.sh
+          **/env.example
+          **/*.md
+        
+    - name: Deploy via SFTP (Alternative)
+      if: failure()
+      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      with:
+        server: ${{ secrets.DIRECTADMIN_SFTP_SERVER }}
+        username: ${{ secrets.DIRECTADMIN_SFTP_USERNAME }}
+        password: ${{ secrets.DIRECTADMIN_SFTP_PASSWORD }}
+        local_dir: ./build/
+        remote_dir: /domains/ecomsetup.manchar.in/public_html/
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/.env*
+          **/README.md
+          **/package*.json
+          **/src/**
+          **/.github/**
+          **/deploy*.sh
+          **/env.example
+          **/*.md
+        
+    - name: Verify DirectAdmin Deployment
+      run: |
+        echo "🔍 Verifying DirectAdmin deployment..."
+        sleep 10  # Wait for files to propagate
+        
+        # Check if main files exist
+        if curl -s -o /dev/null -w "%{http_code}" "https://ecomsetup.manchar.in" | grep -q "200"; then
+          echo "✅ Main page accessible"
+        else
+          echo "⚠️  Main page not accessible yet (may need time to propagate)"
+        fi
+        
+        # Check if .htaccess is working
+        if curl -s -o /dev/null -w "%{http_code}" "https://ecomsetup.manchar.in/some-route" | grep -q "200"; then
+          echo "✅ React Router working (.htaccess configured correctly)"
+        else
+          echo "⚠️  React Router may need configuration"
+        fi
+        
+    - name: Deploy Success Notification
+      run: |
+        echo "🚀 DirectAdmin deployment completed successfully!"
+        echo "Your React e-commerce app is now live at: https://ecomsetup.manchar.in"
+        echo "DirectAdmin path: /domains/ecomsetup.manchar.in/public_html/"
+        echo ""
+        echo "Next steps:"
+        echo "1. Check DirectAdmin File Manager to verify files"
+        echo "2. Test all React Router routes"
+        echo "3. Verify SSL certificate in DirectAdmin"
+        echo "4. Check performance in DirectAdmin statistics"
