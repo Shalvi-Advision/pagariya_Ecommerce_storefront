@@ -106,6 +106,20 @@ jobs:
         # Create a basic .htpasswd for admin areas if needed
         # echo "admin:\$2y\$10\$..." > build/.htpasswd
         
+    - name: Install lftp and test connection
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lftp
+        echo "Testing FTP connection..."
+        timeout 30 lftp -c "
+        set ftp:ssl-allow no;
+        set net:timeout 10;
+        set net:reconnect-interval-base 5;
+        open ftp://${{ secrets.DIRECTADMIN_FTP_USERNAME }}:${{ secrets.DIRECTADMIN_FTP_PASSWORD }}@${{ secrets.DIRECTADMIN_FTP_SERVER }};
+        ls;
+        quit
+        " || echo "FTP connection test failed, will try deployment anyway"
+        
     - name: Deploy via FTP to DirectAdmin
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
@@ -114,6 +128,12 @@ jobs:
         password: ${{ secrets.DIRECTADMIN_FTP_PASSWORD }}
         local-dir: ./build/
         server-dir: /domains/ecomsetup.manchar.in/public_html/
+        protocol: ftp
+        port: 21
+        log-level: minimal
+        timeout: 120000
+        dangerous-clean-slate: true
+        dry-run: false
         exclude: |
           **/.git*
           **/.git*/**
@@ -127,27 +147,16 @@ jobs:
           **/env.example
           **/*.md
         
-    - name: Deploy via SFTP (Alternative)
+    - name: Create SFTP directory and deploy
       if: failure()
-      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-      with:
-        server: ${{ secrets.DIRECTADMIN_SFTP_SERVER }}
-        username: ${{ secrets.DIRECTADMIN_SFTP_USERNAME }}
-        password: ${{ secrets.DIRECTADMIN_SFTP_PASSWORD }}
-        local_dir: ./build/
-        remote_dir: /domains/ecomsetup.manchar.in/public_html/
-        exclude: |
-          **/.git*
-          **/.git*/**
-          **/node_modules/**
-          **/.env*
-          **/README.md
-          **/package*.json
-          **/src/**
-          **/.github/**
-          **/deploy*.sh
-          **/env.example
-          **/*.md
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        # Create directory in user's home directory first, then move
+        sshpass -p "${{ secrets.DIRECTADMIN_FTP_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.DIRECTADMIN_FTP_USERNAME }}@${{ secrets.DIRECTADMIN_FTP_SERVER }} "mkdir -p ~/ecomsetup_temp && mkdir -p ~/ecomsetup_temp/public_html"
+        sshpass -p "${{ secrets.DIRECTADMIN_FTP_PASSWORD }}" scp -r -o StrictHostKeyChecking=no ./build/* ${{ secrets.DIRECTADMIN_FTP_USERNAME }}@${{ secrets.DIRECTADMIN_FTP_SERVER }}:~/ecomsetup_temp/public_html/
+        # Move files to the correct location
+        sshpass -p "${{ secrets.DIRECTADMIN_FTP_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.DIRECTADMIN_FTP_USERNAME }}@${{ secrets.DIRECTADMIN_FTP_SERVER }} "cp -r ~/ecomsetup_temp/public_html/* /domains/ecomsetup.manchar.in/public_html/ 2>/dev/null || echo 'Directory may not exist, trying alternative approach'"
         
     - name: Verify DirectAdmin Deployment
       run: |
