@@ -289,7 +289,7 @@ export const API_ENDPOINTS = {
     UPDATE: '/products/:id',
     DELETE: '/products/:id',
     SEARCH: '/products/search',
-    CATEGORIES: '/products/categories',
+    CATEGORIES: '/categories',
   },
 
   // Cart
