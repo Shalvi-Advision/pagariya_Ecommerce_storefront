@@ -18,6 +18,8 @@ import Footer from './components/Footer';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAStatus from './components/PWAStatus';
 import SuccessToast from './components/SuccessToast';
+import DevTools from './components/DevTools';
+import DebugInfo from './components/DebugInfo';
 
 // Import PWA utilities
 import pwaUtils from './utils/pwa';
@@ -43,6 +45,8 @@ function AppContent() {
         <Footer />
         <PWAInstallPrompt />
         <PWAStatus />
+        <DevTools />
+        <DebugInfo />
 
         {/* Success Toast */}
         <SuccessToast

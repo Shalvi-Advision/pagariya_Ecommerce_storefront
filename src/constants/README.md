@@ -417,3 +417,8 @@ const orderStatus = 'shipped';
 ---
 
 **These constants ensure consistency, maintainability, and scalability across your React e-commerce application.**
+
+
+$ lsof -ti:3000
+$ kill -9 40798 43549
+$ lsof -ti:3000

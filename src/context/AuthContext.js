@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     const user = localStorage.getItem('user');
 
     if (token && user) {
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }) => {
         });
       } catch (error) {
         console.error('Error loading user from localStorage:', error);
-        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
       }
     }

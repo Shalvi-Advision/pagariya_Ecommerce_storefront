@@ -148,6 +148,44 @@ class PWAUtils {
     }
   }
 
+  // Clear all caches (useful for development)
+  async clearAllCaches() {
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+      console.log('PWA: All caches cleared');
+      return true;
+    } catch (error) {
+      console.error('PWA: Error clearing caches', error);
+      return false;
+    }
+  }
+
+  // Force update service worker
+  async forceUpdate() {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(
+          registrations.map(registration => registration.unregister())
+        );
+        
+        // Clear all caches
+        await this.clearAllCaches();
+        
+        // Reload the page
+        window.location.reload();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('PWA: Error forcing update', error);
+      return false;
+    }
+  }
+
   // Request notification permission
   async requestNotificationPermission() {
     if ('Notification' in window) {

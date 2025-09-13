@@ -1,5 +1,14 @@
 // Service Worker for Shalvi E-Commerce PWA
-const CACHE_NAME = 'shalvi-ecommerce-v1';
+const CACHE_NAME = 'shalvi-ecommerce-v' + Date.now();
+const STATIC_CACHE = 'shalvi-static-v1';
+const DYNAMIC_CACHE = 'shalvi-dynamic-v1';
+
+// Development mode detection
+const isDevelopment = self.location.hostname === 'localhost' || 
+                     self.location.hostname === '127.0.0.1' ||
+                     self.location.hostname.includes('dev') ||
+                     self.location.hostname.includes('staging');
+
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
@@ -14,9 +23,9 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Install event');
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Service Worker: Caching files');
+        console.log('Service Worker: Caching static files');
         return cache.addAll(urlsToCache);
       })
       .catch((error) => {
@@ -33,7 +42,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
             console.log('Service Worker: Deleting old cache', cacheName);
             return caches.delete(cacheName);
           }
@@ -56,54 +65,151 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          console.log('Service Worker: Serving from cache', event.request.url);
-          return response;
-        }
+  // Determine caching strategy based on request type
+  const url = new URL(event.request.url);
+  const isAPIRequest = url.pathname.startsWith('/api/');
+  const isStaticAsset = url.pathname.includes('/static/') || 
+                       url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/);
+  const isHTMLRequest = event.request.destination === 'document';
 
-        console.log('Service Worker: Fetching from network', event.request.url);
-        return fetch(event.request)
-          .then((response) => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            // Cache the fetched response
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch((error) => {
-            console.error('Service Worker: Fetch failed', error);
-            
-            // Return offline page for navigation requests
-            if (event.request.destination === 'document') {
-              return caches.match('/');
-            }
-            
-            // Return a custom offline response for other requests
-            return new Response('Offline - Content not available', {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
-              })
-            });
-          });
-      })
-  );
+  if (isDevelopment) {
+    // In development, always try network first for everything
+    event.respondWith(developmentStrategy(event.request));
+  } else if (isAPIRequest) {
+    // Network First strategy for API requests
+    event.respondWith(networkFirstStrategy(event.request));
+  } else if (isStaticAsset) {
+    // Cache First strategy for static assets
+    event.respondWith(cacheFirstStrategy(event.request));
+  } else if (isHTMLRequest) {
+    // Network First strategy for HTML pages
+    event.respondWith(networkFirstStrategy(event.request));
+  } else {
+    // Default: Network First with cache fallback
+    event.respondWith(networkFirstStrategy(event.request));
+  }
 });
+
+// Development Strategy - Always try network first, minimal caching
+async function developmentStrategy(request) {
+  try {
+    console.log('Service Worker: Development mode - Fetching from network', request.url);
+    const networkResponse = await fetch(request);
+    
+    // In development, only cache static assets
+    const url = new URL(request.url);
+    const isStaticAsset = url.pathname.includes('/static/') || 
+                         url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/);
+    
+    if (isStaticAsset && networkResponse && networkResponse.status === 200) {
+      // Only cache static assets in development
+      const responseToCache = networkResponse.clone();
+      const cache = await caches.open(STATIC_CACHE);
+      await cache.put(request, responseToCache);
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('Service Worker: Development mode - Network failed, trying cache', request.url);
+    
+    // Try to get from cache as fallback
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      console.log('Service Worker: Development mode - Serving from cache', request.url);
+      return cachedResponse;
+    }
+    
+    // If it's a document request and no cache, return offline page
+    if (request.destination === 'document') {
+      return caches.match('/');
+    }
+    
+    // Return offline response for other requests
+    return new Response('Offline - Content not available', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: new Headers({
+        'Content-Type': 'text/plain'
+      })
+    });
+  }
+}
+
+// Network First Strategy - Try network first, fallback to cache
+async function networkFirstStrategy(request) {
+  try {
+    console.log('Service Worker: Fetching from network', request.url);
+    const networkResponse = await fetch(request);
+    
+    // Check if valid response
+    if (networkResponse && networkResponse.status === 200) {
+      // Clone the response for caching
+      const responseToCache = networkResponse.clone();
+      
+      // Cache the response for future use
+      const cache = await caches.open(DYNAMIC_CACHE);
+      await cache.put(request, responseToCache);
+      
+      return networkResponse;
+    }
+    
+    throw new Error('Invalid network response');
+  } catch (error) {
+    console.log('Service Worker: Network failed, trying cache', request.url);
+    
+    // Try to get from cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      console.log('Service Worker: Serving from cache', request.url);
+      return cachedResponse;
+    }
+    
+    // If it's a document request and no cache, return offline page
+    if (request.destination === 'document') {
+      return caches.match('/');
+    }
+    
+    // Return offline response for other requests
+    return new Response('Offline - Content not available', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: new Headers({
+        'Content-Type': 'text/plain'
+      })
+    });
+  }
+}
+
+// Cache First Strategy - Try cache first, fallback to network
+async function cacheFirstStrategy(request) {
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    console.log('Service Worker: Serving from cache', request.url);
+    return cachedResponse;
+  }
+  
+  try {
+    console.log('Service Worker: Fetching from network', request.url);
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse && networkResponse.status === 200) {
+      // Cache the response for future use
+      const cache = await caches.open(STATIC_CACHE);
+      await cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.error('Service Worker: Fetch failed', error);
+    return new Response('Offline - Content not available', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: new Headers({
+        'Content-Type': 'text/plain'
+      })
+    });
+  }
+}
 
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {

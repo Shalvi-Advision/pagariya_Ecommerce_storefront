@@ -1,5 +1,7 @@
 // Products API service functions
-const API_BASE_URL = 'https://fakestoreapi.com'; // Using Fake Store API for demo purposes
+import { APP_CONSTANTS } from '../constants';
+
+const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
 export const fetchProducts = async (params = {}) => {
   try {
