@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout, requestOtp, verifyOtp } from '../api/authApi';
+import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout } from '../api/authApi';
+import { setStoredToken, clearStoredToken } from '../services/api';
 
 // Auth Context
 const AuthContext = createContext();
@@ -14,7 +15,9 @@ const authActions = {
   REGISTER_FAILURE: 'REGISTER_FAILURE',
   LOGOUT: 'LOGOUT',
   LOAD_USER: 'LOAD_USER',
-  CLEAR_ERROR: 'CLEAR_ERROR'
+  CLEAR_ERROR: 'CLEAR_ERROR',
+  SET_SUCCESS_MESSAGE: 'SET_SUCCESS_MESSAGE',
+  CLEAR_SUCCESS_MESSAGE: 'CLEAR_SUCCESS_MESSAGE'
 };
 
 // Auth Reducer
@@ -74,6 +77,18 @@ const authReducer = (state, action) => {
         error: null,
       };
 
+    case authActions.SET_SUCCESS_MESSAGE:
+      return {
+        ...state,
+        successMessage: action.payload,
+      };
+
+    case authActions.CLEAR_SUCCESS_MESSAGE:
+      return {
+        ...state,
+        successMessage: null,
+      };
+
     default:
       return state;
   }
@@ -86,6 +101,7 @@ const initialAuthState = {
   isAuthenticated: false,
   loading: false,
   error: null,
+  successMessage: null,
 };
 
 // Auth Provider Component
@@ -118,27 +134,28 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await apiLogin(credentials);
-      const { token } = response;
+      const { data } = response;
+      const { user, token } = data;
 
-      // Get user data
-      const user = await getCurrentUser(token);
-
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Store token using our PWA-compatible storage
+      await setStoredToken(token);
 
       dispatch({
         type: authActions.LOGIN_SUCCESS,
         payload: { user, token },
       });
 
+      // Set success message
+      setSuccessMessage('Logged in successfully!');
+
       return { success: true };
     } catch (error) {
+      const errorMessage = error.message || error.error || 'Login failed';
       dispatch({
         type: authActions.LOGIN_FAILURE,
-        payload: error.message || 'Login failed',
+        payload: errorMessage,
       });
-      return { success: false, error: error.message };
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -147,14 +164,11 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await apiRegister(userData);
-      const { token } = response;
+      const { data } = response;
+      const { user, token } = data;
 
-      // Get user data
-      const user = await getCurrentUser(token);
-
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Store token using our PWA-compatible storage
+      await setStoredToken(token);
 
       dispatch({
         type: authActions.REGISTER_SUCCESS,
@@ -163,11 +177,12 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      const errorMessage = error.message || error.error || 'Registration failed';
       dispatch({
         type: authActions.REGISTER_FAILURE,
-        payload: error.message || 'Registration failed',
+        payload: errorMessage,
       });
-      return { success: false, error: error.message };
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -175,17 +190,15 @@ export const AuthProvider = ({ children }) => {
     try {
       await apiLogout();
 
-      // Clear localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Clear stored token using our PWA-compatible storage
+      clearStoredToken();
 
       dispatch({ type: authActions.LOGOUT });
       return { success: true };
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if API call fails, clear local state
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Even if API call fails, clear stored token
+      clearStoredToken();
       dispatch({ type: authActions.LOGOUT });
       return { success: false, error: error.message };
     }
@@ -195,37 +208,18 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: authActions.CLEAR_ERROR });
   };
 
-  // OTP: request and verify
-  const requestPhoneOtp = async (phone) => {
-    dispatch({ type: authActions.LOGIN_START });
-    try {
-      const res = await requestOtp(phone);
-      return res; // { success, otpToken, demoOtp }
-    } catch (error) {
-      dispatch({ type: authActions.LOGIN_FAILURE, payload: error.message || 'Failed to request OTP' });
-      return { success: false, error: error.message };
-    }
+  const setSuccessMessage = (message) => {
+    dispatch({ type: authActions.SET_SUCCESS_MESSAGE, payload: message });
+    // Auto-clear success message after 3 seconds
+    setTimeout(() => {
+      dispatch({ type: authActions.CLEAR_SUCCESS_MESSAGE });
+    }, 3000);
   };
 
-  const verifyPhoneOtp = async ({ phone, code, otpToken }) => {
-    dispatch({ type: authActions.LOGIN_START });
-    try {
-      const res = await verifyOtp({ phone, code, otpToken });
-      if (!res.success) {
-        dispatch({ type: authActions.LOGIN_FAILURE, payload: res.error || 'Invalid OTP' });
-        return res;
-      }
-
-      const { token, user } = res;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      dispatch({ type: authActions.LOGIN_SUCCESS, payload: { user, token } });
-      return { success: true };
-    } catch (error) {
-      dispatch({ type: authActions.LOGIN_FAILURE, payload: error.message || 'OTP verification failed' });
-      return { success: false, error: error.message };
-    }
+  const clearSuccessMessage = () => {
+    dispatch({ type: authActions.CLEAR_SUCCESS_MESSAGE });
   };
+
 
   const value = {
     user: state.user,
@@ -233,12 +227,13 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: state.isAuthenticated,
     loading: state.loading,
     error: state.error,
+    successMessage: state.successMessage,
     login,
     register,
     logout,
     clearError,
-    requestPhoneOtp,
-    verifyPhoneOtp,
+    setSuccessMessage,
+    clearSuccessMessage,
   };
 
   return (

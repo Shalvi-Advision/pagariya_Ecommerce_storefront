@@ -7,13 +7,11 @@ import Input from '../components/Input';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
-    username: '',
+    phone: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -44,16 +42,20 @@ const RegisterPage = () => {
   const validateForm = () => {
     const newErrors = {};
 
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
     }
 
     if (!formData.password) {
@@ -68,14 +70,6 @@ const RegisterPage = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -85,16 +79,12 @@ const RegisterPage = () => {
 
     if (!validateForm()) return;
 
-    // Prepare data for registration
+    // Prepare data for registration (matches API requirements)
     const registrationData = {
+      name: formData.name,
       email: formData.email,
-      username: formData.username,
-      password: formData.password,
-      name: {
-        firstname: formData.firstName,
-        lastname: formData.lastName,
-      },
       phone: formData.phone,
+      password: formData.password,
     };
 
     const result = await register(registrationData);
@@ -125,29 +115,16 @@ const RegisterPage = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="First Name"
-                name="firstName"
-                type="text"
-                value={formData.firstName}
-                onChange={handleChange}
-                error={errors.firstName}
-                placeholder="John"
-                required
-              />
-
-              <Input
-                label="Last Name"
-                name="lastName"
-                type="text"
-                value={formData.lastName}
-                onChange={handleChange}
-                error={errors.lastName}
-                placeholder="Doe"
-                required
-              />
-            </div>
+            <Input
+              label="Full Name"
+              name="name"
+              type="text"
+              value={formData.name}
+              onChange={handleChange}
+              error={errors.name}
+              placeholder="John Doe"
+              required
+            />
 
             <Input
               label="Email"
@@ -161,23 +138,14 @@ const RegisterPage = () => {
             />
 
             <Input
-              label="Username"
-              name="username"
-              type="text"
-              value={formData.username}
-              onChange={handleChange}
-              error={errors.username}
-              placeholder="johndoe"
-              required
-            />
-
-            <Input
-              label="Phone (Optional)"
+              label="Phone Number"
               name="phone"
               type="tel"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="+1 (555) 123-4567"
+              error={errors.phone}
+              placeholder="1234567890"
+              required
             />
 
             <Input

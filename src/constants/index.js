@@ -50,7 +50,7 @@ export const APP_CONSTANTS = {
   DEFAULT_LANGUAGE: 'en',
 
   // API constants
-  API_BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  API_BASE_URL: process.env.REACT_APP_API_URL || "https://ecom-api-ozl0.onrender.com/api",
   IMAGE_BASE_URL: process.env.REACT_APP_IMAGE_URL || 'http://localhost:5000/uploads',
 
   // Pagination defaults

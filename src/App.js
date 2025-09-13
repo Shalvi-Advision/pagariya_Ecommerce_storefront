@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
 // Import page components
@@ -17,9 +17,43 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAStatus from './components/PWAStatus';
+import SuccessToast from './components/SuccessToast';
 
 // Import PWA utilities
 import pwaUtils from './utils/pwa';
+
+function AppContent() {
+  const { successMessage, clearSuccessMessage } = useAuth();
+
+  return (
+    <Router>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/product/:id" element={<ProductDetailsPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </main>
+        <Footer />
+        <PWAInstallPrompt />
+        <PWAStatus />
+
+        {/* Success Toast */}
+        <SuccessToast
+          message={successMessage}
+          isVisible={!!successMessage}
+          onClose={clearSuccessMessage}
+        />
+      </div>
+    </Router>
+  );
+}
 
 function App() {
   useEffect(() => {
@@ -48,25 +82,7 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Header />
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/product/:id" element={<ProductDetailsPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </main>
-            <Footer />
-            <PWAInstallPrompt />
-            <PWAStatus />
-          </div>
-        </Router>
+        <AppContent />
       </CartProvider>
     </AuthProvider>
   );

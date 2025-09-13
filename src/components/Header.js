@@ -113,12 +113,36 @@ const Header = () => {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-4 min-w-[180px] justify-end">
-            <Link to="/login" className="hidden md:flex items-center text-gray-700 hover:text-primary-700 text-sm font-medium">
-              <span>Sign In</span>
-            </Link>
-            <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-gray-100">
-              <BellIcon className="w-6 h-6 text-primary-600" />
-            </button>
+            {isAuthenticated ? (
+              // Authenticated user actions
+              <>
+                <div className="hidden md:flex items-center gap-2">
+                  <span className="text-sm text-gray-700">Welcome, {user?.name || 'User'}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-700 hover:text-primary-700 text-sm font-medium"
+                  >
+                    Logout
+                  </button>
+                </div>
+                <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-gray-100 md:hidden">
+                  <BellIcon className="w-6 h-6 text-primary-600" />
+                </button>
+              </>
+            ) : (
+              // Unauthenticated user actions
+              <>
+                <Link to="/register" className="hidden md:flex items-center text-gray-700 hover:text-primary-700 text-sm font-medium">
+                  <span>Register</span>
+                </Link>
+                <Link to="/login" className="hidden md:flex items-center text-gray-700 hover:text-primary-700 text-sm font-medium">
+                  <span>Login</span>
+                </Link>
+                <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-gray-100 md:hidden">
+                  <BellIcon className="w-6 h-6 text-primary-600" />
+                </button>
+              </>
+            )}
             <Link to="/cart" className="relative inline-flex p-2 rounded-full hover:bg-gray-100">
               <ShoppingCartIcon className="w-6 h-6 text-primary-600" />
               {totalItems > 0 && (
