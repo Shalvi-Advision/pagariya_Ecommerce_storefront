@@ -290,7 +290,7 @@ export const fetchProductById = async (id) => {
 
 export const fetchCategories = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/categories`);
+    const response = await fetch(`${API_BASE_URL}/categories`);
     if (!response.ok) {
       throw new Error(`Failed to fetch categories: ${response.statusText}`);
     }
