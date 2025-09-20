@@ -7,15 +7,12 @@ import Input from '../components/Input';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
+    mobileNo: '',
+    projectCode: 'RET5890',
   });
   const [errors, setErrors] = useState({});
 
-  const { register, loading, error, clearError } = useAuth();
+  const { loading, error, clearError } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -42,32 +39,14 @@ const RegisterPage = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!formData.mobileNo.trim()) {
+      newErrors.mobileNo = 'Mobile number is required';
+    } else if (!/^\d{10}$/.test(formData.mobileNo.replace(/\s+/g, ''))) {
+      newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+    if (!formData.projectCode.trim()) {
+      newErrors.projectCode = 'Project code is required';
     }
 
     setErrors(newErrors);
@@ -79,19 +58,14 @@ const RegisterPage = () => {
 
     if (!validateForm()) return;
 
-    // Prepare data for registration (matches API requirements)
-    const registrationData = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password,
-    };
-
-    const result = await register(registrationData);
-
-    if (result.success) {
-      navigate('/');
-    }
+    // Navigate to OTP input page for registration
+    navigate('/otp-input', {
+      state: {
+        mobileNo: formData.mobileNo,
+        projectCode: formData.projectCode,
+        isRegistration: true, // Flag to indicate this is for registration
+      }
+    });
   };
 
   return (
@@ -107,6 +81,20 @@ const RegisterPage = () => {
           </p>
         </div>
 
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-1">Quick Registration</p>
+              <p>Enter your mobile number below. We'll send you a verification code to complete your registration.</p>
+            </div>
+          </div>
+        </div>
+
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
@@ -116,58 +104,27 @@ const RegisterPage = () => {
             )}
 
             <Input
-              label="Full Name"
-              name="name"
-              type="text"
-              value={formData.name}
-              onChange={handleChange}
-              error={errors.name}
-              placeholder="John Doe"
-              required
-            />
-
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              placeholder="john@example.com"
-              required
-            />
-
-            <Input
-              label="Phone Number"
-              name="phone"
+              label="Mobile Number"
+              name="mobileNo"
               type="tel"
-              value={formData.phone}
+              value={formData.mobileNo}
               onChange={handleChange}
-              error={errors.phone}
-              placeholder="1234567890"
+              error={errors.mobileNo}
+              placeholder="Enter 10-digit mobile number"
+              maxLength={10}
               required
             />
 
             <Input
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
+              label="Project Code"
+              name="projectCode"
+              type="text"
+              value={formData.projectCode}
               onChange={handleChange}
-              error={errors.password}
-              placeholder="Enter your password"
+              error={errors.projectCode}
+              placeholder="Enter project code"
               required
-            />
-
-            <Input
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              error={errors.confirmPassword}
-              placeholder="Confirm your password"
-              required
+              readOnly
             />
 
             <Button
@@ -176,8 +133,12 @@ const RegisterPage = () => {
               className="w-full"
               size="large"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? 'Processing...' : 'Continue with OTP'}
             </Button>
+
+            <div className="text-center text-sm text-gray-600">
+              We'll send a verification code to your mobile number to complete registration
+            </div>
           </form>
         </Card>
 

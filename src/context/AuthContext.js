@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { login as apiLogin, register as apiRegister, getCurrentUser, logout as apiLogout } from '../api/authApi';
-import { setStoredToken, clearStoredToken } from '../services/api';
+import { setStoredToken, clearStoredToken, otpAuth } from '../services/api';
 
 // Auth Context
 const AuthContext = createContext();
@@ -17,7 +17,21 @@ const authActions = {
   LOAD_USER: 'LOAD_USER',
   CLEAR_ERROR: 'CLEAR_ERROR',
   SET_SUCCESS_MESSAGE: 'SET_SUCCESS_MESSAGE',
-  CLEAR_SUCCESS_MESSAGE: 'CLEAR_SUCCESS_MESSAGE'
+  CLEAR_SUCCESS_MESSAGE: 'CLEAR_SUCCESS_MESSAGE',
+  // OTP Actions
+  OTP_REQUEST_START: 'OTP_REQUEST_START',
+  OTP_REQUEST_SUCCESS: 'OTP_REQUEST_SUCCESS',
+  OTP_REQUEST_FAILURE: 'OTP_REQUEST_FAILURE',
+  OTP_VERIFY_START: 'OTP_VERIFY_START',
+  OTP_VERIFY_SUCCESS: 'OTP_VERIFY_SUCCESS',
+  OTP_VERIFY_FAILURE: 'OTP_VERIFY_FAILURE',
+  OTP_RESET: 'OTP_RESET',
+  TOKEN_VERIFY_START: 'TOKEN_VERIFY_START',
+  TOKEN_VERIFY_SUCCESS: 'TOKEN_VERIFY_SUCCESS',
+  TOKEN_VERIFY_FAILURE: 'TOKEN_VERIFY_FAILURE',
+  TOKEN_REFRESH_START: 'TOKEN_REFRESH_START',
+  TOKEN_REFRESH_SUCCESS: 'TOKEN_REFRESH_SUCCESS',
+  TOKEN_REFRESH_FAILURE: 'TOKEN_REFRESH_FAILURE'
 };
 
 // Auth Reducer
@@ -89,6 +103,119 @@ const authReducer = (state, action) => {
         successMessage: null,
       };
 
+    // OTP Actions
+    case authActions.OTP_REQUEST_START:
+      return {
+        ...state,
+        otpLoading: true,
+        otpError: null,
+        otpSent: false,
+      };
+
+    case authActions.OTP_REQUEST_SUCCESS:
+      return {
+        ...state,
+        otpLoading: false,
+        otpSent: true,
+        otpMobile: action.payload.mobileNo,
+        otpLength: action.payload.otpLength,
+        otpExpiresIn: action.payload.expiresIn,
+      };
+
+    case authActions.OTP_REQUEST_FAILURE:
+      return {
+        ...state,
+        otpLoading: false,
+        otpError: action.payload,
+        otpSent: false,
+      };
+
+    case authActions.OTP_VERIFY_START:
+      return {
+        ...state,
+        otpVerifyLoading: true,
+        otpVerifyError: null,
+      };
+
+    case authActions.OTP_VERIFY_SUCCESS:
+      return {
+        ...state,
+        otpVerifyLoading: false,
+        user: action.payload.user,
+        token: action.payload.token,
+        isAuthenticated: true,
+        otpSent: false, // Reset OTP state after successful verification
+        otpMobile: null,
+        otpLength: null,
+        otpExpiresIn: null,
+      };
+
+    case authActions.OTP_VERIFY_FAILURE:
+      return {
+        ...state,
+        otpVerifyLoading: false,
+        otpVerifyError: action.payload,
+      };
+
+    case authActions.OTP_RESET:
+      return {
+        ...state,
+        otpSent: false,
+        otpMobile: null,
+        otpLength: null,
+        otpExpiresIn: null,
+        otpLoading: false,
+        otpError: null,
+        otpVerifyLoading: false,
+        otpVerifyError: null,
+      };
+
+    case authActions.TOKEN_VERIFY_START:
+      return {
+        ...state,
+        tokenVerifyLoading: true,
+      };
+
+    case authActions.TOKEN_VERIFY_SUCCESS:
+      return {
+        ...state,
+        tokenVerifyLoading: false,
+        user: action.payload.user,
+        token: action.payload.token,
+        isAuthenticated: true,
+      };
+
+    case authActions.TOKEN_VERIFY_FAILURE:
+      return {
+        ...state,
+        tokenVerifyLoading: false,
+        isAuthenticated: false,
+        user: null,
+        token: null,
+      };
+
+    case authActions.TOKEN_REFRESH_START:
+      return {
+        ...state,
+        tokenRefreshLoading: true,
+      };
+
+    case authActions.TOKEN_REFRESH_SUCCESS:
+      return {
+        ...state,
+        tokenRefreshLoading: false,
+        token: action.payload.token,
+      };
+
+    case authActions.TOKEN_REFRESH_FAILURE:
+      return {
+        ...state,
+        tokenRefreshLoading: false,
+        isAuthenticated: false,
+        user: null,
+        token: null,
+      };
+
     default:
       return state;
   }
@@ -102,30 +229,84 @@ const initialAuthState = {
   loading: false,
   error: null,
   successMessage: null,
+  // OTP related state
+  otpSent: false,
+  otpMobile: null,
+  otpLength: null,
+  otpExpiresIn: null,
+  otpLoading: false,
+  otpError: null,
+  otpVerifyLoading: false,
+  otpVerifyError: null,
+  tokenVerifyLoading: false,
+  tokenRefreshLoading: false,
 };
 
 // Auth Provider Component
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialAuthState);
 
-  // Load user from localStorage on mount
+  // Load user from localStorage and verify token on mount
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const user = localStorage.getItem('user');
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      const user = localStorage.getItem('user');
 
-    if (token && user) {
-      try {
-        const userData = JSON.parse(user);
-        dispatch({
-          type: authActions.LOAD_USER,
-          payload: { user: userData, token },
-        });
-      } catch (error) {
-        console.error('Error loading user from localStorage:', error);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
+      if (token && user) {
+        try {
+          const userData = JSON.parse(user);
+
+          // Verify token validity
+          dispatch({ type: authActions.TOKEN_VERIFY_START });
+          try {
+            const verifyResult = await otpAuth.verifyToken(token);
+            if (verifyResult.success && verifyResult.data.valid) {
+              dispatch({
+                type: authActions.TOKEN_VERIFY_SUCCESS,
+                payload: {
+                  user: userData,
+                  token,
+                },
+              });
+            } else {
+              // Token is invalid, try to refresh it
+              try {
+                const refreshResult = await otpAuth.refreshToken(token);
+                if (refreshResult.success) {
+                  await setStoredToken(refreshResult.data.token);
+                  dispatch({
+                    type: authActions.TOKEN_VERIFY_SUCCESS,
+                    payload: {
+                      user: userData,
+                      token: refreshResult.data.token,
+                    },
+                  });
+                } else {
+                  throw new Error('Token refresh failed');
+                }
+              } catch (refreshError) {
+                console.error('Token refresh failed:', refreshError);
+                dispatch({ type: authActions.TOKEN_VERIFY_FAILURE });
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+              }
+            }
+          } catch (verifyError) {
+            console.error('Token verification failed:', verifyError);
+            dispatch({ type: authActions.TOKEN_VERIFY_FAILURE });
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+          }
+        } catch (error) {
+          console.error('Error loading user from localStorage:', error);
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+          dispatch({ type: authActions.TOKEN_VERIFY_FAILURE });
+        }
       }
-    }
+    };
+
+    initializeAuth();
   }, []);
 
   // Authentication actions
@@ -262,7 +443,119 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // OTP Authentication Methods
+  const getOtp = async (mobileNo) => {
+    dispatch({ type: authActions.OTP_REQUEST_START });
+
+    try {
+      const result = await otpAuth.getOtp(mobileNo);
+
+      if (result.success) {
+        dispatch({
+          type: authActions.OTP_REQUEST_SUCCESS,
+          payload: {
+            mobileNo: result.data.mobile_no,
+            otpLength: result.data.otp_length,
+            expiresIn: result.data.expires_in,
+          },
+        });
+        return { success: true, data: result.data };
+      } else {
+        throw new Error(result.message || 'Failed to send OTP');
+      }
+    } catch (error) {
+      const errorMessage = error.message || error.error || 'Failed to send OTP';
+      dispatch({
+        type: authActions.OTP_REQUEST_FAILURE,
+        payload: errorMessage,
+      });
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const validateOtp = async (mobileNo, otp) => {
+    dispatch({ type: authActions.OTP_VERIFY_START });
+
+    try {
+      const result = await otpAuth.validateOtp(mobileNo, otp);
+
+      if (result.success && result.data.user_authenticated) {
+        // Create user object from token data
+        const user = {
+          mobile_no: result.data.mobile_no,
+          user_type: result.data.user_type || 'customer',
+          login_time: result.data.login_time,
+        };
+
+        // Store token and user data
+        await setStoredToken(result.data.token);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        dispatch({
+          type: authActions.OTP_VERIFY_SUCCESS,
+          payload: {
+            user,
+            token: result.data.token,
+          },
+        });
+
+        setSuccessMessage('Login successful!');
+        return { success: true, data: result.data };
+      } else {
+        throw new Error(result.message || 'OTP validation failed');
+      }
+    } catch (error) {
+      const errorMessage = error.message || error.error || 'OTP validation failed';
+      dispatch({
+        type: authActions.OTP_VERIFY_FAILURE,
+        payload: errorMessage,
+      });
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const verifyToken = async (token) => {
+    try {
+      const result = await otpAuth.verifyToken(token);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const refreshToken = async (token) => {
+    dispatch({ type: authActions.TOKEN_REFRESH_START });
+
+    try {
+      const result = await otpAuth.refreshToken(token);
+
+      if (result.success) {
+        await setStoredToken(result.data.token);
+        dispatch({
+          type: authActions.TOKEN_REFRESH_SUCCESS,
+          payload: {
+            token: result.data.token,
+          },
+        });
+        return { success: true, data: result.data };
+      } else {
+        throw new Error(result.message || 'Token refresh failed');
+      }
+    } catch (error) {
+      const errorMessage = error.message || error.error || 'Token refresh failed';
+      dispatch({
+        type: authActions.TOKEN_REFRESH_FAILURE,
+      });
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const resetOtp = () => {
+    dispatch({ type: authActions.OTP_RESET });
+  };
+
   const value = {
+    // Legacy authentication
     user: state.user,
     token: state.token,
     isAuthenticated: state.isAuthenticated,
@@ -276,6 +569,22 @@ export const AuthProvider = ({ children }) => {
     clearError,
     setSuccessMessage,
     clearSuccessMessage,
+    // OTP authentication
+    otpSent: state.otpSent,
+    otpMobile: state.otpMobile,
+    otpLength: state.otpLength,
+    otpExpiresIn: state.otpExpiresIn,
+    otpLoading: state.otpLoading,
+    otpError: state.otpError,
+    otpVerifyLoading: state.otpVerifyLoading,
+    otpVerifyError: state.otpVerifyError,
+    tokenVerifyLoading: state.tokenVerifyLoading,
+    tokenRefreshLoading: state.tokenRefreshLoading,
+    getOtp,
+    validateOtp,
+    verifyToken,
+    refreshToken,
+    resetOtp,
   };
 
   return (

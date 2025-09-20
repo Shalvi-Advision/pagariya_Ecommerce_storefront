@@ -150,3 +150,5 @@ To test the implementation:
 - **Desktop**: > 1024px (4 columns, sticky sidebar)
 
 The implementation ensures a seamless experience across all device sizes while maintaining the design fidelity shown in the screenshot.
+
+

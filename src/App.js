@@ -11,6 +11,8 @@ import ProductDetailsPage from './pages/ProductDetailsPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import OtpInputPage from './pages/OtpInputPage';
+import OtpVerifyPage from './pages/OtpVerifyPage';
 import CheckoutPage from './pages/CheckoutPage';
 import ProfilePage from './pages/ProfilePage';
 import AddressPage from './pages/AddressPage';
@@ -51,6 +53,8 @@ function AppContent() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/otp-input" element={<OtpInputPage />} />
+            <Route path="/otp-verify" element={<OtpVerifyPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/address" element={<AddressPage />} />
