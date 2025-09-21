@@ -11,11 +11,9 @@ const OtpInputPage = () => {
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
   const initialMobileNo = location.state?.mobileNo || '';
-  const initialProjectCode = location.state?.projectCode || 'RET5890';
 
   const [formData, setFormData] = useState({
     mobileNo: initialMobileNo,
-    projectCode: initialProjectCode,
   });
   const [errors, setErrors] = useState({});
   const [countdown, setCountdown] = useState(0);
@@ -45,9 +43,8 @@ const OtpInputPage = () => {
   useEffect(() => {
     setFormData({
       mobileNo: initialMobileNo,
-      projectCode: initialProjectCode,
     });
-  }, [initialMobileNo, initialProjectCode]);
+  }, [initialMobileNo]);
 
   // Redirect if OTP is already sent
   useEffect(() => {
@@ -90,10 +87,6 @@ const OtpInputPage = () => {
       newErrors.mobileNo = 'Mobile number is required';
     } else if (!/^\d{10}$/.test(formData.mobileNo.replace(/\s+/g, ''))) {
       newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
-    }
-
-    if (!formData.projectCode.trim()) {
-      newErrors.projectCode = 'Project code is required';
     }
 
     setErrors(newErrors);
@@ -162,18 +155,6 @@ const OtpInputPage = () => {
               placeholder="Enter 10-digit mobile number"
               required
               maxLength={10}
-            />
-
-            <Input
-              label="Project Code"
-              name="projectCode"
-              type="text"
-              value={formData.projectCode}
-              onChange={handleChange}
-              error={errors.projectCode}
-              placeholder="Enter project code"
-              required
-              readOnly
             />
 
             <Button

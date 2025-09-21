@@ -3,7 +3,7 @@ import axios from 'axios';
 import { APP_CONSTANTS } from '../constants';
 
 // OTP Authentication Configuration
-const OTP_PROJECT_CODE = "RET5890";
+const OTP_PROJECT_CODE = "RET90";
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
 // Create axios instance with base configuration
@@ -134,6 +134,20 @@ export const apiPost = async (endpoint, data) => {
   }
 };
 
+// POST method that automatically includes project code
+export const postWithProjectCode = async (endpoint, data) => {
+  try {
+    const dataWithProjectCode = {
+      ...data,
+      project_code: OTP_PROJECT_CODE
+    };
+    const response = await api.post(endpoint, dataWithProjectCode);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 export const apiGet = async (endpoint, params = {}) => {
   try {
     const response = await api.get(endpoint, { params });
@@ -166,11 +180,9 @@ export const otpAuth = {
   // Get OTP for mobile number
   getOtp: async (mobileNo) => {
     try {
-      const response = await api.post('/auth/get_otp', {
+      return await postWithProjectCode('/auth/get_otp', {
         mobileNo: mobileNo.replace(/\s+/g, ''), // Remove spaces
-        project_code: OTP_PROJECT_CODE
       });
-      return response.data;
     } catch (error) {
       throw error.response?.data || error;
     }
@@ -179,12 +191,10 @@ export const otpAuth = {
   // Validate OTP and get token
   validateOtp: async (mobileNo, otp) => {
     try {
-      const response = await api.post('/auth/validate_otp', {
+      return await postWithProjectCode('/auth/validate_otp', {
         mobileNo: mobileNo.replace(/\s+/g, ''), // Remove spaces
         otp: otp.replace(/\s+/g, ''), // Remove spaces
-        project_code: OTP_PROJECT_CODE
       });
-      return response.data;
     } catch (error) {
       throw error.response?.data || error;
     }

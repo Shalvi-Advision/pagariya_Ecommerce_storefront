@@ -12,7 +12,6 @@ const LoginPage = () => {
     email: '',
     password: '',
     mobileNo: '',
-    projectCode: 'RET5890',
   });
   const [errors, setErrors] = useState({});
 
@@ -62,18 +61,14 @@ const LoginPage = () => {
       if (!formData.password) {
         newErrors.password = 'Password is required';
       }
-    } else {
-      // OTP login validation
-      if (!formData.mobileNo.trim()) {
-        newErrors.mobileNo = 'Mobile number is required';
-      } else if (!/^\d{10}$/.test(formData.mobileNo.replace(/\s+/g, ''))) {
-        newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
+      } else {
+        // OTP login validation
+        if (!formData.mobileNo.trim()) {
+          newErrors.mobileNo = 'Mobile number is required';
+        } else if (!/^\d{10}$/.test(formData.mobileNo.replace(/\s+/g, ''))) {
+          newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
+        }
       }
-
-      if (!formData.projectCode.trim()) {
-        newErrors.projectCode = 'Project code is required';
-      }
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -95,7 +90,6 @@ const LoginPage = () => {
       navigate('/otp-input', {
         state: {
           mobileNo: formData.mobileNo,
-          projectCode: formData.projectCode,
           from
         }
       });
@@ -204,18 +198,6 @@ const LoginPage = () => {
                   placeholder="Enter 10-digit mobile number"
                   maxLength={10}
                   required
-                />
-
-                <Input
-                  label="Project Code"
-                  name="projectCode"
-                  type="text"
-                  value={formData.projectCode}
-                  onChange={handleChange}
-                  error={errors.projectCode}
-                  placeholder="Enter project code"
-                  required
-                  readOnly
                 />
 
                 <Button

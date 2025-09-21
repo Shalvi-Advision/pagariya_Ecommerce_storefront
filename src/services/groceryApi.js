@@ -11,6 +11,10 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // API Base URL (replace with actual API URL in production)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
+// Project configuration
+const PROJECT_CODE = process.env.REACT_APP_PROJECT_CODE || 'your_project_code';
+const STORE_CODE = process.env.REACT_APP_STORE_CODE || 'your_store_code';
+
 class GroceryApiService {
   // Get all categories
   async getCategories() {
@@ -238,11 +242,113 @@ class GroceryApiService {
       };
     }
   }
+
+  // Get active departments
+  async getActiveDepartments() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/departments/get_active_department_list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_code: PROJECT_CODE
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch departments',
+        error: error.message
+      };
+    }
+  }
+
+  // Get active categories for a department
+  async getActiveCategories(departmentId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories/get_active_categories_list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          department_id: departmentId,
+          store_code: STORE_CODE,
+          project_code: PROJECT_CODE
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch categories',
+        error: error.message
+      };
+    }
+  }
+
 }
 
 // Create and export a singleton instance
 const groceryApiService = new GroceryApiService();
 export default groceryApiService;
+
+// Standalone function for getting departments with categories
+export const getDepartmentsWithCategories = async () => {
+  try {
+    // First get all departments
+    const departmentsResponse = await groceryApiService.getActiveDepartments();
+    
+    if (!departmentsResponse.success) {
+      return departmentsResponse;
+    }
+
+    const departments = departmentsResponse.data;
+    const departmentsWithCategories = [];
+
+    // For each department, get its categories
+    for (const department of departments) {
+      const categoriesResponse = await groceryApiService.getActiveCategories(department.department_id);
+      
+      departmentsWithCategories.push({
+        ...department,
+        categories: categoriesResponse.success ? categoriesResponse.data : []
+      });
+    }
+
+    return {
+      success: true,
+      data: departmentsWithCategories,
+      message: 'Departments with categories fetched successfully'
+    };
+  } catch (error) {
+    console.error('Error fetching departments with categories:', error);
+    return {
+      success: false,
+      data: [],
+      message: 'Failed to fetch departments with categories',
+      error: error.message
+    };
+  }
+};
 
 // Export individual methods for convenience
 export const {
@@ -251,5 +357,7 @@ export const {
   getAllProducts,
   searchProducts,
   getProductById,
-  getBrandsByCategory
+  getBrandsByCategory,
+  getActiveDepartments,
+  getActiveCategories
 } = groceryApiService;

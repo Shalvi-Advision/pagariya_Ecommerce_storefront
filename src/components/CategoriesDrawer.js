@@ -1,17 +1,76 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { getDepartmentsWithCategories } from '../services/groceryApi';
 
 const CategoriesDrawer = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   const handleCategoryClick = (categoryName) => {
     const categorySlug = categoryName.toLowerCase().replace(/\s+/g, '-');
     navigate(`/category/${categorySlug}`);
     onClose();
   };
-  
-  const categories = [
+
+  // Icon mapping for departments
+  const getDepartmentIcon = (departmentName) => {
+    const iconMap = {
+      'GROCERY & STAPLES': '🛒',
+      'FRUITS & VEGETABLES': '🥕',
+      'DAIRY & BEVERAGES': '🥛',
+      'PACKAGED FOOD': '📦',
+      'PERSONAL CARE': '💄',
+      'HOME & KITCHEN': '🏠',
+      'CLEANING SUPPLIES': '🧽',
+      'BABY CARE': '👶',
+      'PET CARE': '🐾',
+      'HEALTH & WELLNESS': '💊',
+      'HOUSEHOLD ITEMS': '🏠',
+      'STATIONERY & OFFICE': '✏️',
+      'AUTOMOTIVE': '🚗',
+      'ELECTRONICS': '📱',
+      'FASHION & CLOTHING': '👕',
+      'HOME FURNISHING': '🛏️',
+      'BOOKS & MEDIA': '📚',
+      'SPORTS & FITNESS': '⚽',
+      'GARDEN & OUTDOOR': '🌱',
+      'TOYS & GAMES': '🎮',
+      'JEWELRY & WATCHES': '💍'
+    };
+    return iconMap[departmentName] || '📦';
+  };
+
+  // Load departments and categories from API
+  useEffect(() => {
+    const loadDepartments = async () => {
+      if (!isOpen) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await getDepartmentsWithCategories();
+        if (response.success) {
+          setDepartments(response.data);
+        } else {
+          setError(response.message || 'Failed to load departments');
+        }
+      } catch (err) {
+        setError('Failed to load departments');
+        console.error('Error loading departments:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDepartments();
+  }, [isOpen]);
+
+  // Fallback categories for when API fails
+  const fallbackCategories = [
     {
       name: "GROCERY & STAPLES",
       icon: "🛒",
@@ -194,6 +253,13 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
     }
   ];
 
+  // Use API data if available, otherwise fallback to hardcoded categories
+  const categories = departments.length > 0 ? departments.map(dept => ({
+    name: dept.department_name,
+    icon: getDepartmentIcon(dept.department_name),
+    subcategories: dept.categories.map(cat => cat.category_name)
+  })) : fallbackCategories;
+
   if (!isOpen) return null;
 
   return (
@@ -223,30 +289,53 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
 
         {/* Categories Grid */}
         <div className="h-full overflow-y-auto bg-white" style={{ height: 'calc(100vh - 6rem)' }}>
-          <div className="grid grid-cols-5 gap-0 p-6">
-            {categories.map((category, index) => (
-              <div key={index} className="border-r border-gray-100 last:border-r-0 pr-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">{category.icon}</span>
-                  <h3 className="font-semibold text-gray-800 text-sm leading-tight">
-                    {category.name}
-                  </h3>
-                </div>
-                <ul className="space-y-1">
-                  {category.subcategories.map((subcategory, subIndex) => (
-                    <li key={subIndex}>
-                      <button 
-                        onClick={() => handleCategoryClick(subcategory)}
-                        className="text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-50 w-full text-left py-1 px-2 rounded transition-colors"
-                      >
-                        {subcategory}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading categories...</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="text-red-500 text-4xl mb-4">⚠️</div>
+                <p className="text-red-600 mb-2">Failed to load categories</p>
+                <p className="text-gray-500 text-sm">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-5 gap-0 p-6">
+              {categories.map((category, index) => (
+                <div key={index} className="border-r border-gray-100 last:border-r-0 pr-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">{category.icon}</span>
+                    <h3 className="font-semibold text-gray-800 text-sm leading-tight">
+                      {category.name}
+                    </h3>
+                  </div>
+                  <ul className="space-y-1">
+                    {category.subcategories.map((subcategory, subIndex) => (
+                      <li key={subIndex}>
+                        <button 
+                          onClick={() => handleCategoryClick(subcategory)}
+                          className="text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-50 w-full text-left py-1 px-2 rounded transition-colors"
+                        >
+                          {subcategory}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -8,7 +8,6 @@ import Input from '../components/Input';
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     mobileNo: '',
-    projectCode: 'RET5890',
   });
   const [errors, setErrors] = useState({});
 
@@ -45,10 +44,6 @@ const RegisterPage = () => {
       newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
     }
 
-    if (!formData.projectCode.trim()) {
-      newErrors.projectCode = 'Project code is required';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -62,7 +57,6 @@ const RegisterPage = () => {
     navigate('/otp-input', {
       state: {
         mobileNo: formData.mobileNo,
-        projectCode: formData.projectCode,
         isRegistration: true, // Flag to indicate this is for registration
       }
     });
@@ -113,18 +107,6 @@ const RegisterPage = () => {
               placeholder="Enter 10-digit mobile number"
               maxLength={10}
               required
-            />
-
-            <Input
-              label="Project Code"
-              name="projectCode"
-              type="text"
-              value={formData.projectCode}
-              onChange={handleChange}
-              error={errors.projectCode}
-              placeholder="Enter project code"
-              required
-              readOnly
             />
 
             <Button
