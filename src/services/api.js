@@ -2,9 +2,13 @@
 import axios from 'axios';
 import { APP_CONSTANTS } from '../constants';
 
+// OTP Authentication Configuration
+const OTP_PROJECT_CODE = "RET5890";
+const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
+
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: APP_CONSTANTS.API_BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -153,6 +157,91 @@ export const apiDelete = async (endpoint) => {
     const response = await api.delete(endpoint);
     return response.data;
   } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+// OTP Authentication API Methods
+export const otpAuth = {
+  // Get OTP for mobile number
+  getOtp: async (mobileNo) => {
+    try {
+      const response = await api.post('/auth/get_otp', {
+        mobileNo: mobileNo.replace(/\s+/g, ''), // Remove spaces
+        project_code: OTP_PROJECT_CODE
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Validate OTP and get token
+  validateOtp: async (mobileNo, otp) => {
+    try {
+      const response = await api.post('/auth/validate_otp', {
+        mobileNo: mobileNo.replace(/\s+/g, ''), // Remove spaces
+        otp: otp.replace(/\s+/g, ''), // Remove spaces
+        project_code: OTP_PROJECT_CODE
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Verify token validity
+  verifyToken: async (token) => {
+    try {
+      const response = await api.post('/auth/verify_token', {
+        token
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Refresh token
+  refreshToken: async (token) => {
+    try {
+      const response = await api.post('/auth/refresh_token', {
+        token
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
+};
+
+// Centralized postAuth method that handles authentication automatically
+export const postAuth = async (endpoint, data, useToken = true) => {
+  try {
+    const config = {};
+
+    // Add authorization header if token exists and useToken is true
+    if (useToken) {
+      const token = getStoredToken();
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`
+        };
+      }
+    }
+
+    const response = await api.post(endpoint, data, config);
+    return response.data;
+  } catch (error) {
+    // Handle token expiration
+    if (error.response?.status === 401 && useToken) {
+      // Clear stored token on authentication error
+      clearStoredToken();
+      // Optionally redirect to login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
     throw error.response?.data || error;
   }
 };

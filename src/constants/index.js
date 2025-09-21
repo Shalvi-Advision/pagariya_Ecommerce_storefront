@@ -41,6 +41,11 @@ export {
   SCREEN_SIZES,
 } from './responsive';
 
+export {
+  RESPONSIVE_COMPONENT_PATTERNS,
+  COMMON_RESPONSIVE_PATTERNS,
+} from './responsive-design-guide';
+
 // Common constant combinations for easy use
 export const APP_CONSTANTS = {
   // App-wide constants

@@ -1,0 +1,146 @@
+{
+    "categories": [
+      {
+        "name": "Dals",
+        "count": 48,
+        "subcategories": [
+          "Chana Dal",
+          "Moong Dal",
+          "Tur Dal",
+          "Urad Dal",
+          "Masoor Dal",
+          "Daliya",
+          "Mix Dal"
+        ]
+      },
+      {
+        "name": "Pulses",
+        "count": 67,
+        "subcategories": []
+      },
+      {
+        "name": "Dry Fruits",
+        "count": 148,
+        "subcategories": []
+      },
+      {
+        "name": "DMart Grocery",
+        "count": 99,
+        "subcategories": []
+      },
+      {
+        "name": "Cooking Oil",
+        "count": 98,
+        "subcategories": []
+      },
+      {
+        "name": "Ghee & Vanaspati",
+        "count": 41,
+        "subcategories": []
+      },
+      {
+        "name": "Flours & Grains",
+        "count": 84,
+        "subcategories": []
+      }
+    ],
+    "products": [
+      {
+        "id": 1,
+        "name": "DMart Premia Chana Dal",
+        "subcategory": "Chana Dal",
+        "brand": "DMart",
+        "mrp": 138,
+        "price": 106,
+        "discount": 32,
+        "weightOptions": ["1 kg"],
+        "selectedWeight": "1 kg",
+        "image": "premia-chana-dal.jpg"
+      },
+      {
+        "id": 2,
+        "name": "DMart Swaad Chana Dal",
+        "subcategory": "Chana Dal",
+        "brand": "DMart",
+        "mrp": 131,
+        "price": 91,
+        "discount": 40,
+        "weightOptions": ["1 kg"],
+        "selectedWeight": "1 kg",
+        "image": "swaad-chana-dal.jpg"
+      },
+      {
+        "id": 3,
+        "name": "Tata Sampann Chana Dal",
+        "subcategory": "Chana Dal",
+        "brand": "Tata",
+        "mrp": 75,
+        "price": 66,
+        "discount": 9,
+        "weightOptions": ["500 g"],
+        "selectedWeight": "500 g",
+        "image": "tata-chana-dal.jpg"
+      },
+      {
+        "id": 4,
+        "name": "Tata Sampann Organic Unpolished Chana Dal",
+        "subcategory": "Chana Dal",
+        "brand": "Tata",
+        "mrp": 222,
+        "price": 196,
+        "discount": 26,
+        "weightOptions": ["1 kg"],
+        "selectedWeight": "1 kg",
+        "image": "tata-organic-chana-dal.jpg"
+      },
+      {
+        "id": 5,
+        "name": "DMart Premia Moong Dal",
+        "subcategory": "Moong Dal",
+        "brand": "DMart",
+        "mrp": 125,
+        "price": 95,
+        "discount": 30,
+        "weightOptions": ["1 kg"],
+        "selectedWeight": "1 kg",
+        "image": "premia-moong-dal.jpg"
+      },
+      {
+        "id": 6,
+        "name": "Tata Sampann Moong Dal",
+        "subcategory": "Moong Dal",
+        "brand": "Tata",
+        "mrp": 85,
+        "price": 72,
+        "discount": 13,
+        "weightOptions": ["500 g", "1 kg"],
+        "selectedWeight": "500 g",
+        "image": "tata-moong-dal.jpg"
+      },
+      {
+        "id": 7,
+        "name": "DMart Swaad Tur Dal",
+        "subcategory": "Tur Dal",
+        "brand": "DMart",
+        "mrp": 145,
+        "price": 110,
+        "discount": 35,
+        "weightOptions": ["1 kg"],
+        "selectedWeight": "1 kg",
+        "image": "swaad-tur-dal.jpg"
+      },
+      {
+        "id": 8,
+        "name": "Tata Sampann Tur Dal",
+        "subcategory": "Tur Dal",
+        "brand": "Tata",
+        "mrp": 95,
+        "price": 78,
+        "discount": 17,
+        "weightOptions": ["500 g", "1 kg"],
+        "selectedWeight": "500 g",
+        "image": "tata-tur-dal.jpg"
+      }
+    ]
+  }
+  

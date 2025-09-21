@@ -1,4 +1,4 @@
-import React from 'react';
+//*import React from 'react';
 import { APP_CONSTANTS } from '../constants';
 
 const DebugInfo = () => {
@@ -18,3 +18,4 @@ const DebugInfo = () => {
 };
 
 export default DebugInfo;
+

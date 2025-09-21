@@ -1,8 +1,16 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 
 const PopularCategories = () => {
   const categories = [
+    {
+      name: "Dals",
+      icon: "🫘",
+      color: "bg-orange-50",
+      iconColor: "text-orange-600",
+      link: "/category/dals"
+    },
     {
       name: "Dairy",
       icon: "🥛",
@@ -88,23 +96,29 @@ const PopularCategories = () => {
           
           <div className="relative">
             <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {categories.map((category, index) => (
-                <div
-                  key={index}
-                  className="flex-shrink-0 w-32 h-32 bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-xl hover:border-green-200 transition-all duration-300 cursor-pointer group"
-                >
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <div className={`w-16 h-16 rounded-2xl ${category.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-                      <span className={`text-5xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
-                        {category.icon}
+              {categories.map((category, index) => {
+                const CategoryComponent = category.link ? Link : 'div';
+                const categoryProps = category.link ? { to: category.link } : {};
+                
+                return (
+                  <CategoryComponent
+                    key={index}
+                    {...categoryProps}
+                    className="flex-shrink-0 w-32 h-32 bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-xl hover:border-green-200 transition-all duration-300 cursor-pointer group"
+                  >
+                    <div className="flex flex-col items-center justify-center h-full p-4">
+                      <div className={`w-16 h-16 rounded-2xl ${category.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+                        <span className={`text-5xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
+                          {category.icon}
+                        </span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-green-600 transition-colors duration-200">
+                        {category.name}
                       </span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-green-600 transition-colors duration-200">
-                      {category.name}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  </CategoryComponent>
+                );
+              })}
             </div>
             
             {/* Enhanced Scroll Arrow */}

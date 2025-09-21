@@ -1,7 +1,16 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const CategoriesDrawer = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
+  
+  const handleCategoryClick = (categoryName) => {
+    const categorySlug = categoryName.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/category/${categorySlug}`);
+    onClose();
+  };
+  
   const categories = [
     {
       name: "GROCERY & STAPLES",
@@ -226,7 +235,10 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
                 <ul className="space-y-1">
                   {category.subcategories.map((subcategory, subIndex) => (
                     <li key={subIndex}>
-                      <button className="text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-50 w-full text-left py-1 px-2 rounded transition-colors">
+                      <button 
+                        onClick={() => handleCategoryClick(subcategory)}
+                        className="text-xs text-gray-600 hover:text-primary-600 hover:bg-gray-50 w-full text-left py-1 px-2 rounded transition-colors"
+                      >
                         {subcategory}
                       </button>
                     </li>

@@ -29,10 +29,10 @@ const Modal = ({
   if (!isOpen) return null;
 
   const sizes = {
-    small: 'max-w-md',
-    medium: 'max-w-lg',
-    large: 'max-w-2xl',
-    full: 'max-w-4xl'
+    small: 'max-w-sm sm:max-w-md',
+    medium: 'max-w-sm sm:max-w-lg',
+    large: 'max-w-sm sm:max-w-2xl lg:max-w-4xl',
+    full: 'max-w-full sm:max-w-4xl'
   };
 
   return (
@@ -45,7 +45,7 @@ const Modal = ({
         ></div>
 
         {/* Modal panel */}
-        <div className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle ${sizes[size]} w-full`}>
+        <div className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle ${sizes[size]} w-full mx-4`}>
           {/* Header */}
           {title && (
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
