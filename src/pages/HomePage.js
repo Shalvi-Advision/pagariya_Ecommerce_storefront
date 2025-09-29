@@ -7,8 +7,14 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Loading from '../components/Loading';
 import Carousel from '../components/Carousel';
+import GSTBanner from '../components/GSTBanner';
+import CategoryBanner from '../components/CategoryBanner';
+import DealsSection from '../components/DealsSection';
 import PopularCategories from '../components/PopularCategories';
-import SeasonalCategories from '../components/SeasonalCategories';
+import FestiveBanner from '../components/FestiveBanner';
+import FestiveSpecials from '../components/FestiveSpecials';
+import OfferBanner from '../components/OfferBanner';
+import SeasonalOfferBanner from '../components/SeasonalOfferBanner';
 import ProductCard from '../components/ProductCard';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
@@ -145,24 +151,68 @@ const HomePage = () => {
   return (
     <div>
       {/* Hero Carousel */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-4 sm:py-8 lg:py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg border border-gray-100 overflow-hidden">
-            <Carousel />
+      <div className="w-full">
+        <Carousel />
+      </div>
+
+      {/* GST Banner */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-2 sm:py-4 lg:py-6">
+        <div className="container mx-auto px-1 sm:px-2 lg:px-4">
+          <div className="bg-white rounded-2xl p-1 sm:p-2 lg:p-3 shadow-lg border border-gray-100 overflow-hidden">
+            <GSTBanner />
           </div>
         </div>
       </div>
 
+      {/* Category Banner */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-2 sm:py-4 lg:py-6">
+        <div className="container mx-auto px-1 sm:px-2 lg:px-4">
+          <div className="bg-white rounded-2xl p-1 sm:p-2 lg:p-3 shadow-lg border border-gray-100 overflow-hidden">
+            <CategoryBanner />
+          </div>
+        </div>
+      </div>
+
+      {/* Deals Section */}
+      <DealsSection />
+
       {/* Popular Categories */}
       <PopularCategories />
 
-      {/* Seasonal Categories */}
-      <SeasonalCategories />
+      {/* Festive Banner */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-2 sm:py-4 lg:py-6">
+        <div className="container mx-auto px-1 sm:px-2 lg:px-4">
+          <div className="bg-white rounded-2xl p-1 sm:p-2 lg:p-3 shadow-lg border border-gray-100 overflow-hidden">
+            <FestiveBanner />
+          </div>
+        </div>
+      </div>
+
+      {/* Festive Specials */}
+      <FestiveSpecials />
+
+      {/* Offer Banner */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-2 sm:py-4 lg:py-6">
+        <div className="container mx-auto px-1 sm:px-2 lg:px-4">
+          <div className="bg-white rounded-2xl p-1 sm:p-2 lg:p-3 shadow-lg border border-gray-100 overflow-hidden">
+            <OfferBanner />
+          </div>
+        </div>
+      </div>
+
+      {/* Seasonal Offer Banner */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-2 sm:py-4 lg:py-6">
+        <div className="container mx-auto px-1 sm:px-2 lg:px-4">
+          <div className="bg-white rounded-2xl p-1 sm:p-2 lg:p-3 shadow-lg border border-gray-100 overflow-hidden">
+            <SeasonalOfferBanner />
+          </div>
+        </div>
+      </div>
 
       {/* Products Section */}
       <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-8 sm:py-12 lg:py-16" id="products">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-lg border border-gray-100">
+        <div className="container mx-auto px-1 sm:px-2 lg:px-4">
+          <div className="bg-white rounded-2xl p-1 sm:p-2 lg:p-3 shadow-lg border border-gray-100">
             <div className="text-center mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Fresh Products</h2>
               <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto px-4">
