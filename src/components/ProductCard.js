@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCartIcon, MinusIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, MinusIcon, PlusIcon, XMarkIcon, HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
+import { useFavorite } from '../context/FavoriteContext';
 
 // Utility function to safely render values (with fallbacks)
 const safeValue = (value, defaultValue = '') => {
@@ -13,6 +15,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   const [showQuantitySelector, setShowQuantitySelector] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorite();
 
   // Debug: Log the raw product data
   console.log('🔍 ProductCard received product data:', product);
@@ -132,6 +135,33 @@ const ProductCard = ({ product, onAddToCart }) => {
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: '420px' }}>
       {/* Image Container */}
       <div className="relative bg-gradient-to-br from-orange-50 to-orange-100 h-40 flex items-center justify-center p-6 flex-shrink-0">
+        {/* Favorite Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            if (isFavorite(safeId)) {
+              removeFromFavorites(safeId);
+            } else {
+              addToFavorites({
+                id: safeId,
+                name: safeName,
+                price: safePrice,
+                image: safeImage,
+                brand: safeBrandName,
+                packageSize: `${safePackageSize} ${safePackageUnit}`,
+                mrp: safeMrp,
+                discountPercentage: safeDiscountPercentage
+              });
+            }
+          }}
+          className="absolute bottom-3 right-3 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:shadow-lg transition-all duration-200 group"
+        >
+          {isFavorite(safeId) ? (
+            <HeartSolid className="w-5 h-5 text-red-500" />
+          ) : (
+            <HeartOutline className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors duration-200" />
+          )}
+        </button>
         <Link 
           to={`/product/${safePcode}`} 
           className="block w-full h-full flex items-center justify-center"

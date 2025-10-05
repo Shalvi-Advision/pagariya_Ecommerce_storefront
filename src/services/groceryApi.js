@@ -340,6 +340,43 @@ class GroceryApiService {
     }
   }
 
+  // Get active categories by department name
+  async getActiveCategoriesByDepartmentName(departmentName) {
+    try {
+      // First get all departments to find the department ID
+      const departmentsResponse = await this.getActiveDepartments();
+      
+      if (!departmentsResponse.success) {
+        return departmentsResponse;
+      }
+
+      // Find the department by name
+      const department = departmentsResponse.data.find(dept => 
+        dept.department_name.toLowerCase() === departmentName.toLowerCase()
+      );
+
+      if (!department) {
+        return {
+          success: false,
+          data: [],
+          message: 'Department not found'
+        };
+      }
+
+      // Get categories for this department
+      return await this.getActiveCategories(department.department_id);
+    } catch (error) {
+      console.error('Error fetching categories by department name:', error);
+      
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch categories by department name',
+        error: error.message
+      };
+    }
+  }
+
 }
 
 // Create and export a singleton instance

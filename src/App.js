@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { CartDrawerProvider, useCartDrawer } from './context/CartDrawerContext';
 import { OrderProvider } from './context/OrderContext';
 import { PincodeProvider, usePincode } from './context/PincodeContext';
+import { FavoriteProvider } from './context/FavoriteContext';
 
 // Import page components
 import HomePage from './pages/HomePage';
@@ -24,6 +25,7 @@ import SavedListPage from './pages/SavedListPage';
 import CategoryPage from './pages/CategoryPage';
 import TestCategoryPage from './pages/TestCategoryPage';
 import NotFoundPage from './pages/NotFoundPage';
+import FavoritesPage from './pages/FavoritesPage';
 
 // Import components
 import Header from './components/Header';
@@ -84,6 +86,7 @@ function AppContent() {
             <Route path="/category/:categoryName" element={<CategoryPage />} />
             <Route path="/category" element={<CategoryPage />} />
             <Route path="/test-category" element={<TestCategoryPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
@@ -164,7 +167,9 @@ function App() {
         <CartDrawerProvider>
           <OrderProvider>
             <PincodeProvider>
-              <AppContent />
+              <FavoriteProvider>
+                <AppContent />
+              </FavoriteProvider>
             </PincodeProvider>
           </OrderProvider>
         </CartDrawerProvider>

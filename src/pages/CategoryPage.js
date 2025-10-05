@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
 import GroceryProductCard from '../components/GroceryProductCard';
 import { ChevronDownIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { getProducts } from '../api/productsApi';
 import groceryApiService from '../services/groceryApi';
 
 const CategoryPage = () => {
@@ -11,70 +12,106 @@ const CategoryPage = () => {
   const { isMobile, isTablet, isDesktop } = useResponsive();
   
   // State management
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sortBy, setSortBy] = useState('relevance');
   const [filters, setFilters] = useState({
     brand: '',
     category: '',
-    type: '',
-    properties: '',
-    weight: '',
-    availability: ''
+    colour: '',
+    material: '',
+    capacity: '',
+    warranty: '',
+    volume: '',
+    dimension: ''
   });
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total_products: 0,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false
+  });
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Load categories on component mount
+  // Convert category slug back to department name
+  const getDepartmentNameFromSlug = (slug) => {
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Load department and categories on component mount
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadDepartmentData = async () => {
       try {
         setLoading(true);
-        const response = await groceryApiService.getCategories();
+        const departmentName = getDepartmentNameFromSlug(categoryName);
+        setSelectedDepartment(departmentName);
+        
+        // Load categories for this department
+        const response = await groceryApiService.getActiveCategoriesByDepartmentName(departmentName);
         if (response.success) {
           setCategories(response.data);
         } else {
-          setError(response.message);
+          // Fallback to dummy categories if API fails
+          setCategories([
+            { category_name: 'Cooker', category_id: 1, product_count: 45 },
+            { category_name: 'Kadai / Handi / Pans', category_id: 2, product_count: 78 },
+            { category_name: 'Cookware Sets', category_id: 3, product_count: 32 },
+            { category_name: 'Pressure Cookers', category_id: 4, product_count: 56 },
+            { category_name: 'Non-Stick Cookware', category_id: 5, product_count: 67 },
+            { category_name: 'Stainless Steel Cookware', category_id: 6, product_count: 43 }
+          ]);
         }
       } catch (err) {
-        setError('Failed to load categories');
+        console.error('Error loading department data:', err);
+        setError('Failed to load department data');
       } finally {
         setLoading(false);
       }
     };
 
-    loadCategories();
-  }, []);
+    if (categoryName) {
+      loadDepartmentData();
+    }
+  }, [categoryName]);
 
   // Load products when category changes
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        if (categoryName) {
-          // Load products for specific category
-          const response = await groceryApiService.getProductsByCategory(categoryName, selectedSubcategory);
-          if (response.success) {
-            setProducts(response.data);
-            setSelectedCategory(response.category);
-          } else {
-            setError(response.message);
-          }
+        // Use productsApi to fetch products
+        const response = await getProducts({
+          page: currentPage,
+          limit: 20,
+          dept_id: "2", // Default department ID
+          category_id: selectedCategory?.category_id?.toString() || "72", // Use selected category or default
+          sub_category_id: "391" // Default sub-category ID
+        });
+
+        if (response) {
+          setProducts(response.products || []);
+          setPagination(response.pagination || {
+            page: currentPage,
+            limit: 20,
+            total_products: response.products?.length || 0,
+            total_pages: 1,
+            has_next: false,
+            has_prev: false
+          });
         } else {
-          // Load all products if no specific category
-          const response = await groceryApiService.getAllProducts();
-          if (response.success) {
-            setProducts(response.data);
-            setSelectedCategory(null);
-          } else {
-            setError(response.message);
-          }
+          setError('Failed to load products');
         }
       } catch (err) {
+        console.error('Error loading products:', err);
         setError('Failed to load products');
       } finally {
         setLoading(false);
@@ -82,7 +119,7 @@ const CategoryPage = () => {
     };
 
     loadProducts();
-  }, [categoryName, selectedSubcategory]);
+  }, [selectedCategory, currentPage]);
 
   // Filter products based on additional filters and sorting
   const filteredProducts = useMemo(() => {
@@ -96,16 +133,16 @@ const CategoryPage = () => {
     // Apply sorting
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => a.our_price - b.our_price);
         break;
       case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => b.our_price - a.our_price);
         break;
       case 'discount':
-        filtered.sort((a, b) => b.discount - a.discount);
+        filtered.sort((a, b) => (b.discount_percentage || 0) - (a.discount_percentage || 0));
         break;
       case 'name':
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        filtered.sort((a, b) => a.product_name.localeCompare(b.product_name));
         break;
       default:
         // Keep original order for relevance
@@ -117,19 +154,20 @@ const CategoryPage = () => {
 
   // Get unique brands from filtered products
   const availableBrands = useMemo(() => {
-    const brands = [...new Set(filteredProducts.map(product => product.brand))];
+    const brands = [...new Set(filteredProducts.map(product => product.brand).filter(Boolean))];
     return brands.sort();
   }, [filteredProducts]);
 
   // Handle category selection
   const handleCategorySelect = (category) => {
-    const categorySlug = category.name.toLowerCase().replace(/\s+/g, '-');
-    navigate(`/category/${categorySlug}`);
+    setSelectedCategory(category);
+    setCurrentPage(1); // Reset to first page when category changes
   };
 
-  // Handle subcategory selection
-  const handleSubcategorySelect = (subcategory) => {
-    setSelectedSubcategory(subcategory);
+  // Handle pagination
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handle filter changes
@@ -145,12 +183,15 @@ const CategoryPage = () => {
     setFilters({
       brand: '',
       category: '',
-      type: '',
-      properties: '',
-      weight: '',
-      availability: ''
+      colour: '',
+      material: '',
+      capacity: '',
+      warranty: '',
+      volume: '',
+      dimension: ''
     });
-    setSelectedSubcategory(null);
+    setSelectedCategory(null);
+    setCurrentPage(1);
   };
 
   // Toggle sidebar on mobile
@@ -201,7 +242,7 @@ const CategoryPage = () => {
             <Bars3Icon className="w-6 h-6 text-gray-600" />
           </button>
           <h1 className="text-lg font-semibold text-gray-800">
-            {selectedCategory?.name || 'Categories'}
+            {selectedDepartment || 'Categories'}
           </h1>
           <div className="w-10" /> {/* Spacer */}
         </div>
@@ -231,66 +272,28 @@ const CategoryPage = () => {
           {/* Desktop sidebar header */}
           {!isMobile && (
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800">Grocery</h2>
+              <h2 className="text-xl font-bold text-gray-800">{selectedDepartment}</h2>
             </div>
           )}
 
           {/* Categories List */}
           <div className="overflow-y-auto h-full">
             <div className="p-4 space-y-1">
-              {selectedCategory ? (
-                // Show only the selected category and its subcategories
-                <div>
-                  <div className="px-4 py-3 bg-green-50 text-green-700 border-l-4 border-green-500 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{selectedCategory.name}</span>
-                      <span className="text-sm text-gray-500">({selectedCategory.count})</span>
-                    </div>
-                  </div>
-                  
-                  {/* Back to All Categories Button */}
+              {categories.map((category, index) => (
+                <div key={index}>
                   <button
-                    onClick={() => navigate('/')}
-                    className="w-full text-left px-4 py-2 mt-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    onClick={() => handleCategorySelect(category)}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between ${
+                      selectedCategory?.category_id === category.category_id
+                        ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                   >
-                    ← Back to All Categories
+                    <span className="font-medium">{category.category_name}</span>
+                    <span className="text-sm text-gray-500">({category.product_count || 0})</span>
                   </button>
-                  
-                  {/* Subcategories */}
-                  {selectedCategory.subcategories && selectedCategory.subcategories.length > 0 && (
-                    <div className="ml-4 mt-2 space-y-1">
-                      {selectedCategory.subcategories.map((subcategory, subIndex) => (
-                        <button
-                          key={subIndex}
-                          onClick={() => handleSubcategorySelect(subcategory)}
-                          className={`
-                            w-full text-left px-4 py-2 rounded-lg transition-colors text-sm
-                            ${selectedSubcategory === subcategory
-                              ? 'bg-green-100 text-green-700'
-                              : 'text-gray-600 hover:bg-gray-50'
-                            }
-                          `}
-                        >
-                          {subcategory}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ) : (
-                // Show all categories if no specific category selected
-                categories.map((category, index) => (
-                  <div key={index}>
-                    <button
-                      onClick={() => handleCategorySelect(category)}
-                      className="w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between text-gray-700 hover:bg-gray-50"
-                    >
-                      <span className="font-medium">{category.name}</span>
-                      <span className="text-sm text-gray-500">({category.count})</span>
-                    </button>
-                  </div>
-                ))
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -308,22 +311,19 @@ const CategoryPage = () => {
           {/* Breadcrumb and Title */}
           <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
             <div className="flex items-center text-sm text-gray-500 mb-2">
-              <span>Grocery</span>
+              <span>Home</span>
+              <span className="mx-2">›</span>
+              <span className="text-gray-900 font-medium">{selectedDepartment}</span>
               {selectedCategory && (
                 <>
                   <span className="mx-2">›</span>
-                  <span className="text-gray-900 font-medium">{selectedCategory.name}</span>
+                  <span className="text-gray-900 font-medium">{selectedCategory.category_name}</span>
                 </>
               )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              {selectedCategory?.name || 'All Products'}
+              {selectedCategory?.category_name || selectedDepartment || 'All Products'}
             </h1>
-            {selectedCategory && (
-              <p className="text-gray-600 text-sm mt-1">
-                {filteredProducts.length} products found
-              </p>
-            )}
           </div>
 
           {/* Filters and Sort */}
@@ -334,7 +334,7 @@ const CategoryPage = () => {
                 <select
                   value={filters.brand}
                   onChange={(e) => handleFilterChange('brand', e.target.value)}
-                  className="px-3 py-2 border border-green-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Brand</option>
                   {availableBrands.map(brand => (
@@ -345,51 +345,82 @@ const CategoryPage = () => {
                 <select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="px-3 py-2 border border-green-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Category</option>
-                  <option value="organic">Organic</option>
-                  <option value="premium">Premium</option>
+                  <option value="pressure-cooker">Pressure Cooker</option>
+                  <option value="kadai">Kadai</option>
+                  <option value="handi">Handi</option>
+                  <option value="pans">Pans</option>
                 </select>
 
                 <select
-                  value={filters.type}
-                  onChange={(e) => handleFilterChange('type', e.target.value)}
-                  className="px-3 py-2 border border-green-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  value={filters.colour}
+                  onChange={(e) => handleFilterChange('colour', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Type</option>
-                  <option value="whole">Whole</option>
-                  <option value="split">Split</option>
+                  <option value="">Colour</option>
+                  <option value="silver">Silver</option>
+                  <option value="black">Black</option>
+                  <option value="gold">Gold</option>
+                  <option value="copper">Copper</option>
                 </select>
 
                 <select
-                  value={filters.properties}
-                  onChange={(e) => handleFilterChange('properties', e.target.value)}
-                  className="px-3 py-2 border border-green-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  value={filters.material}
+                  onChange={(e) => handleFilterChange('material', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Properties</option>
-                  <option value="unpolished">Unpolished</option>
-                  <option value="polished">Polished</option>
+                  <option value="">Material</option>
+                  <option value="stainless-steel">Stainless Steel</option>
+                  <option value="aluminum">Aluminum</option>
+                  <option value="cast-iron">Cast Iron</option>
+                  <option value="non-stick">Non-Stick</option>
                 </select>
 
                 <select
-                  value={filters.weight}
-                  onChange={(e) => handleFilterChange('weight', e.target.value)}
-                  className="px-3 py-2 border border-green-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  value={filters.capacity}
+                  onChange={(e) => handleFilterChange('capacity', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Weight</option>
-                  <option value="500g">500g</option>
-                  <option value="1kg">1kg</option>
+                  <option value="">Capacity</option>
+                  <option value="1.5L">1.5 L</option>
+                  <option value="3L">3 L</option>
+                  <option value="5.5L">5.5 L</option>
+                  <option value="7L">7 L</option>
                 </select>
 
                 <select
-                  value={filters.availability}
-                  onChange={(e) => handleFilterChange('availability', e.target.value)}
-                  className="px-3 py-2 border border-green-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  value={filters.warranty}
+                  onChange={(e) => handleFilterChange('warranty', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Availability</option>
-                  <option value="in-stock">In Stock</option>
-                  <option value="out-of-stock">Out of Stock</option>
+                  <option value="">Warranty</option>
+                  <option value="1-year">1 Year</option>
+                  <option value="2-year">2 Year</option>
+                  <option value="5-year">5 Year</option>
+                </select>
+
+                <select
+                  value={filters.volume}
+                  onChange={(e) => handleFilterChange('volume', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">Volume</option>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+
+                <select
+                  value={filters.dimension}
+                  onChange={(e) => handleFilterChange('dimension', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">Dimension</option>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
                 </select>
               </div>
 
@@ -408,32 +439,110 @@ const CategoryPage = () => {
                   <option value="name">Name</option>
                 </select>
               </div>
-
-              {/* Clear Filters */}
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
-              >
-                Clear all filters
-              </button>
             </div>
           </div>
 
           {/* Products Grid */}
           <div className="p-4 sm:p-6">
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
-                  <GroceryProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={(productData) => {
-                      // Handle add to cart logic here
-                      console.log('Add to cart:', productData);
-                    }}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {/* Promotional Banner - takes 2 grid spaces */}
+                  <div className="sm:col-span-2 bg-green-600 rounded-lg p-6 text-white flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-2">Now, Save EXTRA with the new GST rate benefits.</h3>
+                      <p className="text-green-100 mb-4">Get amazing discounts on your favorite products</p>
+                      <button className="bg-white text-green-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                        SEE HOW
+                      </button>
+                    </div>
+                    <div className="ml-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-green-600 font-bold text-sm">G</div>
+                        <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-green-600 font-bold text-sm">S</div>
+                        <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-green-600 font-bold text-sm">T</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product Cards */}
+                  {filteredProducts.map((product, index) => (
+                    <div key={product._id || product.p_code || index} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                        <img 
+                          src={product.image_url || '/images/placeholder-product.jpg'} 
+                          alt={product.product_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = '/images/placeholder-product.jpg';
+                          }}
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">{product.product_name}</h3>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-lg font-bold text-gray-900">₹{product.our_price}</span>
+                          <span className="text-sm text-gray-500 line-through">₹{product.product_mrp}</span>
+                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                            {product.discount_percentage || 0}% OFF
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mb-3">
+                          {product.package_size || '1 U'}
+                        </div>
+                        <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                          ADD TO CART
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {pagination.total_pages > 1 && (
+                  <div className="mt-8 flex items-center justify-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={!pagination.has_prev}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                              currentPage === pageNum
+                                ? 'bg-green-600 text-white'
+                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={!pagination.has_next}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+
+                {/* Products count info */}
+                <div className="mt-4 text-center text-sm text-gray-500">
+                  Showing {products.length} of {pagination.total_products} products
+                </div>
+              </>
             ) : (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">📦</div>

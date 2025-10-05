@@ -17,12 +17,15 @@ import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
   UserIcon,
+  HeartIcon,
 } from '@heroicons/react/24/outline';
+import { useFavorite } from '../context/FavoriteContext';
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems } = useCart();
   const { openDrawer } = useCartDrawer();
+  const { favorites } = useFavorite();
   const { 
     isLocationSet, 
     getLocationDisplayText, 
@@ -148,15 +151,17 @@ const Header = () => {
   };
 
   const goToCategory = (cat) => {
-    const params = {};
-    if (search && search.trim()) params.q = search.trim();
     if (cat && cat !== 'all') {
-      // Convert department name to category slug format
+      // Convert department name to category slug format and navigate to category page
       const categorySlug = cat.toLowerCase().replace(/\s+/g, '-');
-      params.category = categorySlug;
+      navigate(`/category/${categorySlug}`);
+    } else {
+      // Navigate to home page for 'all' categories
+      const params = {};
+      if (search && search.trim()) params.q = search.trim();
+      setSearchParams(params);
+      navigate({ pathname: '/', search: `?${new URLSearchParams(params).toString()}` });
     }
-    setSearchParams(params);
-    navigate({ pathname: '/', search: `?${new URLSearchParams(params).toString()}` });
     setIsDrawerOpen(false); // Close drawer when navigating
   };
 
@@ -524,6 +529,19 @@ const Header = () => {
               )}
             </div>
             )}
+
+            {/* Favorites Icon */}
+            <Link
+              to="/favorites"
+              className="relative inline-flex p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <HeartIcon className="w-6 h-6 text-primary-600" />
+              {favorites.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                  {favorites.length}
+                </span>
+              )}
+            </Link>
 
             {/* Cart Icon */}
             <button 
