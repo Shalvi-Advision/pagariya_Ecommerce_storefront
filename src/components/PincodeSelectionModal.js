@@ -30,16 +30,27 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
     setIsLoading(true);
     setError(null);
     try {
+      // Get pincodes with fallback handling built-in
       const response = await getAllPincodes();
+      
+      // Check for fallback status
+      if (response.isFallback) {
+        console.log('🚨 Using fallback pincodes');
+        // Show a non-blocking message instead of an error
+        setError('Using demo pincodes. Some features may be limited.');
+      }
+      
       if (response.success && response.data) {
         const formattedPincodes = response.data.map(formatPincodeData);
         setPincodeList(formattedPincodes);
       } else {
-        setError('Failed to load pincodes');
+        // Non-critical error
+        setError('Limited pincode data available');
       }
     } catch (err) {
       console.error('Error loading pincodes:', err);
-      setError('Failed to load pincodes. Please try again.');
+      // Use a more user-friendly error message
+      setError('Unable to load complete pincode list. You can still search for major cities.');
     } finally {
       setIsLoading(false);
     }
@@ -68,9 +79,20 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Choose delivery location
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Choose delivery location
+            </h3>
+            
+            {/* Fallback indicator */}
+            {error && error.includes('demo') && (
+              <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span>Demo Mode</span>
+              </div>
+            )}
+          </div>
+          
           <button
             onClick={handleClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -104,7 +126,20 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-sm text-red-600 mb-2">{error}</p>
+              {error.includes('demo') ? (
+                <>
+                  {/* Demo/Fallback Mode Display */}
+                  <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                    <MapPinIcon className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <p className="text-gray-700 font-medium mb-2">Demo pincodes available</p>
+                  <p className="text-sm text-gray-500 max-w-xs mx-auto mb-4">
+                    We're using sample data while our server is being updated. You can still search for pincodes starting with 400.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-red-600 mb-2">{error}</p>
+              )}
               <button
                 onClick={loadPincodes}
                 className="text-sm text-green-600 hover:text-green-700 font-medium"

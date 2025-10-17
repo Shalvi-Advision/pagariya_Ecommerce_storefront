@@ -7,10 +7,8 @@ const AccountSidebar = () => {
   const menuItems = [
     { path: '/profile', label: 'My Profile' },
     { path: '/address', label: 'My Address' },
-    { path: '/saved-cards', label: 'My Saved Cards' },
     { path: '/ready-list', label: 'Ready List' },
     { path: '/orders', label: 'My Orders' },
-    { path: '/saved-list', label: 'My Saved List' },
   ];
 
   return (

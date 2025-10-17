@@ -181,18 +181,11 @@ const Header = () => {
       case 'address':
         navigate('/address');
         break;
-      case 'cards':
-        navigate('/saved-cards');
-        break;
+      
       case 'orders':
         navigate('/orders');
         break;
-      case 'saved-list':
-        navigate('/saved-list');
-        break;
-      case 'subscribed-list':
-        navigate('/subscribed-list');
-        break;
+      
       case 'logout':
         handleLogout();
         break;
@@ -292,19 +285,13 @@ const Header = () => {
                           onClick={() => handleAccountMenuClick('profile')}
                           className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                         >
-                          My Profile
+                          Profile
                         </button>
                         <button
                           onClick={() => handleAccountMenuClick('address')}
                           className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                         >
-                          My Address
-                        </button>
-                        <button
-                          onClick={() => handleAccountMenuClick('cards')}
-                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          My Saved Cards
+                           Address
                         </button>
                       </div>
 
@@ -323,19 +310,7 @@ const Header = () => {
                           onClick={() => handleAccountMenuClick('orders')}
                           className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                         >
-                          My Orders
-                        </button>
-                        <button
-                          onClick={() => handleAccountMenuClick('saved-list')}
-                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          My Saved List
-                        </button>
-                        <button
-                          onClick={() => handleAccountMenuClick('subscribed-list')}
-                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          My Subscribed List
+                          Orders
                         </button>
                       </div>
 
@@ -427,15 +402,6 @@ const Header = () => {
                         >
                           My Address
                         </button>
-                        <button
-                          onClick={() => {
-                            handleAccountMenuClick('cards');
-                            setIsUserMenuOpen(false);
-                          }}
-                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          My Saved Cards
-                        </button>
                       </div>
 
                       {/* Divider */}
@@ -460,24 +426,6 @@ const Header = () => {
                           className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                         >
                           My Orders
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleAccountMenuClick('saved-list');
-                            setIsUserMenuOpen(false);
-                          }}
-                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          My Saved List
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleAccountMenuClick('subscribed-list');
-                            setIsUserMenuOpen(false);
-                          }}
-                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          My Subscribed List
                         </button>
                       </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ApiErrorBoundary from './components/ApiErrorBoundary';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -36,6 +36,7 @@ import CartDrawer from './components/CartDrawer';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAStatus from './components/PWAStatus';
 import SuccessToast from './components/SuccessToast';
+import LoginSuccessModal from './components/LoginSuccessModal';
 import DevTools from './components/DevTools';
 //import DebugInfo from './components/';
 import CartDebugTools from './components/CartDebugTools';
@@ -49,7 +50,22 @@ import StoreDetailsModal from './components/StoreDetailsModal';
 import pwaUtils from './utils/pwa';
 
 function AppContent() {
-  const { successMessage, clearSuccessMessage } = useAuth();
+  const { successMessage, clearSuccessMessage, user } = useAuth();
+  const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  
+  // Effect to detect successful login message and show the modal
+  useEffect(() => {
+    if (successMessage && (successMessage.includes('Login successful') || successMessage.includes('Logged in successfully'))) {
+      setShowLoginSuccess(true);
+      // Clear the success message to prevent both toast and modal
+      clearSuccessMessage();
+    }
+  }, [successMessage, clearSuccessMessage]);
+  
+  // Function to close the login success modal
+  const closeLoginSuccessModal = () => {
+    setShowLoginSuccess(false);
+  };
   const { isOpen: isCartDrawerOpen, closeDrawer } = useCartDrawer();
   const {
     isPincodeModalOpen,
@@ -129,11 +145,18 @@ function AppContent() {
         {/* <DebugInfo /> */}
         <CartDebugTools />
 
-        {/* Success Toast */}
+        {/* Success Toast - for non-login success messages */}
         <SuccessToast
           message={successMessage}
-          isVisible={!!successMessage}
+          isVisible={!!successMessage && !successMessage.includes('Login successful') && !successMessage.includes('Logged in successfully')}
           onClose={clearSuccessMessage}
+        />
+        
+        {/* Login Success Modal */}
+        <LoginSuccessModal 
+          isVisible={showLoginSuccess}
+          onClose={closeLoginSuccessModal}
+          userName={user?.name || ''}
         />
 
         {/* Pincode Selection Modals */}

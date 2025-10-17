@@ -94,6 +94,7 @@ module.exports = {
         'fade-in': 'fadeIn 0.3s ease-in-out',
         'slide-in': 'slideIn 0.3s ease-out',
         'bounce-in': 'bounceIn 0.5s ease-out',
+        'shrink-linear': 'shrinkLinear 3s linear forwards',
       },
       keyframes: {
         fadeIn: {
@@ -109,6 +110,10 @@ module.exports = {
           '50%': { transform: 'scale(1.05)' },
           '70%': { transform: 'scale(0.9)' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shrinkLinear: {
+          '0%': { transform: 'scaleX(1)' },
+          '100%': { transform: 'scaleX(0)' },
         },
       },
     },

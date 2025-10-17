@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon } from '@heroicons/react/24/outline';
 
 const LoginPage = () => {
-  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'otp'
+  const [loginMethod, setLoginMethod] = useState('otp'); // Only OTP authentication now
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -50,26 +50,14 @@ const LoginPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (loginMethod === 'email') {
-      if (!formData.email.trim()) {
-        newErrors.email = 'Email is required';
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-      }
-
-      if (!formData.password) {
-        newErrors.password = 'Password is required';
-      }
-      } else {
-        // OTP login validation
-        if (!formData.mobileNo.trim()) {
-          newErrors.mobileNo = 'Mobile number is required';
-        } else if (!/^\d{10}$/.test(formData.mobileNo.replace(/\s+/g, ''))) {
-          newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
-        }
-      }
-
+    
+    // OTP login validation
+    if (!formData.mobileNo.trim()) {
+      newErrors.mobileNo = 'Mobile number is required';
+    } else if (!/^\d{10}$/.test(formData.mobileNo.replace(/\s+/g, ''))) {
+      newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -79,28 +67,15 @@ const LoginPage = () => {
 
     if (!validateForm()) return;
 
-    if (loginMethod === 'email') {
-      const result = await login(formData);
-
-      if (result.success) {
-        navigate(from, { replace: true });
+    // OTP login - navigate to OTP input page with form data
+    navigate('/otp-input', {
+      state: {
+        mobileNo: formData.mobileNo,
+        from
       }
-    } else {
-      // OTP login - navigate to OTP input page with form data
-      navigate('/otp-input', {
-        state: {
-          mobileNo: formData.mobileNo,
-          from
-        }
-      });
-    }
+    });
   };
 
-  const handleMethodSwitch = (method) => {
-    setLoginMethod(method);
-    setErrors({}); // Clear errors when switching methods
-    clearError(); // Clear any existing errors
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-4 px-4 sm:py-8 sm:px-6 lg:py-12 lg:px-8">
@@ -115,32 +90,10 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Login Method Tabs */}
-        <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
-          <button
-            type="button"
-            onClick={() => handleMethodSwitch('email')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              loginMethod === 'email'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <EnvelopeIcon className="w-4 h-4" />
-            Email
-          </button>
-          <button
-            type="button"
-            onClick={() => handleMethodSwitch('otp')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              loginMethod === 'otp'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <PhoneIcon className="w-4 h-4" />
-            OTP
-          </button>
+        {/* OTP Login Header */}
+        <div className="flex items-center justify-center gap-2 mb-6 bg-gray-100 p-3 rounded-lg">
+          <PhoneIcon className="w-5 h-5 text-primary-600" />
+          <h3 className="font-medium text-gray-900">OTP Authentication</h3>
         </div>
 
         <Card>
@@ -151,68 +104,32 @@ const LoginPage = () => {
               </div>
             )}
 
-            {loginMethod === 'email' ? (
-              // Email/Password Login Fields
-              <>
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={errors.email}
-                  placeholder="Enter your email"
-                  required
-                />
+            {/* OTP Login Fields */}
+            <>
+              <Input
+                label="Mobile Number"
+                name="mobileNo"
+                type="tel"
+                value={formData.mobileNo}
+                onChange={handleChange}
+                error={errors.mobileNo}
+                placeholder="Enter 10-digit mobile number"
+                maxLength={10}
+                required
+              />
 
-                <Input
-                  label="Password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  error={errors.password}
-                  placeholder="Enter your password"
-                  required
-                />
+              <Button
+                type="submit"
+                className="w-full"
+                size="large"
+              >
+                Send OTP
+              </Button>
 
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full"
-                  size="large"
-                >
-                  {loading ? 'Signing in...' : 'Sign in'}
-                </Button>
-              </>
-            ) : (
-              // OTP Login Fields
-              <>
-                <Input
-                  label="Mobile Number"
-                  name="mobileNo"
-                  type="tel"
-                  value={formData.mobileNo}
-                  onChange={handleChange}
-                  error={errors.mobileNo}
-                  placeholder="Enter 10-digit mobile number"
-                  maxLength={10}
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  size="large"
-                >
-                  Send OTP
-                </Button>
-
-                <div className="text-center text-sm text-gray-600">
-                  We'll send a verification code to your mobile number
-                </div>
-              </>
-            )}
+              <div className="text-center text-sm text-gray-600">
+                We'll send a verification code to your mobile number
+              </div>
+            </>
           </form>
         </Card>
 
