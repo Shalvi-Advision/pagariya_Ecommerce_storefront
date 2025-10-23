@@ -1,6 +1,5 @@
 // Products API service functions
 import { APP_CONSTANTS } from '../constants';
-import groceryData from '../groceryData.json';
 import { optimizedFetch, generateCacheKey, cacheResponse, getCachedResponse, clearExpiredCache } from '../utils/apiOptimizer';
 import { debounce, throttle } from '../utils/asyncUtils';
 
@@ -76,7 +75,7 @@ const processProductData = (product) => {
     package_size: product.package_size ? `${product.package_size} ${product.package_unit || 'GM'}` : '1 GM',
     category: product.category || 'General',
     brand: product.brand_name || product.brand || 'Unknown',
-    image_url: product.pcode_img || product.image_url || '/images/placeholder-product.jpg',
+    image_url: product.pcode_img || product.image_url || '/images/logo.jpg',
     is_active: product.pcode_status === 'Y',
     created_at: product.created_at || new Date().toISOString(),
     updated_at: product.updated_at || new Date().toISOString()
@@ -90,45 +89,6 @@ const processProductData = (product) => {
   return processedProduct;
 };
 
-// Convert grocery data to API format
-const convertGroceryDataToApiFormat = (groceryProducts, page = 1, limit = 20) => {
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedProducts = groceryProducts.slice(startIndex, endIndex);
-  
-  const convertedProducts = paginatedProducts.map((product, index) => ({
-    _id: product.id.toString(),
-    product_name: product.name,
-    product_description: product.description || `${product.name} - ${product.brand}`,
-    product_mrp: product.mrp || product.price * 1.2, // Add 20% markup for MRP
-    our_price: product.price,
-    discount_percentage: product.discount || Math.round(((product.mrp || product.price * 1.2) - product.price) / (product.mrp || product.price * 1.2) * 100),
-    store_quantity: product.stock || Math.floor(Math.random() * 50) + 10, // Random stock between 10-60
-    max_quantity_allowed: 10,
-    package_size: product.package_size || '1 kg',
-    category: product.subcategory || 'General',
-    brand: product.brand,
-    image_url: product.image || '/images/placeholder-product.jpg',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }));
-
-  const totalProducts = groceryProducts.length;
-  const totalPages = Math.ceil(totalProducts / limit);
-
-  return {
-    products: convertedProducts,
-    pagination: {
-      page: page,
-      limit: limit,
-      total_products: totalProducts,
-      total_pages: totalPages,
-      has_next: page < totalPages,
-      has_prev: page > 1
-    }
-  };
-};
 
 // Initialize IndexedDB
 const initDB = () => {
@@ -293,8 +253,6 @@ export const getProducts = async (params = {}) => {
           dept_id,
           category_id,
           sub_category_id,
-          store_code: process.env.REACT_APP_STORE_CODE || "your_store_code",
-          project_code: process.env.REACT_APP_PROJECT_CODE || "your_project_code",
           page,
           limit
         };
@@ -357,10 +315,14 @@ export const getProducts = async (params = {}) => {
           return { ...processedCachedData, isOffline: true };
         }
 
-        // If no cache available, use grocery data as fallback
-        console.log('No cache available, using grocery data as fallback');
-        const fallbackData = convertGroceryDataToApiFormat(groceryData.products, page, limit);
-        return { ...fallbackData, isOffline: true, isFallback: true };
+        // If no cache available, return empty
+        console.log('No cache available');
+        return {
+          products: [],
+          pagination: { page, limit, total_products: 0, total_pages: 0, has_next: false, has_prev: false },
+          isOffline: true,
+          isFallback: false
+        };
       }
     } else {
       // Offline mode - try to get from cache
@@ -376,10 +338,14 @@ export const getProducts = async (params = {}) => {
         };
         return { ...processedCachedData, isOffline: true };
       } else {
-        // No cache available, use grocery data as fallback
-        console.log('No cache available in offline mode, using grocery data as fallback');
-        const fallbackData = convertGroceryDataToApiFormat(groceryData.products, page, limit);
-        return { ...fallbackData, isOffline: true, isFallback: true };
+        // No cache available
+        console.log('No cache available in offline mode');
+        return {
+          products: [],
+          pagination: { page, limit, total_products: 0, total_pages: 0, has_next: false, has_prev: false },
+          isOffline: true,
+          isFallback: false
+        };
       }
     }
   } catch (error) {

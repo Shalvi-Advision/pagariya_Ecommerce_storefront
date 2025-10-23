@@ -1,81 +1,37 @@
-// API Base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// API Base URL - Updated to use the new API structure
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://ecommerceapi-web.onrender.com/api';
 
-// Project code - this should be set in environment variables
-const PROJECT_CODE = process.env.REACT_APP_PROJECT_CODE || 'default_project';
-
-// Cache configuration
+// Cache configuration for enabled pincodes
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
-const CACHE_KEY_PINCODES = 'cached_pincodes';
-const CACHE_KEY_TIMESTAMP = 'cached_pincodes_timestamp';
-
-// Fallback pincode data for when the API is unavailable
-const FALLBACK_PINCODES = [
-  {
-    _id: 'fallback_1',
-    pincode: '400001',
-    area: 'Fort',
-    is_enabled: 'Enabled'
-  },
-  {
-    _id: 'fallback_2',
-    pincode: '400050',
-    area: 'Bandra West',
-    is_enabled: 'Enabled'
-  },
-  {
-    _id: 'fallback_3',
-    pincode: '400053',
-    area: 'Andheri East',
-    is_enabled: 'Enabled'
-  },
-  {
-    _id: 'fallback_4',
-    pincode: '400076',
-    area: 'Powai',
-    is_enabled: 'Enabled'
-  },
-  {
-    _id: 'fallback_5',
-    pincode: '400098',
-    area: 'Borivali West',
-    is_enabled: 'Enabled'
-  },
-  {
-    _id: 'fallback_6',
-    pincode: '400101',
-    area: 'Thane',
-    is_enabled: 'Enabled'
-  },
-];
+const CACHE_KEY_PINCODES = 'cached_enabled_pincodes';
+const CACHE_KEY_TIMESTAMP = 'cached_enabled_pincodes_timestamp';
 
 /**
- * Get cached pincodes if available and not expired
+ * Get cached enabled pincodes if available and not expired
  * @returns {Object|null} Cached pincode data or null if not available
  */
 const getCachedPincodes = () => {
   try {
     const cachedData = localStorage.getItem(CACHE_KEY_PINCODES);
     const timestamp = localStorage.getItem(CACHE_KEY_TIMESTAMP);
-    
+
     if (!cachedData || !timestamp) return null;
-    
+
     // Check if cache is expired
     const now = Date.now();
     if (now - parseInt(timestamp) > CACHE_DURATION_MS) {
-      // Cache expired
       return null;
     }
-    
+
     return JSON.parse(cachedData);
   } catch (e) {
-    console.warn('Error reading from cache:', e);
+    console.warn('Error reading from pincode cache:', e);
     return null;
   }
 };
 
 /**
- * Cache pincode data
+ * Cache enabled pincode data
  * @param {Object} data - Pincode data to cache
  */
 const cachePincodes = (data) => {
@@ -83,102 +39,31 @@ const cachePincodes = (data) => {
     localStorage.setItem(CACHE_KEY_PINCODES, JSON.stringify(data));
     localStorage.setItem(CACHE_KEY_TIMESTAMP, Date.now().toString());
   } catch (e) {
-    console.warn('Error writing to cache:', e);
+    console.warn('Error writing to pincode cache:', e);
   }
 };
 
 /**
- * Get all available pincodes with caching and fallback
- * @returns {Promise<Object>} API response with pincode list
+ * Get all enabled pincodes for autocomplete (new API endpoint)
+ * @returns {Promise<Object>} API response with enabled pincode list
  */
 export const getAllPincodes = async () => {
   try {
     // Try to get data from cache first
     const cachedData = getCachedPincodes();
     if (cachedData) {
-      console.log('🔄 Using cached pincode data');
+      console.log('🔄 Using cached enabled pincodes');
       return cachedData;
     }
-    
-    console.log('🌐 Fetching pincodes from API...');
-    // Using AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/pincodes/get_pincode_list`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        signal: controller.signal,
-        mode: 'cors', // Explicitly set CORS mode
-      });
-      
-      clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+    console.log('🌐 Fetching enabled pincodes from API...');
 
-      const data = await response.json();
-      
-      // Cache the successful response
-      cachePincodes(data);
-      return data;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      console.warn('⚠️ API fetch failed, trying fallback:', fetchError.message);
-      
-      // Return formatted fallback data
-      const fallbackResponse = {
-        success: true,
-        data: FALLBACK_PINCODES,
-        message: 'Using fallback pincode data',
-        isFallback: true
-      };
-      
-      // Cache the fallback data too (short-lived)
-      cachePincodes(fallbackResponse);
-      return fallbackResponse;
-    }
-  } catch (error) {
-    console.error('Error in getAllPincodes:', error);
-    
-    // Return fallback data instead of throwing error
-    return {
-      success: true,
-      data: FALLBACK_PINCODES,
-      message: 'Using fallback pincode data due to error',
-      error: error.message,
-      isFallback: true
-    };
-  }
-};
-
-/**
- * Check if a pincode is serviceable
- * @param {string} pincode - The pincode to check
- * @returns {Promise<Object>} API response with serviceability status
- */
-export const checkPincodeServiceability = async (pincode) => {
-  try {
-    // Check if we're using the correct API URL
-    if (API_BASE_URL.includes('fakestoreapi.com')) {
-      console.warn('⚠️ Using fakestoreapi.com - pincode serviceability check will fail');
-      throw new Error('API URL not configured for pincode service');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/pincodes/check_if_pincode_exists`, {
-      method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/pincodes/enabled/list`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        pincode: pincode,
-        project_code: PROJECT_CODE
-      }),
     });
 
     if (!response.ok) {
@@ -186,222 +71,139 @@ export const checkPincodeServiceability = async (pincode) => {
     }
 
     const data = await response.json();
+
+    // Cache the successful response
+    cachePincodes(data);
     return data;
   } catch (error) {
-    console.error('Error checking pincode serviceability:', error);
-    // Return a fallback response for demo purposes
-    return {
-      success: true,
-      data: true, // Allow all pincodes in demo mode
-      message: 'Demo mode - all pincodes allowed',
-      isFallback: true
-    };
+    console.error('Error in getAllPincodes:', error);
+    throw error;
   }
 };
 
 /**
- * Get stores available for a specific pincode
+ * Check if a pincode is available/serviceable (new API endpoint)
+ * @param {string} pincode - The pincode to check
+ * @returns {Promise<Object>} API response with availability status
+ */
+export const checkPincodeServiceability = async (pincode) => {
+  try {
+    console.log('🔍 Checking serviceability for pincode:', pincode);
+    console.log('🔍 API URL:', `${API_BASE_URL}/pincodes/check-availability`);
+    
+    const response = await fetch(`${API_BASE_URL}/pincodes/check-availability`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ pincode }),
+    });
+
+    console.log('🔍 Response status:', response.status);
+    console.log('🔍 Response ok:', response.ok);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('🔍 Raw serviceability response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error checking pincode availability:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get stores available for a specific pincode (new API endpoint)
  * @param {string} pincode - The pincode to get stores for
  * @returns {Promise<Object>} API response with store list
  */
 export const getPincodeStores = async (pincode) => {
   try {
-    // Check if we're using the correct API URL
-    if (API_BASE_URL.includes('fakestoreapi.com')) {
-      console.warn('⚠️ Using fakestoreapi.com - store fetching will use fallback data');
-      throw new Error('API URL not configured for store service');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/pincodes/get_pincodewise_outlet`, {
+    console.log('🌐 Fetching stores for pincode:', pincode);
+    console.log('🌐 API URL:', `${API_BASE_URL}/stores/by-pincode`);
+    
+    const response = await fetch(`${API_BASE_URL}/stores/by-pincode`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        pincode: pincode,
-        project_code: PROJECT_CODE
-      }),
+      body: JSON.stringify({ pincode }),
     });
+
+    console.log('🌐 Response status:', response.status);
+    console.log('🌐 Response ok:', response.ok);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('🌐 Raw API response:', data);
     return data;
   } catch (error) {
-    console.error('Error fetching pincode stores:', error);
-    // Return fallback store data for demo purposes
-    const fallbackStores = [
-      {
-        _id: 'demo_store_1',
-        store_code: 'DEMO001',
-        mobile_outlet_name: `DMart Store - ${pincode}`,
-        store_address: `Demo Store Address, ${pincode}, India`,
-        pincode: pincode,
-        min_order_amount: 500,
-        store_open_time: '09:00 AM',
-        store_delivery_time: '10:00 PM',
-        store_offer_name: 'Welcome Offer',
-        latitude: '19.0760',
-        longitude: '72.8777',
-        home_delivery: 'no',
-        self_pickup: 'yes',
-        store_message: 'Welcome to our demo store!',
-        contact_number: '+91-9876543210',
-        email: 'demo@dmart.com',
-        whatsappnumber: '+91-9876543210',
-        is_enabled: 'Enabled'
-      },
-      {
-        _id: 'demo_store_2',
-        store_code: 'DEMO002',
-        mobile_outlet_name: `DMart Express - ${pincode}`,
-        store_address: `Express Store Address, ${pincode}, India`,
-        pincode: pincode,
-        min_order_amount: 300,
-        store_open_time: '08:00 AM',
-        store_delivery_time: '11:00 PM',
-        store_offer_name: 'Express Delivery',
-        latitude: '19.0760',
-        longitude: '72.8777',
-        home_delivery: 'no',
-        self_pickup: 'yes',
-        store_message: 'Fast pickup available!',
-        contact_number: '+91-9876543211',
-        email: 'express@dmart.com',
-        whatsappnumber: '+91-9876543211',
-        is_enabled: 'Enabled'
-      }
-    ];
-
-    return {
-      success: true,
-      data: fallbackStores,
-      message: 'Using demo store data',
-      isFallback: true
-    };
-  }
-};
-
-/**
- * Get detailed information about a specific store
- * @param {string} storeCode - The store code to get details for
- * @returns {Promise<Object>} API response with store details
- */
-export const getStoreDetails = async (storeCode) => {
-  try {
-    // Check if we're using the correct API URL
-    if (API_BASE_URL.includes('fakestoreapi.com')) {
-      console.warn('⚠️ Using fakestoreapi.com - store details will use fallback data');
-      throw new Error('API URL not configured for store details service');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/pincodes/get_store_details`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        store_code: storeCode,
-        project_code: PROJECT_CODE
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching store details:', error);
-    // Return fallback store details for demo purposes
-    return {
-      success: true,
-      data: {
-        _id: storeCode,
-        store_code: storeCode,
-        mobile_outlet_name: `Demo Store - ${storeCode}`,
-        store_address: `Demo Store Address for ${storeCode}`,
-        pincode: '400001',
-        min_order_amount: 500,
-        store_open_time: '09:00 AM',
-        store_delivery_time: '10:00 PM',
-        store_offer_name: 'Demo Offer',
-        latitude: '19.0760',
-        longitude: '72.8777',
-        home_delivery: 'no',
-        self_pickup: 'yes',
-        store_message: 'Welcome to our demo store!',
-        contact_number: '+91-9876543210',
-        email: 'demo@dmart.com',
-        whatsappnumber: '+91-9876543210',
-        is_enabled: 'Enabled'
-      },
-      message: 'Using demo store details',
-      isFallback: true
-    };
+    console.error('❌ Error fetching pincode stores:', error);
+    throw error;
   }
 };
 
 /**
  * Search pincodes with autocomplete functionality
  * @param {string} query - Search query
- * @param {Array} pincodeList - List of all pincodes
+ * @param {Array} pincodeList - List of all enabled pincodes
  * @returns {Array} Filtered pincodes matching the query
  */
 export const searchPincodes = (query, pincodeList) => {
   if (!query || !pincodeList) return [];
-  
+
   const searchTerm = query.toLowerCase().trim();
-  
-  return pincodeList.filter(pincode => 
-    pincode.pincode.includes(searchTerm) ||
-    (pincode.area && pincode.area.toLowerCase().includes(searchTerm)) ||
-    (pincode.fullAddress && pincode.fullAddress.toLowerCase().includes(searchTerm))
+
+  return pincodeList.filter(pincode =>
+    pincode.pincode.includes(searchTerm)
   ).slice(0, 20); // Limit to 20 results
 };
 
 /**
- * Format pincode data for display
+ * Format pincode data for display (updated for new API structure)
  * @param {Object} pincodeData - Raw pincode data from API
  * @returns {Object} Formatted pincode data
  */
 export const formatPincodeData = (pincodeData) => {
   return {
-    _id: pincodeData._id,
+    _id: pincodeData.id,
     pincode: pincodeData.pincode,
-    area: pincodeData.area || 'Unknown Area',
+    area: 'Unknown Area', // New API doesn't provide area
     fullAddress: `${pincodeData.pincode}, India`,
-    isEnabled: pincodeData.is_enabled === 'Enabled'
+    isEnabled: true // All returned pincodes are enabled
   };
 };
 
 /**
- * Format store data for display
+ * Format store data for display (updated for new API structure)
  * @param {Object} storeData - Raw store data from API
  * @returns {Object} Formatted store data
  */
 export const formatStoreData = (storeData) => {
   return {
-    _id: storeData._id,
+    _id: storeData.id,
     storeCode: storeData.store_code,
-    storeName: storeData.mobile_outlet_name,
-    storeAddress: storeData.store_address,
+    storeName: storeData.store_name,
+    storeAddress: storeData.address,
     pincode: storeData.pincode,
     minOrderAmount: storeData.min_order_amount,
     storeOpenTime: storeData.store_open_time,
-    storeDeliveryTime: storeData.store_delivery_time,
-    storeOfferName: storeData.store_offer_name,
-    latitude: storeData.latitude,
-    longitude: storeData.longitude,
-    homeDelivery: storeData.home_delivery === 'yes',
-    selfPickup: storeData.self_pickup === 'yes',
-    storeMessage: storeData.store_message,
-    contactNumber: storeData.contact_number,
-    email: storeData.email,
-    whatsappNumber: storeData.whatsappnumber,
+    storeDeliveryTime: storeData.delivery_time,
+    storeOfferName: storeData.offer,
+    latitude: storeData.location?.latitude,
+    longitude: storeData.location?.longitude,
+    homeDelivery: storeData.delivery_options?.home_delivery,
+    selfPickup: storeData.delivery_options?.self_pickup,
+    storeMessage: storeData.message,
+    contactNumber: storeData.contact?.phone,
+    email: storeData.contact?.email,
+    whatsappNumber: storeData.contact?.whatsapp,
     isEnabled: storeData.is_enabled === 'Enabled'
   };
 };

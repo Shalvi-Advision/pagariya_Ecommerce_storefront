@@ -6,7 +6,6 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Loading from '../components/Loading';
 import { APP_CONSTANTS } from '../constants';
-import groceryData from '../groceryData.json';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
@@ -54,38 +53,6 @@ const ProductDetailsPage = () => {
     originalProjectCode: PROJECT_CODE
   });
 
-  // Fallback function to get product from grocery data
-  const getProductFromGroceryData = (productId) => {
-    console.log('🔄 Trying to get product from grocery data for ID:', productId);
-    const groceryProduct = groceryData.products.find(p => p.id.toString() === productId);
-    
-    if (groceryProduct) {
-      console.log('✅ Found product in grocery data:', groceryProduct);
-      // Convert grocery data format to expected format
-      return {
-        success: true,
-        data: {
-          _id: groceryProduct.id.toString(),
-          product_name: groceryProduct.name,
-          product_description: `${groceryProduct.name} - ${groceryProduct.brand}`,
-          product_mrp: groceryProduct.mrp,
-          our_price: groceryProduct.price,
-          brand_name: groceryProduct.brand,
-          store_quantity: 50, // Default stock
-          max_quantity_allowed: 10,
-          package_size: groceryProduct.weightOptions?.[0] || '1 kg',
-          category: groceryProduct.subcategory || 'General',
-          pcode_img: groceryProduct.image || '/images/placeholder-product.jpg',
-          p_code: productId, // Use the ID as pcode for fallback
-          discount_percentage: groceryProduct.discount || 0,
-          is_active: true
-        }
-      };
-    }
-    
-    console.log('❌ Product not found in grocery data');
-    return null;
-  };
 
   useEffect(() => {
     console.log('🔄 useEffect triggered with id:', id);
@@ -157,21 +124,7 @@ const ProductDetailsPage = () => {
       console.error('❌ Error stack:', err.stack);
       console.error('❌ Full error object:', err);
       
-      // Try fallback to grocery data
-      console.log('🔄 API failed, trying grocery data fallback...');
-      console.log('🔄 Fallback ID:', id);
-      const fallbackResponse = getProductFromGroceryData(id);
-      console.log('🔄 Fallback response:', fallbackResponse);
-      
-      if (fallbackResponse && fallbackResponse.success && fallbackResponse.data) {
-        console.log('✅ Using grocery data fallback');
-        console.log('📦 Fallback product data:', fallbackResponse.data);
-        setProduct(fallbackResponse.data);
-        console.log('✅ Fallback product set successfully');
-        return; // Success with fallback, don't set error
-      }
-      
-      console.log('❌ Fallback also failed, setting error message');
+      console.log('❌ API failed, setting error message');
       // Provide more specific error messages
       let errorMessage = 'Failed to load product details';
       

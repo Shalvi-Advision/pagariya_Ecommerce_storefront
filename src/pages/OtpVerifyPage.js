@@ -76,8 +76,8 @@ const OtpVerifyPage = () => {
       clearError();
     }
 
-    // Auto-submit when OTP is complete
-    if (value.length === (otpLength || 4)) {
+    // Auto-submit when OTP is complete (4 digits as per new API)
+    if (value.length === 4) {
       handleSubmit(null, value);
     }
   };
@@ -87,8 +87,8 @@ const OtpVerifyPage = () => {
 
     if (!otpValue.trim()) {
       newErrors.otp = 'OTP is required';
-    } else if (otpValue.length !== (otpLength || 4)) {
-      newErrors.otp = `Please enter ${otpLength || 4} digit OTP`;
+    } else if (otpValue.length !== 4) {
+      newErrors.otp = 'Please enter 4 digit OTP';
     }
 
     setErrors(newErrors);
@@ -147,7 +147,7 @@ const OtpVerifyPage = () => {
   };
 
   const displayMobile = mobileNo || otpMobile;
-  const expectedOtpLength = otpLength || 4;
+  const expectedOtpLength = 4; // Fixed to 4 digits as per new API
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">

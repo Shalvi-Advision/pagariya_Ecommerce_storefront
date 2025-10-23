@@ -48,61 +48,9 @@ const PopularCategories = () => {
     "DEFAULT": "📦"
   };
 
-  // Fallback categories in case API fails
-  const fallbackCategories = [
-    {
-      name: "Dals",
-      icon: "🫘",
-      color: "bg-orange-50",
-      iconColor: "text-orange-600",
-      link: "/category/dals"
-    },
-    {
-      name: "Dairy",
-      icon: "🥛",
-      color: "bg-blue-50",
-      iconColor: "text-blue-600"
-    },
-    {
-      name: "Tea",
-      icon: "🍵",
-      color: "bg-green-50",
-      iconColor: "text-green-600"
-    },
-    {
-      name: "Soft Drinks",
-      icon: "🥤",
-      color: "bg-red-50",
-      iconColor: "text-red-600"
-    },
-    {
-      name: "Cleaners",
-      icon: "🧽",
-      color: "bg-purple-50",
-      iconColor: "text-purple-600"
-    },
-    {
-      name: "Bath Soaps",
-      icon: "🧼",
-      color: "bg-yellow-50",
-      iconColor: "text-yellow-600"
-    },
-    {
-      name: "Toothpaste",
-      icon: "🦷",
-      color: "bg-blue-50",
-      iconColor: "text-blue-600"
-    },
-    {
-      name: "Shampoos",
-      icon: "🧴",
-      color: "bg-pink-50",
-      iconColor: "text-pink-600"
-    }
-  ];
 
   // Default fallback image
-  const getDefaultImage = () => '/images/placeholder-category.png';
+  const getDefaultImage = () => '/images/logo.jpg';
 
   useEffect(() => {
     const fetchRandomCategories = async () => {
@@ -139,17 +87,17 @@ const PopularCategories = () => {
         // Format categories with UI properties
         const formattedCategories = randomCategories.map((category, index) => {
           const colorMapping = colorMappings[index % colorMappings.length];
-          
+
           // Get department name for this category to determine icon
-          const department = departmentsResponse.data.find(dept => 
-            dept.department_id === category.department_id
+          const department = departmentsResponse.data.find(dept =>
+            dept.department_id === (category.dept_id || category.department_id)
           );
-          
+
           const departmentName = department ? department.department_name : 'DEFAULT';
           const icon = iconMappings[departmentName] || iconMappings['DEFAULT'];
-          
+
           return {
-            id: category.category_id,
+            id: category.idcategory_master || category.category_id,
             name: category.category_name,
             icon: icon,
             image_link: category.image_link || null,
@@ -163,7 +111,7 @@ const PopularCategories = () => {
       } catch (error) {
         console.error('Error fetching random categories:', error);
         setError(error.message);
-        setCategories(fallbackCategories);
+        setCategories([]);
       } finally {
         setLoading(false);
       }

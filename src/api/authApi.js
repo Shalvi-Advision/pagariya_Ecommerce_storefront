@@ -23,8 +23,7 @@ export const register = async (userData) => {
 
 export const getCurrentUser = async () => {
   try {
-    // This endpoint might not exist in the provided API, but we can try
-    const response = await apiGet('/auth/me');
+    const response = await apiGet('/auth/profile');
     return response.data;
   } catch (error) {
     console.error('Error fetching current user:', error);
@@ -34,11 +33,38 @@ export const getCurrentUser = async () => {
 
 export const logout = async () => {
   try {
-    // Note: The provided API doesn't have a logout endpoint
-    // We'll handle logout on the client side only
-    return { success: true };
+    const response = await apiPost('/auth/logout', {});
+    return response;
   } catch (error) {
     console.error('Error during logout:', error);
+    throw error;
+  }
+};
+
+export const updateProfile = async (profileData) => {
+  try {
+    const response = await apiPut('/auth/profile', profileData);
+    return response;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+};
+
+export const updateActivity = async (deviceInfo = {}) => {
+  try {
+    const response = await apiPost('/auth/is-active', {
+      sessionId: localStorage.getItem('session_id'),
+      device: {
+        platform: 'web',
+        deviceId: navigator.userAgent,
+        appVersion: '1.0.0',
+        ...deviceInfo
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Error updating activity:', error);
     throw error;
   }
 };

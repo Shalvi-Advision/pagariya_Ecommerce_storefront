@@ -233,8 +233,8 @@ const initialAuthState = {
   // OTP related state
   otpSent: false,
   otpMobile: null,
-  otpLength: null,
-  otpExpiresIn: null,
+  otpLength: 4, // Default to 4 digits
+  otpExpiresIn: 5, // Default to 5 minutes
   otpLoading: false,
   otpError: null,
   otpVerifyLoading: false,
@@ -377,6 +377,30 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, [throttledVerifyToken, throttledRefreshToken]);
 
+  // Set up activity tracking for authenticated users
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      // Set session ID if not exists
+      if (!localStorage.getItem('session_id')) {
+        const sessionId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem('session_id', sessionId);
+      }
+
+      // Update activity immediately
+      updateActivity();
+
+      // Set up activity tracking interval
+      const activityInterval = setInterval(() => {
+        updateActivity({
+          deviceId: navigator.userAgent,
+          appVersion: '1.0.0'
+        });
+      }, 5 * 60 * 1000); // Every 5 minutes
+
+      return () => clearInterval(activityInterval);
+    }
+  }, [state.isAuthenticated, state.user]);
+
   // Authentication actions
   const login = async (credentials) => {
     dispatch({ type: authActions.LOGIN_START });
@@ -437,7 +461,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await apiLogout();
+      // Call the new logout API endpoint
+      await otpAuth.logout();
 
       // Clear stored token using our PWA-compatible storage
       clearStoredToken();
@@ -451,6 +476,7 @@ export const AuthProvider = ({ children }) => {
           // Clear user-specific cart and orders
           localStorage.removeItem(`cart_${userId}`);
           localStorage.removeItem(`orders_${userId}`);
+          localStorage.removeItem('session_id');
         } catch (error) {
           console.error('Error clearing user data:', error);
         }
@@ -462,7 +488,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
       // Even if API call fails, clear stored token
       clearStoredToken();
-      
+
       // Clear user-specific data from localStorage even if API fails
       const user = localStorage.getItem('user');
       if (user) {
@@ -471,11 +497,12 @@ export const AuthProvider = ({ children }) => {
           const userId = userData.id;
           localStorage.removeItem(`cart_${userId}`);
           localStorage.removeItem(`orders_${userId}`);
+          localStorage.removeItem('session_id');
         } catch (error) {
           console.error('Error clearing user data:', error);
         }
       }
-      
+
       dispatch({ type: authActions.LOGOUT });
       return { success: false, error: error.message };
     }
@@ -522,12 +549,12 @@ export const AuthProvider = ({ children }) => {
         dispatch({
           type: authActions.OTP_REQUEST_SUCCESS,
           payload: {
-            mobileNo: result.data.mobile_no,
-            otpLength: result.data.otp_length,
-            expiresIn: result.data.expires_in,
+            mobileNo: mobileNo, // Use the mobile number passed in
+            otpLength: 4, // Fixed to 4 digits as per new API
+            expiresIn: result.expiresIn || 5, // Default to 5 minutes
           },
         });
-        return { success: true, data: result.data };
+        return { success: true, data: result };
       } else {
         throw new Error(result.message || 'Failed to send OTP');
       }
@@ -547,17 +574,23 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await otpAuth.validateOtp(mobileNo, otp);
 
-      if (result.success && result.data.user_authenticated) {
-        // Create user object from token data
+      if (result.success) {
+        // Extract user data from the new API response structure
         const user = {
-          mobile_no: result.data.mobile_no,
-          user_type: result.data.user_type || 'customer',
-          login_time: result.data.login_time,
+          id: result.data.user.id,
+          mobile: result.data.user.mobile,
+          name: result.data.user.name,
+          email: result.data.user.email,
+          role: result.data.user.role,
+          isVerified: result.data.user.isVerified,
+          addresses: result.data.user.addresses || [],
+          favorites: result.data.user.favorites || []
         };
 
         // Store token and user data
         await setStoredToken(result.data.token);
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('token_timestamp', Date.now().toString());
 
         dispatch({
           type: authActions.OTP_VERIFY_SUCCESS,
@@ -622,6 +655,56 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: authActions.OTP_RESET });
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      const result = await otpAuth.updateProfile(profileData);
+      if (result.success) {
+        // Update user state with new profile data
+        dispatch({
+          type: authActions.LOGIN_SUCCESS,
+          payload: { user: { ...state.user, ...result.data.user }, token: state.token },
+        });
+        setSuccessMessage('Profile updated successfully!');
+        return { success: true, data: result.data };
+      } else {
+        throw new Error(result.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      const errorMessage = error.message || error.error || 'Failed to update profile';
+      dispatch({
+        type: authActions.LOGIN_FAILURE,
+        payload: errorMessage,
+      });
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const updateActivity = async (deviceInfo = {}) => {
+    try {
+      // Only update activity if user is authenticated
+      if (!state.isAuthenticated) return { success: false, error: 'Not authenticated' };
+
+      const result = await otpAuth.isActive({
+        sessionId: localStorage.getItem('session_id'),
+        device: {
+          platform: 'web',
+          deviceId: navigator.userAgent,
+          appVersion: '1.0.0',
+          ...deviceInfo
+        }
+      });
+
+      if (result.success) {
+        return { success: true, data: result.data };
+      } else {
+        throw new Error(result.message || 'Failed to update activity');
+      }
+    } catch (error) {
+      console.error('Activity update error:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     // Legacy authentication
     user: state.user,
@@ -653,6 +736,8 @@ export const AuthProvider = ({ children }) => {
     verifyToken,
     refreshToken,
     resetOtp,
+    updateProfile,
+    updateActivity,
   };
 
   return (

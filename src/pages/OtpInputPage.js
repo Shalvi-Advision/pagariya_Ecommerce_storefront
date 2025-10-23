@@ -14,6 +14,7 @@ const OtpInputPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [countdown, setCountdown] = useState(0);
+  const [otpData, setOtpData] = useState(null);
 
   const {
     getOtp,
@@ -103,8 +104,10 @@ const OtpInputPage = () => {
     const result = await getOtp(formData.mobileNo);
 
     if (result.success) {
-      // Start countdown for resend (typically 60 seconds)
-      setCountdown(60);
+      // Store OTP data for development mode display
+      setOtpData(result.data);
+      // Start countdown for resend using expiresIn from API or default to 60 seconds
+      setCountdown(result.data?.expiresIn * 60 || 60); // Convert minutes to seconds
     }
   };
 
@@ -203,6 +206,11 @@ const OtpInputPage = () => {
             <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
               <p className="text-emerald-800 text-sm">
                 ✓ OTP sent successfully to +91 {otpMobile}
+                {process.env.NODE_ENV === 'development' && otpData?.otp && (
+                  <span className="block mt-1 font-mono text-xs">
+                    OTP: {otpData.otp}
+                  </span>
+                )}
               </p>
             </div>
           )}

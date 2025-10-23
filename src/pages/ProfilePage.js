@@ -1,71 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useProfile } from '../context/ProfileContext';
 import AccountSidebar from '../components/AccountSidebar';
 import Button from '../components/Button';
 import SuccessToast from '../components/SuccessToast';
 import Loading from '../components/Loading';
 
 const ProfilePage = () => {
-  const { user } = useAuth();
-  const { 
-    profile, 
-    loading, 
-    updating, 
-    error, 
-    successMessage, 
-    isEditMode, 
-    offlineMode,
-    fetchProfile, 
-    updateProfile, 
-    setEditMode, 
+  const {
+    user,
+    updateProfile,
+    loading: authLoading,
+    error: authError,
+    successMessage: authSuccessMessage,
     clearError,
-    clearSuccessMessage,
-    hasProfile,
-    getDisplayName,
-    isProfileComplete
-  } = useProfile();
+    setSuccessMessage,
+    clearSuccessMessage
+  } = useAuth();
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
-    mobile: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    pincode: '',
-    latitude: '',
-    longitude: ''
+    mobile: ''
   });
 
-  // Store code - you might want to get this from context or props
-  const storeCode = 'KLK'; // Default store code, should be dynamic
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  // Load profile data on component mount
+  // Load profile data from auth context
   useEffect(() => {
-    if (user && user.mobile_no) {
-      fetchProfile(storeCode);
-    }
-  }, [user, storeCode]);
+    if (user) {
+      // Split name into first and last name for display
+      const nameParts = (user.name || '').split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
 
-  // Update form data when profile changes
-  useEffect(() => {
-    if (profile) {
       setFormData({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        email: profile.emailId || '',
-        mobile: profile.mobileNumber || '',
-        addressLine1: profile.addressLine1 || '',
-        addressLine2: profile.addressLine2 || '',
-        city: profile.city || '',
-        pincode: profile.pincode || '',
-        latitude: profile.latitude || '',
-        longitude: profile.longitude || ''
+        name: user.name || '',
+        email: user.email || '',
+        mobile: user.mobile || '',
+        firstName: firstName,
+        lastName: lastName
       });
     }
-  }, [profile]);
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -79,33 +55,38 @@ const ProfilePage = () => {
     e.preventDefault();
     clearError();
 
-    const result = await updateProfile(formData, storeCode);
+    // Combine firstName and lastName into name
+    const profileData = {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email
+    };
+
+    const result = await updateProfile(profileData);
     if (result.success) {
-      setEditMode(false);
+      setIsEditMode(false);
     }
   };
 
   const handleEditProfile = () => {
-    setEditMode(true);
+    setIsEditMode(true);
     clearError();
   };
 
   const handleCancelEdit = () => {
-    setEditMode(false);
+    setIsEditMode(false);
     clearError();
-    // Reset form data to original profile data
-    if (profile) {
+    // Reset form data to original user data
+    if (user) {
+      const nameParts = (user.name || '').split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       setFormData({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        email: profile.emailId || '',
-        mobile: profile.mobileNumber || '',
-        addressLine1: profile.addressLine1 || '',
-        addressLine2: profile.addressLine2 || '',
-        city: profile.city || '',
-        pincode: profile.pincode || '',
-        latitude: profile.latitude || '',
-        longitude: profile.longitude || ''
+        name: user.name || '',
+        email: user.email || '',
+        mobile: user.mobile || '',
+        firstName: firstName,
+        lastName: lastName
       });
     }
   };
@@ -128,7 +109,7 @@ const ProfilePage = () => {
   };
 
   // Show loading state
-  if (loading && !profile) {
+  if (authLoading && !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loading />
@@ -139,25 +120,11 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Success Toast */}
-      <SuccessToast 
-        message={successMessage} 
-        isVisible={!!successMessage} 
-        onClose={clearSuccessMessage} 
+      <SuccessToast
+        message={authSuccessMessage}
+        isVisible={!!authSuccessMessage}
+        onClose={clearSuccessMessage}
       />
-
-      {/* Offline Mode Banner */}
-      {offlineMode && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <span className="font-medium">Offline Mode:</span> You're viewing cached profile data. 
-                Some features may be limited until you're back online.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar */}
@@ -172,32 +139,33 @@ const ProfilePage = () => {
             <div className="mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Profile</h1>
               <p className="text-sm sm:text-base text-gray-600">
-                {hasProfile() ? `Welcome back, ${getDisplayName()}!` : 'Complete your profile to get started'}
+                {user?.name ? `Welcome back, ${user.name}!` : 'Complete your profile to get started'}
               </p>
             </div>
 
             {/* Profile Status Card */}
-            {profile && (
+            {user && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                       <span className="text-green-600 font-semibold text-lg">
-                        {getDisplayName().charAt(0).toUpperCase()}
+                        {(user.name || 'U').charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{getDisplayName()}</h3>
-                      <p className="text-sm text-gray-500">{profile.mobileNumber}</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{user.name || 'User'}</h3>
+                      <p className="text-sm text-gray-500">{user.mobile}</p>
+                      <p className="text-xs text-gray-400 capitalize">{user.role}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      isProfileComplete() 
-                        ? 'bg-green-100 text-green-800' 
+                      user.isVerified
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {isProfileComplete() ? 'Complete' : 'Incomplete'}
+                      {user.isVerified ? 'Verified' : 'Unverified'}
                     </div>
                   </div>
                 </div>
@@ -228,13 +196,15 @@ const ProfilePage = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-gray-900 font-medium">{formData.mobile || 'Not provided'}</span>
-                      <button
-                        type="button"
-                        onClick={handleChangeMobile}
-                        className="mt-2 sm:mt-0 text-green-600 hover:text-green-700 text-sm font-medium"
-                      >
-                        Change Mobile Number
-                      </button>
+                      <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          user?.isVerified
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {user?.isVerified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -242,7 +212,7 @@ const ProfilePage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                        First Name *
+                        First Name
                       </label>
                       {isEditMode ? (
                         <input
@@ -253,7 +223,6 @@ const ProfilePage = () => {
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm sm:text-base"
                           placeholder="Enter first name"
-                          required
                         />
                       ) : (
                         <p className="text-gray-900 py-2">{formData.firstName || 'Not provided'}</p>
@@ -261,7 +230,7 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Name *
+                        Last Name
                       </label>
                       {isEditMode ? (
                         <input
@@ -272,7 +241,6 @@ const ProfilePage = () => {
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm sm:text-base"
                           placeholder="Enter last name"
-                          required
                         />
                       ) : (
                         <p className="text-gray-900 py-2">{formData.lastName || 'Not provided'}</p>
@@ -298,100 +266,18 @@ const ProfilePage = () => {
                     ) : (
                       <p className="text-gray-900 py-2">{formData.email || 'Not provided'}</p>
                     )}
-                    {formData.email && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-red-600 text-sm">Email is not verified.</span>
-                        <button
-                          type="button"
-                          onClick={handleVerifyEmail}
-                          className="text-red-600 hover:text-red-700 text-sm font-medium"
-                        >
-                          Verify now
-                        </button>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Address Section */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Address</h3>
-                    
-                    <div className="space-y-4">
+                  {/* User Role and ID Section */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-2">
-                          Address Line 1
-                        </label>
-                        {isEditMode ? (
-                          <input
-                            type="text"
-                            id="addressLine1"
-                            name="addressLine1"
-                            value={formData.addressLine1}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm sm:text-base"
-                            placeholder="Enter address line 1"
-                          />
-                        ) : (
-                          <p className="text-gray-900 py-2">{formData.addressLine1 || 'Not provided'}</p>
-                        )}
+                        <label className="block text-sm font-medium text-gray-700 mb-2">User Role</label>
+                        <p className="text-gray-900 py-2 capitalize">{user?.role || 'user'}</p>
                       </div>
-
                       <div>
-                        <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-2">
-                          Address Line 2
-                        </label>
-                        {isEditMode ? (
-                          <input
-                            type="text"
-                            id="addressLine2"
-                            name="addressLine2"
-                            value={formData.addressLine2}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm sm:text-base"
-                            placeholder="Enter address line 2"
-                          />
-                        ) : (
-                          <p className="text-gray-900 py-2">{formData.addressLine2 || 'Not provided'}</p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                        <div>
-                          <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                            City
-                          </label>
-                          {isEditMode ? (
-                            <input
-                              type="text"
-                              id="city"
-                              name="city"
-                              value={formData.city}
-                              onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm sm:text-base"
-                              placeholder="Enter city"
-                            />
-                          ) : (
-                            <p className="text-gray-900 py-2">{formData.city || 'Not provided'}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-2">
-                            Pincode
-                          </label>
-                          {isEditMode ? (
-                            <input
-                              type="text"
-                              id="pincode"
-                              name="pincode"
-                              value={formData.pincode}
-                              onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm sm:text-base"
-                              placeholder="Enter pincode"
-                            />
-                          ) : (
-                            <p className="text-gray-900 py-2">{formData.pincode || 'Not provided'}</p>
-                          )}
-                        </div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">User ID</label>
+                        <p className="text-gray-900 py-2 text-xs font-mono">{user?.id || 'Not available'}</p>
                       </div>
                     </div>
                   </div>
@@ -401,10 +287,10 @@ const ProfilePage = () => {
                     <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
                       <Button
                         type="submit"
-                        disabled={updating}
+                        disabled={authLoading}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {updating ? 'Saving...' : 'Save Changes'}
+                        {authLoading ? 'Saving...' : 'Save Changes'}
                       </Button>
                       <button
                         type="button"
@@ -418,13 +304,13 @@ const ProfilePage = () => {
                 </form>
 
                 {/* Error Message */}
-                {error && (
+                {authError && (
                   <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
                     <div className="flex">
                       <div className="ml-3">
                         <h3 className="text-sm font-medium text-red-800">Error</h3>
                         <div className="mt-2 text-sm text-red-700">
-                          <p>{error}</p>
+                          <p>{authError}</p>
                         </div>
                       </div>
                     </div>

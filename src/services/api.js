@@ -5,7 +5,6 @@ import { optimizedFetch, generateCacheKey, cacheResponse, getCachedResponse } fr
 import { throttle } from '../utils/asyncUtils';
 
 // OTP Authentication Configuration
-const OTP_PROJECT_CODE = "RET90";
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
 // Create axios instance with base configuration
@@ -18,7 +17,7 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and store_code
 api.interceptors.request.use(
   (config) => {
     // Get token from storage
@@ -26,6 +25,35 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add store_code from localStorage to all API requests
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      try {
+        const location = JSON.parse(locationData);
+        const storeCode = location?.store?.store_code;
+
+        if (storeCode) {
+          // Add to POST/PUT/PATCH request body
+          if (['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
+            config.data = {
+              ...config.data,
+              store_code: storeCode
+            };
+          }
+          // Add to GET/DELETE as query param
+          else if (['get', 'delete'].includes(config.method?.toLowerCase())) {
+            config.params = {
+              ...config.params,
+              store_code: storeCode
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to add store_code to request:', error);
+      }
+    }
+
     return config;
   },
   (error) => {
@@ -285,22 +313,22 @@ export const apiDelete = async (endpoint) => {
 
 // OTP Authentication API Methods
 export const otpAuth = {
-  // Get OTP for mobile number
+  // Send OTP to mobile number
   getOtp: async (mobileNo) => {
     try {
-      return await postWithProjectCode('/auth/get_otp', {
-        mobileNo: mobileNo.replace(/\s+/g, ''), // Remove spaces
+      return await apiPost('/auth/send-otp', {
+        mobile: mobileNo.replace(/\s+/g, ''), // Remove spaces
       });
     } catch (error) {
       throw error.response?.data || error;
     }
   },
 
-  // Validate OTP and get token
+  // Verify OTP and get authentication token
   validateOtp: async (mobileNo, otp) => {
     try {
-      return await postWithProjectCode('/auth/validate_otp', {
-        mobileNo: mobileNo.replace(/\s+/g, ''), // Remove spaces
+      return await apiPost('/auth/verify-otp', {
+        mobile: mobileNo.replace(/\s+/g, ''), // Remove spaces
         otp: otp.replace(/\s+/g, ''), // Remove spaces
       });
     } catch (error) {
@@ -308,7 +336,43 @@ export const otpAuth = {
     }
   },
 
-  // Verify token validity
+  // Get user profile
+  getProfile: async () => {
+    try {
+      return await apiGet('/auth/profile');
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    try {
+      return await apiPut('/auth/profile', profileData);
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Logout user
+  logout: async () => {
+    try {
+      return await apiPost('/auth/logout', {});
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Update user activity / is active
+  isActive: async (sessionData = {}) => {
+    try {
+      return await apiPost('/auth/is-active', sessionData);
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Verify token validity (legacy method for backward compatibility)
   verifyToken: async (token) => {
     try {
       const response = await api.post('/auth/verify_token', {
@@ -320,7 +384,7 @@ export const otpAuth = {
     }
   },
 
-  // Refresh token
+  // Refresh token (legacy method for backward compatibility)
   refreshToken: async (token) => {
     try {
       const response = await api.post('/auth/refresh_token', {
@@ -423,7 +487,7 @@ const processProductData = (product) => {
     package_size: product.package_size ? `${product.package_size} ${product.package_unit || 'GM'}` : '1 GM',
     category: product.category || 'General',
     brand: product.brand_name || product.brand || 'Unknown',
-    image_url: product.pcode_img || product.image_url || '/images/placeholder-product.jpg',
+    image_url: product.pcode_img || product.image_url || '/images/logo.jpg',
     is_active: product.pcode_status === 'Y',
     created_at: product.created_at || new Date().toISOString(),
     updated_at: product.updated_at || new Date().toISOString()
@@ -523,4 +587,5 @@ export const getProductDetails = async (p_code, store_code, project_code) => {
   }
 };
 
+export { processProductData };
 export default api;

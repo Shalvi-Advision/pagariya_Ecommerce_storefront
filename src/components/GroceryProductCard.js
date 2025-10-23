@@ -21,8 +21,16 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
     discount,
     weightOptions,
     image,
+    image_url,
+    pcode_img,
     p_code: pcode
   } = product;
+
+  // Debug logging for image fields
+  console.log('🖼️ GroceryProductCard product data:', product);
+  console.log('🖼️ GroceryProductCard image field:', image);
+  console.log('🖼️ GroceryProductCard image_url field:', image_url);
+  console.log('🖼️ GroceryProductCard pcode_img field:', pcode_img);
 
   // Calculate price per unit
   const getPricePerUnit = (weight) => {
@@ -50,10 +58,13 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   };
 
   const handleImageLoad = () => {
+    console.log('✅ GroceryProductCard image loaded successfully:', image_url || pcode_img || image);
     setImageLoaded(true);
   };
 
-  const handleImageError = () => {
+  const handleImageError = (event) => {
+    console.log('❌ GroceryProductCard image failed to load:', image_url || pcode_img || image);
+    console.log('❌ GroceryProductCard image error event:', event);
     setImageError(true);
   };
 
@@ -70,7 +81,7 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
         >
           {!imageError ? (
             <img
-              src={image || '/api/placeholder/200/200'}
+              src={image_url || pcode_img || image || '/images/logo.jpg'}
               alt={name}
               className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'

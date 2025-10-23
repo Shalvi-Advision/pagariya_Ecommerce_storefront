@@ -41,6 +41,7 @@ import LoginSuccessModal from './components/LoginSuccessModal';
 import DevTools from './components/DevTools';
 //import DebugInfo from './components/';
 import CartDebugTools from './components/CartDebugTools';
+import LocationGuard from './components/LocationGuard';
 
 // Import pincode modals
 import PincodeSelectionModal from './components/PincodeSelectionModal';
@@ -72,6 +73,7 @@ function AppContent() {
     isPincodeModalOpen,
     isStoreModalOpen,
     isStoreDetailsModalOpen,
+    isLocationRequired,
     selectedPincode,
     selectedStore,
     handlePincodeSelect,
@@ -109,28 +111,30 @@ function AppContent() {
         <Header />
         <main className="flex-grow">
           <ApiErrorBoundary fallback={apiErrorFallback}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/product/:id" element={<ProductDetailsPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/otp-input" element={<OtpInputPage />} />
-              <Route path="/otp-verify" element={<OtpVerifyPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/address" element={<AddressPage />} />
-              <Route path="/saved-cards" element={<SavedCardsPage />} />
-              <Route path="/ready-list" element={<ReadyListPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/saved-list" element={<SavedListPage />} />
-              <Route path="/category/:categoryName" element={<CategoryPage />} />
-              <Route path="/category" element={<CategoryPage />} />
-              <Route path="/test-category" element={<TestCategoryPage />} />
-              <Route path="/favorites" element={<FavoritesPage />} />
-              <Route path="/about" element={<AboutUsPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
+            <LocationGuard>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/product/:id" element={<ProductDetailsPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/otp-input" element={<OtpInputPage />} />
+                <Route path="/otp-verify" element={<OtpVerifyPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/address" element={<AddressPage />} />
+                <Route path="/saved-cards" element={<SavedCardsPage />} />
+                <Route path="/ready-list" element={<ReadyListPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/saved-list" element={<SavedListPage />} />
+                <Route path="/category/:categoryName" element={<CategoryPage />} />
+                <Route path="/category" element={<CategoryPage />} />
+                <Route path="/test-category" element={<TestCategoryPage />} />
+                <Route path="/favorites" element={<FavoritesPage />} />
+                <Route path="/about" element={<AboutUsPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </LocationGuard>
           </ApiErrorBoundary>
         </main>
         <Footer />
@@ -166,6 +170,7 @@ function AppContent() {
           isOpen={isPincodeModalOpen}
           onClose={closePincodeModal}
           onPincodeSelect={handlePincodeSelect}
+          isRequired={isLocationRequired}
         />
         
         <StoreSelectionModal
@@ -173,6 +178,7 @@ function AppContent() {
           onClose={closeStoreModal}
           onStoreSelect={handleStoreSelect}
           selectedPincode={selectedPincode}
+          isRequired={isLocationRequired}
         />
         
         <StoreDetailsModal
@@ -181,6 +187,7 @@ function AppContent() {
           onConfirm={handleConfirmLocation}
           selectedPincode={selectedPincode}
           selectedStore={selectedStore}
+          isRequired={isLocationRequired}
         />
       </div>
     </Router>

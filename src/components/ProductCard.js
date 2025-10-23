@@ -23,6 +23,8 @@ const ProductCard = ({ product, onAddToCart }) => {
   console.log('🔍 ProductCard p_code field:', product?.p_code);
   console.log('🔍 ProductCard pcode field:', product?.pcode);
   console.log('🔍 ProductCard _id field:', product?._id);
+  console.log('🖼️ ProductCard image_url field:', product?.image_url);
+  console.log('🖼️ ProductCard pcode_img field:', product?.pcode_img);
 
   // Extract product data with fallbacks (conversion is handled in API layer)
   const {
@@ -36,7 +38,8 @@ const ProductCard = ({ product, onAddToCart }) => {
     brand_name,
     store_quantity,
     max_quantity_allowed,
-    pcode_img: image,
+    image_url: image,
+    pcode_img: fallbackImage,
     discount_percentage,
     p_code: pcode
   } = product;
@@ -47,8 +50,11 @@ const ProductCard = ({ product, onAddToCart }) => {
   const safeDescription = safeValue(description, 'No description available');
   const safeBrandName = safeValue(brand_name, '');
   const safePackageUnit = safeValue(package_unit, 'unit');
-  const safeImage = safeValue(image, '');
+  const safeImage = safeValue(image, fallbackImage || '/images/logo.jpg');
   const safePcode = safeValue(pcode, safeId); // Use pcode if available, fallback to id
+
+  // Debug: Log the final image URL being used
+  console.log('🖼️ ProductCard final image URL:', safeImage);
 
   // Debug: Log the navigation URL
   console.log('🔗 ProductCard navigation URL will be:', `/product/${safePcode}`);
@@ -124,10 +130,13 @@ const ProductCard = ({ product, onAddToCart }) => {
   };
 
   const handleImageLoad = () => {
+    console.log('✅ ProductCard image loaded successfully:', safeImage);
     setImageLoaded(true);
   };
 
-  const handleImageError = () => {
+  const handleImageError = (event) => {
+    console.log('❌ ProductCard image failed to load:', safeImage);
+    console.log('❌ Image error event:', event);
     setImageError(true);
   };
 

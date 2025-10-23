@@ -59,63 +59,15 @@ const Header = () => {
           setDepartments(['all', ...departmentNames]);
           setCategories(['all', ...departmentNames]); // Keep categories for backward compatibility
         } else {
-          // Fallback to hardcoded departments (same as CategoriesDrawer fallback)
-          const fallbackDepartments = [
-            'all',
-            'GROCERY & STAPLES',
-            'FRUITS & VEGETABLES',
-            'DAIRY & BEVERAGES',
-            'PACKAGED FOOD',
-            'PERSONAL CARE',
-            'HOME & KITCHEN',
-            'CLEANING SUPPLIES',
-            'BABY CARE',
-            'PET CARE',
-            'HEALTH & WELLNESS',
-            'HOUSEHOLD ITEMS',
-            'STATIONERY & OFFICE',
-            'AUTOMOTIVE',
-            'ELECTRONICS',
-            'FASHION & CLOTHING',
-            'HOME FURNISHING',
-            'BOOKS & MEDIA',
-            'SPORTS & FITNESS',
-            'GARDEN & OUTDOOR',
-            'TOYS & GAMES',
-            'JEWELRY & WATCHES'
-          ];
-          setDepartments(fallbackDepartments);
-          setCategories(fallbackDepartments); // Keep categories for backward compatibility
+          // No departments available
+          setDepartments(['all']);
+          setCategories(['all']);
         }
       } catch (e) {
         console.error('Error loading departments:', e);
-        // Fallback to hardcoded departments
-        const fallbackDepartments = [
-          'all',
-          'GROCERY & STAPLES',
-          'FRUITS & VEGETABLES',
-          'DAIRY & BEVERAGES',
-          'PACKAGED FOOD',
-          'PERSONAL CARE',
-          'HOME & KITCHEN',
-          'CLEANING SUPPLIES',
-          'BABY CARE',
-          'PET CARE',
-          'HEALTH & WELLNESS',
-          'HOUSEHOLD ITEMS',
-          'STATIONERY & OFFICE',
-          'AUTOMOTIVE',
-          'ELECTRONICS',
-          'FASHION & CLOTHING',
-          'HOME FURNISHING',
-          'BOOKS & MEDIA',
-          'SPORTS & FITNESS',
-          'GARDEN & OUTDOOR',
-          'TOYS & GAMES',
-          'JEWELRY & WATCHES'
-        ];
-        setDepartments(fallbackDepartments);
-        setCategories(fallbackDepartments); // Keep categories for backward compatibility
+        // Set empty departments
+        setDepartments(['all']);
+        setCategories(['all']);
       }
     };
 

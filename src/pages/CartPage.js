@@ -106,11 +106,11 @@ const CartPage = () => {
                         <div className="sm:hidden">
                           <div className="flex gap-3 mb-3">
                             <img
-                              src={item.image || '/placeholder-product.jpg'}
+                              src={item.image || '/images/logo.jpg'}
                               alt={item.title}
                               className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
                               onError={(e) => {
-                                e.target.src = '/placeholder-product.jpg';
+                                e.target.src = '/images/logo.jpg';
                               }}
                             />
                             <div className="flex-1 min-w-0">
@@ -166,11 +166,11 @@ const CartPage = () => {
                           {/* Product Image & Details */}
                           <div className="col-span-4 flex items-center gap-3 lg:gap-4">
                             <img
-                              src={item.image || '/placeholder-product.jpg'}
+                              src={item.image || '/images/logo.jpg'}
                               alt={item.title}
                               className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
                               onError={(e) => {
-                                e.target.src = '/placeholder-product.jpg';
+                                e.target.src = '/images/logo.jpg';
                               }}
                             />
                             <div className="min-w-0 flex-1">

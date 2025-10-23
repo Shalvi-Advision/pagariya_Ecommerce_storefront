@@ -1,65 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { MapPinIcon, ClockIcon, PhoneIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { getPincodeStores, formatStoreData } from '../api/pincodeService';
+import { usePincode } from '../context/PincodeContext';
 
-const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode }) => {
-  const [stores, setStores] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode, isRequired }) => {
+  // Get data from PincodeContext
+  const {
+    availableStores,
+    isLoadingStores,
+    storesError
+  } = usePincode();
 
-  useEffect(() => {
-    if (isOpen && selectedPincode) {
-      loadStores();
-    }
-  }, [isOpen, selectedPincode]);
-
-  const loadStores = async () => {
-    if (!selectedPincode) return;
-    
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await getPincodeStores(selectedPincode.pincode);
-      if (response.success && response.data) {
-        const formattedStores = response.data.map(formatStoreData);
-        setStores(formattedStores);
-      } else {
-        setError('No stores found for this location');
-      }
-    } catch (err) {
-      console.error('Error loading stores:', err);
-      setError('Failed to load stores. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Stores are loaded automatically by PincodeContext when pincode is selected
 
   const handleStoreSelect = (store) => {
+    console.log('🏪 Store clicked in StoreSelectionModal:', store);
     onStoreSelect(store);
   };
 
   const handleClose = () => {
-    setStores([]);
-    setError(null);
-    onClose();
+    if (!isRequired) {
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Prevent closing when clicking backdrop if required
+        if (e.target === e.currentTarget && !isRequired) {
+          handleClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Select Store
-          </h3>
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <XMarkIcon className="w-5 h-5 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Select Store
+            </h3>
+            {isRequired && (
+              <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded">
+                Required
+              </span>
+            )}
+          </div>
+          {!isRequired && (
+            <button
+              onClick={handleClose}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <XMarkIcon className="w-5 h-5 text-gray-500" />
+            </button>
+          )}
         </div>
 
         {/* Location Info */}
@@ -74,28 +70,28 @@ const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode }
 
         {/* Content */}
         <div className="px-6 py-4 overflow-y-auto max-h-96">
-          {isLoading ? (
+          {isLoadingStores ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
               <span className="ml-2 text-gray-600">Loading stores...</span>
             </div>
-          ) : error ? (
+          ) : storesError ? (
             <div className="text-center py-8">
-              <p className="text-sm text-red-600 mb-2">{error}</p>
+              <p className="text-sm text-red-600 mb-2">{storesError}</p>
               <button
-                onClick={loadStores}
+                onClick={() => window.location.reload()}
                 className="text-sm text-green-600 hover:text-green-700 font-medium"
               >
                 Try again
               </button>
             </div>
-          ) : stores.length === 0 ? (
+          ) : availableStores.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-gray-500">No stores available in this area</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {stores.map((store) => (
+              {availableStores.map((store) => (
                 <div
                   key={store._id}
                   onClick={() => handleStoreSelect(store)}
@@ -104,37 +100,37 @@ const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode }
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900 mb-1">
-                        {store.storeName}
+                        {store.storeName || store.store_name}
                       </h4>
                       <p className="text-sm text-gray-600 mb-2">
-                        {store.storeAddress}
+                        {store.storeAddress || store.address}
                       </p>
                       
                       {/* Store Details */}
                       <div className="space-y-1">
-                        {store.storeOpenTime && (
+                        {(store.storeOpenTime || store.store_open_time) && (
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <ClockIcon className="w-3 h-3" />
-                            <span>{store.storeOpenTime}</span>
+                            <span>{store.storeOpenTime || store.store_open_time}</span>
                           </div>
                         )}
-                        
-                        {store.storeDeliveryTime && (
+
+                        {(store.storeDeliveryTime || store.delivery_time) && (
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <MapPinIcon className="w-3 h-3" />
-                            <span>Delivery: {store.storeDeliveryTime}</span>
+                            <span>Delivery: {store.storeDeliveryTime || store.delivery_time}</span>
                           </div>
                         )}
-                        
-                        {store.minOrderAmount && (
+
+                        {(store.minOrderAmount || store.min_order_amount) && (
                           <div className="text-xs text-gray-500">
-                            Min. order: ₹{store.minOrderAmount}
+                            Min. order: ₹{store.minOrderAmount || store.min_order_amount}
                           </div>
                         )}
-                        
-                        {store.storeOfferName && (
+
+                        {(store.storeOfferName || store.offer) && (
                           <div className="text-xs text-green-600 font-medium">
-                            {store.storeOfferName}
+                            {store.storeOfferName || store.offer}
                           </div>
                         )}
                       </div>
@@ -143,31 +139,31 @@ const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode }
                     {/* Store Status */}
                     <div className="flex flex-col items-end gap-2">
                       <div className="flex gap-2">
-                        {store.homeDelivery && (
+                        {(store.homeDelivery || store.delivery_options?.home_delivery) && (
                           <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                             Home Delivery
                           </span>
                         )}
-                        {store.selfPickup && (
+                        {(store.selfPickup || store.delivery_options?.self_pickup) && (
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                             Self Pickup
                           </span>
                         )}
                       </div>
-                      
-                      {store.contactNumber && (
+
+                      {(store.contactNumber || store.contact?.phone) && (
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                           <PhoneIcon className="w-3 h-3" />
-                          <span>{store.contactNumber}</span>
+                          <span>{store.contactNumber || store.contact?.phone}</span>
                         </div>
                       )}
                     </div>
                   </div>
                   
                   {/* Store Message */}
-                  {store.storeMessage && (
+                  {(store.storeMessage || store.message) && (
                     <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                      {store.storeMessage}
+                      {store.storeMessage || store.message}
                     </div>
                   )}
                 </div>
