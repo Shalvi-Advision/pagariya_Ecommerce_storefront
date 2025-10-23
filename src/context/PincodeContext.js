@@ -21,6 +21,10 @@ export const PincodeProvider = ({ children }) => {
   const [selectedStore, setSelectedStore] = useState(null);
   const [confirmedLocation, setConfirmedLocation] = useState(null);
 
+  // Mandatory location states
+  const [isLocationRequired, setIsLocationRequired] = useState(false);
+  const [hasCheckedInitialLocation, setHasCheckedInitialLocation] = useState(false);
+
   // Loading and error states for better reactivity
   const [isCheckingServiceability, setIsCheckingServiceability] = useState(false);
   const [isLoadingPincodes, setIsLoadingPincodes] = useState(false);
@@ -55,6 +59,17 @@ export const PincodeProvider = ({ children }) => {
       }
     }
   }, []);
+
+  // Check if location is required on mount
+  useEffect(() => {
+    if (!hasCheckedInitialLocation) {
+      setHasCheckedInitialLocation(true);
+      if (!confirmedLocation) {
+        setIsLocationRequired(true);
+        setIsPincodeModalOpen(true);
+      }
+    }
+  }, [hasCheckedInitialLocation, confirmedLocation]);
 
   // Sync with localStorage whenever confirmedLocation changes
   useEffect(() => {
@@ -129,8 +144,10 @@ export const PincodeProvider = ({ children }) => {
 
   // Close pincode selection modal
   const closePincodeModal = () => {
-    setIsPincodeModalOpen(false);
-    setServiceabilityError(null);
+    if (!isLocationRequired) {
+      setIsPincodeModalOpen(false);
+      setServiceabilityError(null);
+    }
   };
 
   // Handle pincode selection
@@ -178,20 +195,31 @@ export const PincodeProvider = ({ children }) => {
 
   // Close store selection modal
   const closeStoreModal = () => {
-    setIsStoreModalOpen(false);
+    if (!isLocationRequired) {
+      setIsStoreModalOpen(false);
+    }
   };
 
   // Handle final confirmation
   const handleConfirmLocation = (locationData) => {
+    // Validate storeCode exists
+    if (!locationData.store?.storeCode && !locationData.store?.store_code) {
+      console.error('Store code missing!', locationData.store);
+      return;
+    }
+
     setConfirmedLocation(locationData);
     setSelectedPincode(locationData.pincode);
     setSelectedStore(locationData.store);
     setIsStoreDetailsModalOpen(false);
+    setIsLocationRequired(false); // Allow app access
   };
 
   // Close store details modal
   const closeStoreDetailsModal = () => {
-    setIsStoreDetailsModalOpen(false);
+    if (!isLocationRequired) {
+      setIsStoreDetailsModalOpen(false);
+    }
   };
 
   // Reset location selection
@@ -201,6 +229,8 @@ export const PincodeProvider = ({ children }) => {
     setConfirmedLocation(null);
     setServiceabilityError(null);
     localStorage.removeItem('confirmedLocation');
+    setIsLocationRequired(true);
+    setIsPincodeModalOpen(true);
   };
 
   // Get display text for header
@@ -249,6 +279,9 @@ export const PincodeProvider = ({ children }) => {
     selectedPincode,
     selectedStore,
     confirmedLocation,
+
+    // Mandatory location states
+    isLocationRequired,
 
     // Loading states
     isCheckingServiceability,

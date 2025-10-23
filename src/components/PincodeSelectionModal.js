@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { XMarkIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import { usePincode } from '../context/PincodeContext';
 
-const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
+const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect, isRequired }) => {
   const [pincodeInput, setPincodeInput] = useState('');
-  
+
   const {
     isCheckingServiceability,
     serviceabilityError,
@@ -38,8 +38,10 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
   };
 
   const handleClose = () => {
-    setPincodeInput('');
-    onClose();
+    if (!isRequired) {
+      setPincodeInput('');
+      onClose();
+    }
   };
 
   const handlePincodeFromListSelect = (pincode) => {
@@ -49,7 +51,15 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Prevent closing when clicking backdrop if required
+        if (e.target === e.currentTarget && !isRequired) {
+          handleClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -58,14 +68,21 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect }) => {
             <h3 className="text-lg font-semibold text-gray-900">
               Select Your Location
             </h3>
+            {isRequired && (
+              <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded">
+                Required
+              </span>
+            )}
           </div>
-          
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <XMarkIcon className="w-5 h-5 text-gray-500" />
-          </button>
+
+          {!isRequired && (
+            <button
+              onClick={handleClose}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <XMarkIcon className="w-5 h-5 text-gray-500" />
+            </button>
+          )}
         </div>
 
         {/* Content */}

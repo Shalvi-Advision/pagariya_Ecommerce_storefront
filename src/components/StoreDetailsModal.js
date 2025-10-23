@@ -9,12 +9,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { formatStoreData } from '../api/pincodeService';
 
-const StoreDetailsModal = ({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  selectedPincode, 
-  selectedStore 
+const StoreDetailsModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  selectedPincode,
+  selectedStore,
+  isRequired
 }) => {
   const [storeDetails, setStoreDetails] = useState(null);
 
@@ -36,8 +37,10 @@ const StoreDetailsModal = ({
   };
 
   const handleClose = () => {
-    setStoreDetails(null);
-    onClose();
+    if (!isRequired) {
+      setStoreDetails(null);
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
