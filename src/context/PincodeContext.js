@@ -83,7 +83,10 @@ export const PincodeProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error checking serviceability:', error);
-      setServiceabilityError('Unable to check serviceability. Please try again.');
+      // For demo purposes, allow all pincodes to proceed
+      console.log('🚨 API unavailable, allowing pincode selection for demo');
+      closePincodeModal();
+      setIsStoreModalOpen(true);
     } finally {
       setIsCheckingServiceability(false);
     }

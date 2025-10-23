@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrderContext';
+import { usePincode } from '../context/PincodeContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { getPincodeStores, formatStoreData } from '../api/pincodeService';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -22,31 +24,43 @@ const INDIAN_STATES = [
   'Lakshadweep'
 ];
 
-// Mock data for pickup points
-const PICKUP_POINTS = [
+// Fallback pickup points for when API is unavailable
+const FALLBACK_PICKUP_POINTS = [
   {
-    id: 1,
+    id: 'fallback_1',
     name: 'DMart Store - Panvel',
     address: 'Sector 3, Road No 2, New Panvel, Navi Mumbai - 410206',
     distance: '0.5 km',
     timings: '9:00 AM - 10:00 PM',
-    isAvailable: true
+    isAvailable: true,
+    storeCode: 'PAN001',
+    contactNumber: '+91-9876543210',
+    homeDelivery: false,
+    selfPickup: true
   },
   {
-    id: 2,
+    id: 'fallback_2',
     name: 'DMart Store - Kharghar',
     address: 'Plot No 1, Sector 12, Kharghar, Navi Mumbai - 410210',
     distance: '2.1 km',
     timings: '9:00 AM - 10:00 PM',
-    isAvailable: true
+    isAvailable: true,
+    storeCode: 'KHA001',
+    contactNumber: '+91-9876543211',
+    homeDelivery: false,
+    selfPickup: true
   },
   {
-    id: 3,
+    id: 'fallback_3',
     name: 'DMart Store - Vashi',
     address: 'Sector 17, Vashi, Navi Mumbai - 400703',
     distance: '5.2 km',
     timings: '9:00 AM - 10:00 PM',
-    isAvailable: false
+    isAvailable: false,
+    storeCode: 'VAS001',
+    contactNumber: '+91-9876543212',
+    homeDelivery: false,
+    selfPickup: true
   }
 ];
 
@@ -134,11 +148,66 @@ const CheckoutPage = () => {
   const { items, totalItems, totalPrice, clearCart, clearUserCart } = useCart();
   const { isAuthenticated, user, setSuccessMessage } = useAuth();
   const { addOrder } = useOrders();
+  const { getCurrentPincode, confirmedLocation } = usePincode();
   const navigate = useNavigate();
   const { isMobile, isTablet, getResponsiveValue } = useResponsive();
 
   // State for dynamic time slots
   const [timeSlots, setTimeSlots] = useState(generateTimeSlots());
+  
+  // State for dynamic pickup stores
+  const [pickupStores, setPickupStores] = useState([]);
+  const [isLoadingStores, setIsLoadingStores] = useState(false);
+  const [storesError, setStoresError] = useState(null);
+
+  // Function to fetch stores for the selected pincode
+  const fetchPickupStores = async (pincode) => {
+    if (!pincode) {
+      setPickupStores([]);
+      return;
+    }
+
+    setIsLoadingStores(true);
+    setStoresError(null);
+
+    try {
+      const response = await getPincodeStores(pincode);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Filter stores that support self-pickup
+        const pickupEnabledStores = response.data
+          .filter(store => store.self_pickup === 'yes')
+          .map(store => formatStoreData(store))
+          .map(store => ({
+            id: store._id,
+            name: store.storeName,
+            address: store.storeAddress,
+            distance: '0.5 km', // This would be calculated based on user location in a real app
+            timings: `${store.storeOpenTime} - ${store.storeDeliveryTime}`,
+            isAvailable: store.isEnabled,
+            storeCode: store.storeCode,
+            contactNumber: store.contactNumber,
+            homeDelivery: store.homeDelivery,
+            selfPickup: store.selfPickup,
+            minOrderAmount: store.minOrderAmount,
+            storeMessage: store.storeMessage
+          }));
+        
+        setPickupStores(pickupEnabledStores);
+      } else {
+        // Use fallback stores if no stores found
+        setPickupStores(FALLBACK_PICKUP_POINTS);
+        setStoresError('Using demo stores. Limited availability.');
+      }
+    } catch (error) {
+      console.error('Error fetching pickup stores:', error);
+      // Use fallback stores on error
+      setPickupStores(FALLBACK_PICKUP_POINTS);
+      setStoresError('Unable to load stores. Using demo data.');
+    } finally {
+      setIsLoadingStores(false);
+    }
+  };
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -177,6 +246,20 @@ const CheckoutPage = () => {
     selectedTimeSlot: null,
     selectedDate: null,
   });
+
+  // Load stores when delivery mode changes to pickup
+  useEffect(() => {
+    if (checkoutData.deliveryMode === 'pickup') {
+      const currentPincode = getCurrentPincode();
+      if (currentPincode) {
+        fetchPickupStores(currentPincode);
+      } else {
+        // If no pincode is selected, use fallback stores
+        setPickupStores(FALLBACK_PICKUP_POINTS);
+        setStoresError('Please select a location to see available stores.');
+      }
+    }
+  }, [checkoutData.deliveryMode, getCurrentPincode]);
 
   // Modal states
   const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
@@ -662,9 +745,58 @@ const CheckoutPage = () => {
                   {/* Pickup Points Selection */}
                   {checkoutData.deliveryMode === 'pickup' && (
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Pickup Points</h3>
-                      <div className="space-y-3">
-                        {PICKUP_POINTS.map((point) => (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">Pickup Points</h3>
+                          {confirmedLocation?.pincode && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              Available stores in {confirmedLocation.pincode.pincode}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {storesError && (
+                            <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                              <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                              <span>Demo Mode</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              const currentPincode = getCurrentPincode();
+                              if (currentPincode) {
+                                fetchPickupStores(currentPincode);
+                              }
+                            }}
+                            disabled={isLoadingStores}
+                            className="text-green-600 hover:text-green-700 text-sm font-medium disabled:opacity-50"
+                          >
+                            {isLoadingStores ? 'Loading...' : 'Refresh'}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {isLoadingStores ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                          <span className="ml-2 text-gray-600">Loading stores...</span>
+                        </div>
+                      ) : pickupStores.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 mx-auto rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-gray-700 font-medium mb-2">No pickup points available</p>
+                          <p className="text-sm text-gray-500">
+                            {storesError || 'Please select a different location or try home delivery.'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {pickupStores.map((point) => (
                           <label key={point.id} className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
                             checkoutData.selectedPickupPoint?.id === point.id
                               ? 'border-green-500 bg-green-50'
@@ -690,10 +822,19 @@ const CheckoutPage = () => {
                                     <p className="font-medium text-gray-900">{point.name}</p>
                                   </div>
                                   <p className="text-sm text-gray-600 mt-1">{point.address}</p>
-                                  <div className="flex items-center mt-2 space-x-4">
+                                  <div className="flex items-center mt-2 space-x-4 flex-wrap">
                                     <span className="text-sm text-gray-500">Distance: {point.distance}</span>
                                     <span className="text-sm text-gray-500">Timings: {point.timings}</span>
+                                    {point.contactNumber && (
+                                      <span className="text-sm text-gray-500">Contact: {point.contactNumber}</span>
+                                    )}
+                                    {point.minOrderAmount && (
+                                      <span className="text-sm text-gray-500">Min Order: ₹{point.minOrderAmount}</span>
+                                    )}
                                   </div>
+                                  {point.storeMessage && (
+                                    <p className="text-xs text-blue-600 mt-1 italic">{point.storeMessage}</p>
+                                  )}
                                 </div>
                                 {!point.isAvailable && (
                                   <span className="text-xs text-red-600 font-medium">Unavailable</span>
@@ -702,7 +843,8 @@ const CheckoutPage = () => {
                             </div>
                           </label>
                         ))}
-                      </div>
+                        </div>
+                      )}
                       <Button 
                         onClick={handleConfirmLocation}
                         disabled={!checkoutData.selectedPickupPoint}
