@@ -50,7 +50,7 @@ const PopularCategories = () => {
 
 
   // Default fallback image
-  const getDefaultImage = () => '/images/placeholder-category.png';
+  const getDefaultImage = () => '/images/logo.jpg';
 
   useEffect(() => {
     const fetchRandomCategories = async () => {

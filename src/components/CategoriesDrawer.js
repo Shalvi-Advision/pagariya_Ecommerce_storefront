@@ -17,9 +17,16 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
   const [requiresStoreSelection, setRequiresStoreSelection] = useState(false);
   const [requiresStoreChange, setRequiresStoreChange] = useState(false);
   
-  const handleCategoryClick = (categoryName) => {
-    const categorySlug = categoryName.toLowerCase().replace(/\s+/g, '-');
-    navigate(`/category/${categorySlug}`);
+  const handleCategoryClick = (categoryName, departmentName, categoryData) => {
+    // Navigate to department page (CategoryPage) with department slug
+    const departmentSlug = departmentName.toLowerCase().replace(/\s+/g, '-');
+    // Pass category info via state so CategoryPage can auto-select it
+    navigate(`/category/${departmentSlug}`, {
+      state: {
+        selectedCategoryName: categoryName,
+        selectedCategoryId: categoryData?.idcategory_master
+      }
+    });
     onClose();
   };
 
@@ -64,7 +71,7 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
   };
 
   // Default fallback values
-  const getDefaultImage = () => '/images/placeholder-category.png';
+  const getDefaultImage = () => '/images/logo.jpg';
   const getDefaultBgColor = () => '#f3f4f6';
 
   // Load categories for a specific department
@@ -232,136 +239,87 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
               </div>
             </div>
           ) : (
-            <div className="p-4 sm:p-6 lg:p-8">
-              {/* Departments Grid - Modern Card Layout */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 lg:gap-6">
+            <div className="p-6 bg-gray-50">
+              {/* Departments Grid - DMart Style Layout */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
                 {departments.map((department, index) => {
                   const departmentId = department.department_id;
                   const departmentName = department.department_name;
                   const departmentImage = department.image_link || getDefaultImage();
-                  const isExpanded = expandedDepartment === departmentId;
                   const departmentCategories = categories[departmentId] || [];
                   const isLoadingCategories = categoriesLoading[departmentId] || false;
-                  
+
+                  // Load categories if not already loaded
+                  if (!categories[departmentId] && !categoriesLoading[departmentId]) {
+                    loadCategoriesForDepartment(departmentId);
+                  }
+
                   return (
                     <div key={index} className="flex flex-col">
-                      {/* Modern Department Card */}
-                      <div 
-                        className="group cursor-pointer"
-                        onClick={() => handleDepartmentClick(departmentId)}
-                      >
-                        <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100/50 hover:border-emerald-300 hover:scale-105">
-                          {/* Image Container with Gradient Background */}
-                          <div className="relative bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-xl sm:rounded-2xl mb-3 overflow-hidden aspect-square group-hover:shadow-inner transition-all duration-300">
-                            {/* Decorative Corner Gradient */}
-                            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 z-0"></div>
-                            
-                            {department.image_link ? (
-                              <img 
-                                src={departmentImage} 
-                                alt={departmentName}
-                                className="relative z-10 w-full h-full object-cover drop-shadow-lg group-hover:scale-110 transition-transform duration-300"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  const iconElement = e.target.parentElement.querySelector('.fallback-icon');
-                                  if (iconElement) iconElement.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${department.image_link ? 'hidden' : 'flex'}`}
-                            >
-                              <span className="text-4xl sm:text-5xl lg:text-6xl">
-                                {getDepartmentIcon(departmentName)}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* Expand Indicator */}
-                          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow-md">
-                            <ChevronRightIcon 
-                              className={`w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 transition-all duration-300 ${
-                                isExpanded ? 'rotate-90 text-teal-600' : ''
-                              }`} 
+                      {/* Department Icon & Name */}
+                      <div className="flex flex-col items-center mb-3">
+                        {/* Department Icon/Image */}
+                        <div className="w-16 h-16 mb-2 flex items-center justify-center">
+                          {department.image_link ? (
+                            <img
+                              src={departmentImage}
+                              alt={departmentName}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const iconElement = e.target.parentElement.querySelector('.fallback-icon');
+                                if (iconElement) iconElement.style.display = 'flex';
+                              }}
                             />
+                          ) : null}
+                          <div
+                            className={`fallback-icon ${department.image_link ? 'hidden' : 'flex'} items-center justify-center`}
+                          >
+                            <span className="text-5xl">
+                              {getDepartmentIcon(departmentName)}
+                            </span>
                           </div>
-                          
-                          {/* Active State Indicator */}
-                          {isExpanded && (
-                            <div className="absolute inset-0 border-2 border-emerald-500 rounded-2xl sm:rounded-3xl pointer-events-none animate-pulse"></div>
-                          )}
                         </div>
+
+                        {/* Department Name */}
+                        <h3 className="text-sm font-bold text-gray-900 text-center uppercase tracking-wide">
+                          {departmentName}
+                        </h3>
                       </div>
 
-                      {/* Expanded Categories - Modern Dropdown */}
-                      {isExpanded && (
-                        <div className="mt-3 bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl border border-emerald-200/50 p-3 sm:p-4 animate-scale-in">
-                          {isLoadingCategories ? (
-                            <div className="flex items-center justify-center py-6">
-                              <div className="relative">
-                                <div className="w-10 h-10 border-3 border-transparent border-t-emerald-500 border-r-teal-500 rounded-full animate-spin"></div>
-                                <div className="absolute inset-0 w-10 h-10 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-lg animate-pulse"></div>
-                              </div>
-                            </div>
-                          ) : departmentCategories.length > 0 ? (
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
-                                <div className="w-1.5 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full animate-pulse"></div>
-                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                  Subcategories
-                                </span>
-                              </div>
-                              <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
-                                {/* Filter out duplicate categories based on category_id or category_name */}
-                                {departmentCategories
-                                  .filter((category, index, self) => {
-                                    // Remove duplicates by checking if this is the first occurrence
-                                    // Use idcategory_master if available, otherwise use category_name
-                                    const identifier = category.idcategory_master || category.category_name;
-                                    return index === self.findIndex(c =>
-                                      (c.idcategory_master || c.category_name) === identifier
-                                    );
-                                  })
-                                  .map((category) => (
-                                    <button
-                                      key={category.idcategory_master || category.category_name}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCategoryClick(category.category_name);
-                                      }}
-                                      className="group w-full text-left py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center gap-3 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 hover:shadow-md hover:scale-102"
-                                    >
-                                      {category.image_link && (
-                                        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg p-1.5 group-hover:scale-110 transition-transform duration-300">
-                                          <img 
-                                            src={category.image_link} 
-                                            alt={category.category_name}
-                                            className="w-full h-full object-contain"
-                                            onError={(e) => {
-                                              e.target.style.display = 'none';
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                      <span className="flex-1 text-xs sm:text-sm text-gray-700 font-medium group-hover:text-emerald-600 transition-colors">
-                                        {category.category_name || 'Not Available'}
-                                      </span>
-                                      <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
-                                    </button>
-                                  ))
-                                }
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-4">
-                              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <span className="text-2xl">📦</span>
-                              </div>
-                              <p className="text-xs text-gray-500">No categories available</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Categories List */}
+                      <div className="space-y-1">
+                        {isLoadingCategories ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        ) : departmentCategories.length > 0 ? (
+                          <>
+                            {/* Filter out duplicate categories */}
+                            {departmentCategories
+                              .filter((category, index, self) => {
+                                const identifier = category.idcategory_master || category.category_name;
+                                return index === self.findIndex(c =>
+                                  (c.idcategory_master || c.category_name) === identifier
+                                );
+                              })
+                              .map((category) => (
+                                <button
+                                  key={category.idcategory_master || category.category_name}
+                                  onClick={() => handleCategoryClick(category.category_name, departmentName, category)}
+                                  className="block w-full text-left text-sm text-gray-700 hover:text-green-600 hover:underline transition-colors py-0.5"
+                                >
+                                  {category.category_name || 'Not Available'}
+                                </button>
+                              ))
+                            }
+                          </>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-xs text-gray-500">No categories</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

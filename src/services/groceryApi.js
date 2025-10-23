@@ -233,6 +233,91 @@ class GroceryApiService {
     }
   }
 
+  // Get products by full hierarchy path
+  async getProducts(storeCode, deptId, categoryId, subcategoryId) {
+    try {
+      if (!navigator.onLine) {
+        throw new Error('No internet connection');
+      }
+
+      const response = await fetchWithTimeout(`${API_BASE_URL}/products/get-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          store_code: storeCode,
+          dept_id: deptId,
+          category_id: categoryId,
+          sub_category_id: subcategoryId
+        })
+      }, 10000);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        success: data.success,
+        data: data.data || [],
+        message: data.message,
+        count: data.count
+      };
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch products.',
+        error: error.message
+      };
+    }
+  }
+
+  // Search products with optional filters
+  async searchProducts(searchTerm, storeCode, filters = {}) {
+    try {
+      if (!navigator.onLine) {
+        throw new Error('No internet connection');
+      }
+
+      const response = await fetchWithTimeout(`${API_BASE_URL}/products/search-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          search_term: searchTerm || '',
+          store_code: storeCode,
+          ...filters
+        })
+      }, 10000);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        success: data.success,
+        data: data.data || [],
+        message: data.message,
+        count: data.count
+      };
+    } catch (error) {
+      console.error('Error searching products:', error);
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to search products.',
+        error: error.message
+      };
+    }
+  }
+
 }
 
 // Create and export a singleton instance
@@ -283,5 +368,7 @@ export const {
   getActiveDepartments,
   getActiveCategories,
   getActiveCategoriesByDepartmentName,
-  getActiveSubcategories
+  getActiveSubcategories,
+  getProducts,
+  searchProducts
 } = groceryApiService;
