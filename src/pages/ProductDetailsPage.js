@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getProductDetails } from '../services/api';
 import { useCart } from '../context/CartContext';
 import Card from '../components/Card';
@@ -8,8 +8,9 @@ import Loading from '../components/Loading';
 import { APP_CONSTANTS } from '../constants';
 
 const ProductDetailsPage = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // This is pcode
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -17,10 +18,18 @@ const ProductDetailsPage = () => {
   const [imageLoading, setImageLoading] = useState(true);
   const { addItem } = useCart();
 
+  // Extract URL parameters
+  const dept_id = searchParams.get('dept_id');
+  const category_id = searchParams.get('category_id');
+  const sub_category_id = searchParams.get('sub_category_id');
+
   // Debug logging for component lifecycle
   console.log('🔍 ProductDetailsPage Component Rendered');
   console.log('📋 Component State:', {
     id,
+    dept_id,
+    category_id,
+    sub_category_id,
     product: product ? 'Product loaded' : 'No product',
     loading,
     error,
@@ -31,40 +40,39 @@ const ProductDetailsPage = () => {
   console.log('🔍 ProductDetailsPage ID type:', typeof id);
   console.log('🔍 ProductDetailsPage ID length:', id?.length);
 
-  // Get store and project codes from environment variables
-  const STORE_CODE = process.env.REACT_APP_STORE_CODE || "KET"; // Fallback to default
-  const PROJECT_CODE = process.env.REACT_APP_PROJECT_CODE || "RET90"; // Fallback to default
-  
-  // Override with correct values if environment variables are placeholders
-  const finalStoreCode = (STORE_CODE === "your_store_code_here") ? "KET" : STORE_CODE;
-  const finalProjectCode = (PROJECT_CODE === "your_project_code_here") ? "RET90" : PROJECT_CODE;
-  
-  // Debug environment variables
-  console.log('🔧 Environment variables:', {
-    REACT_APP_STORE_CODE: process.env.REACT_APP_STORE_CODE,
-    REACT_APP_PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE,
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-    NODE_ENV: process.env.NODE_ENV
-  });
-  console.log('🔧 Final codes to use:', {
-    finalStoreCode,
-    finalProjectCode,
-    originalStoreCode: STORE_CODE,
-    originalProjectCode: PROJECT_CODE
-  });
+  // Get store code from localStorage
+  const getStoreCode = () => {
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      try {
+        const location = JSON.parse(locationData);
+        return location?.store?.store_code || 'AVB';
+      } catch (error) {
+        console.warn('Failed to parse location data:', error);
+      }
+    }
+    return 'AVB'; // Default store code
+  };
 
 
   useEffect(() => {
     console.log('🔄 useEffect triggered with id:', id);
     if (id) {
-      console.log('✅ Valid ID found, calling loadProduct');
+      // Check if required parameters are present
+      if (!dept_id || !category_id || !sub_category_id) {
+        console.log('❌ Missing required parameters:', { dept_id, category_id, sub_category_id });
+        setError('Missing required product parameters. Please navigate from a product listing.');
+        setLoading(false);
+        return;
+      }
+      console.log('✅ Valid ID and parameters found, calling loadProduct');
       loadProduct();
     } else {
       console.log('❌ No ID found, setting error');
       setError('Invalid product ID');
       setLoading(false);
     }
-  }, [id]);
+  }, [id, dept_id, category_id, sub_category_id]);
 
   const loadProduct = async () => {
     console.log('🚀 loadProduct function started');
@@ -79,19 +87,34 @@ const ProductDetailsPage = () => {
         throw new Error('Product ID is required');
       }
       
-      console.log('✅ Product ID validation passed:', id);
+      // Validate required parameters
+      if (!dept_id || !category_id || !sub_category_id) {
+        console.log('❌ Missing required parameters:', { dept_id, category_id, sub_category_id });
+        throw new Error('Missing required product parameters');
+      }
+      
+      const storeCode = getStoreCode();
+      
+      console.log('✅ Product ID and parameters validation passed:', { id, dept_id, category_id, sub_category_id, storeCode });
       console.log('🔍 ProductDetailsPage loadProduct called with:', {
         id,
-        finalStoreCode,
-        finalProjectCode,
-        env: {
-          REACT_APP_STORE_CODE: process.env.REACT_APP_STORE_CODE,
-          REACT_APP_PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE
-        }
+        dept_id,
+        category_id,
+        sub_category_id,
+        storeCode
       });
       
       console.log('📡 Calling getProductDetails API...');
-      const response = await getProductDetails(id, finalStoreCode, finalProjectCode);
+      console.log('📡 API Request Details:', {
+        pcode: id,
+        dept_id,
+        category_id,
+        sub_category_id,
+        storeCode,
+        apiUrl: process.env.REACT_APP_API_URL || 'https://ecommerceapi-web.onrender.com/api'
+      });
+      
+      const response = await getProductDetails(id, dept_id, category_id, sub_category_id, storeCode);
       console.log('📦 getProductDetails API response received:', response);
       
       console.log('🔍 Analyzing API response...');

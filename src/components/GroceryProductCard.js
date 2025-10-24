@@ -131,8 +131,8 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
           className="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2 cursor-pointer hover:text-green-600 transition-colors"
           onClick={() => {
             console.log('🔗 GroceryProductCard Product Name clicked - PCode:', pcode || 'N/A', 'Product ID:', id, 'Product Name:', name);
-            // Navigate to product details
-            window.location.href = `/product/${pcode || id}`;
+            // Navigate to product details with required parameters
+            window.location.href = `/product/${pcode || id}?dept_id=${product.dept_id || '2'}&category_id=${product.category_id || '72'}&sub_category_id=${product.sub_category_id || '391'}`;
           }}
         >
           {name}

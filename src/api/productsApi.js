@@ -466,6 +466,81 @@ export const fetchCategories = async () => {
   }
 };
 
+/**
+ * Search products using the API endpoint
+ * @param {string} searchTerm - Search term to query
+ * @returns {Promise<Object>} - Search results with products array
+ */
+export const searchProductsAPI = async (searchTerm) => {
+  try {
+    // If search term is too short, return empty results
+    // Require at least 2 characters for meaningful search
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return {
+        success: true,
+        count: 0,
+        data: [],
+        message: 'Search term too short'
+      };
+    }
+
+    // Get store_code from localStorage
+    let storeCode = 'AVB'; // Default store code
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      try {
+        const location = JSON.parse(locationData);
+        storeCode = location?.store?.store_code || 'AVB';
+      } catch (error) {
+        console.warn('Failed to parse location data:', error);
+      }
+    }
+
+    const url = `${API_BASE_URL}/products/search-products`;
+    const requestBody = {
+      search_term: searchTerm.trim(),
+      store_code: storeCode,
+      limit: 50, // Request more results to ensure "View All" button appears
+      page: 1
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Search failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Process product data if available
+    if (data.success && data.data && Array.isArray(data.data)) {
+      return {
+        ...data,
+        data: data.data.map(processProductData)
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error searching products:', error);
+    
+    // Return empty results on error
+    return {
+      success: false,
+      count: 0,
+      data: [],
+      message: error.message || 'Search failed',
+      error: error
+    };
+  }
+};
+
 // Debounced search function to prevent excessive API calls while typing
 const debouncedSearch = debounce(async (query) => {
   try {
@@ -502,6 +577,55 @@ export const searchProducts = async (query) => {
     
     // Return empty array instead of throwing to prevent UI disruption
     return [];
+  }
+};
+
+/**
+ * Get product details by pcode using the new API endpoint
+ * @param {string} pcode - Product code
+ * @param {string} dept_id - Department ID
+ * @param {string} category_id - Category ID
+ * @param {string} sub_category_id - Sub-category ID
+ * @param {string} store_code - Store code
+ * @returns {Promise<Object>} - Product details response
+ */
+export const getProductByPcode = async (pcode, dept_id, category_id, sub_category_id, store_code) => {
+  try {
+    const url = `${API_BASE_URL}/products/get-product-by-pcode`;
+    const requestBody = {
+      store_code,
+      dept_id,
+      category_id,
+      sub_category_id,
+      pcode
+    };
+    
+    console.log('🔍 getProductByPcode called with:', requestBody);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch product: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('📦 getProductByPcode response:', data);
+    
+    if (data.success && data.data) {
+      return {
+        success: true,
+        data: processProductData(data.data)
+      };
+    }
+    
+    throw new Error(data.message || 'Product not found');
+  } catch (error) {
+    console.error('❌ getProductByPcode error:', error);
+    throw error;
   }
 };
 

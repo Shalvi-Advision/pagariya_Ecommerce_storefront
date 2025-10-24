@@ -1,60 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AccountSidebar from '../components/AccountSidebar';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
-
-// Dummy saved addresses
-const DUMMY_ADDRESSES = [
-  {
-    id: 1,
-    name: 'Rajesh Kumar',
-    phone: '9876543210',
-    addressLine1: 'Plot No 15, Sector 3',
-    addressLine2: 'Near City Mall',
-    city: 'Navi Mumbai',
-    pinCode: '410206',
-    isDefault: true,
-    type: 'Home'
-  },
-  {
-    id: 2,
-    name: 'Rajesh Kumar',
-    phone: '9876543210',
-    addressLine1: 'Office 402, Tower B, Tech Park',
-    addressLine2: 'Seawoods',
-    city: 'Navi Mumbai',
-    pinCode: '400706',
-    isDefault: false,
-    type: 'Office'
-  },
-  {
-    id: 3,
-    name: 'Priya Sharma',
-    phone: '9123456789',
-    addressLine1: 'Flat 301, Lotus Residency',
-    addressLine2: 'Kharghar',
-    city: 'Navi Mumbai',
-    pinCode: '410210',
-    isDefault: false,
-    type: 'Home'
-  }
-];
+import { 
+  getAddresses, 
+  addAddress, 
+  updateAddress, 
+  deleteAddress,
+  setDefaultAddress,
+  transformAddressFromAPI,
+  transformAddressToAPI 
+} from '../api/addressApi';
 
 const AddressPage = () => {
-  const [addresses, setAddresses] = useState(DUMMY_ADDRESSES);
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    email: '',
     addressLine1: '',
     addressLine2: '',
     city: '',
     pinCode: '',
-    type: 'Home',
     isDefault: false
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Load addresses on component mount
+  useEffect(() => {
+    loadAddresses();
+  }, []);
+
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  const loadAddresses = async () => {
+    try {
+      setLoading(true);
+      setApiError('');
+      const response = await getAddresses();
+      
+      if (response.success && response.data) {
+        // Transform API data to UI format
+        const transformedAddresses = response.data.map(transformAddressFromAPI);
+        setAddresses(transformedAddresses);
+      } else {
+        setAddresses([]);
+      }
+    } catch (error) {
+      console.error('Failed to load addresses:', error);
+      setApiError('Failed to load addresses. Please try again.');
+      setAddresses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -72,8 +84,9 @@ const AddressPage = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    if (!/^\d{10}$/.test(formData.phone.replace(/\s/g, ''))) newErrors.phone = 'Phone must be 10 digits';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
     if (!formData.addressLine1.trim()) newErrors.addressLine1 = 'Address is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.pinCode.trim()) newErrors.pinCode = 'PIN code is required';
@@ -87,95 +100,163 @@ const AddressPage = () => {
     setEditingAddress(null);
     setFormData({
       name: '',
-      phone: '',
+      email: '',
       addressLine1: '',
       addressLine2: '',
       city: '',
       pinCode: '',
-      type: 'Home',
       isDefault: false
     });
     setErrors({});
+    setApiError('');
     setShowAddModal(true);
   };
 
   const handleEditAddress = (address) => {
+    // Store the original address data to preserve all IDs
     setEditingAddress(address);
     setFormData({
       name: address.name,
-      phone: address.phone,
+      email: address.email || '',
       addressLine1: address.addressLine1,
-      addressLine2: address.addressLine2,
+      addressLine2: address.addressLine2 || '',
       city: address.city,
       pinCode: address.pinCode,
-      type: address.type,
       isDefault: address.isDefault
     });
     setErrors({});
+    setApiError('');
     setShowAddModal(true);
   };
 
-  const handleDeleteAddress = (id) => {
+  const handleDeleteAddress = async (address) => {
     if (window.confirm('Are you sure you want to delete this address?')) {
-      setAddresses(prev => prev.filter(addr => addr.id !== id));
+      try {
+        setApiError('');
+        await deleteAddress(address.id);
+        setSuccessMessage('Address deleted successfully');
+        // Reload addresses after deletion
+        await loadAddresses();
+      } catch (error) {
+        console.error('Failed to delete address:', error);
+        setApiError(error.message || 'Failed to delete address. Please try again.');
+      }
     }
   };
 
-  const handleSetDefault = (id) => {
-    setAddresses(prev => prev.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id
-    })));
+  const handleSetDefault = async (address) => {
+    try {
+      setApiError('');
+      
+      // First, update all other addresses to non-default
+      const updatePromises = addresses
+        .filter(addr => addr.id !== address.id && addr.isDefault)
+        .map(addr => {
+          const apiData = transformAddressToAPI({ ...addr, isDefault: false });
+          return updateAddress(addr.id, apiData);
+        });
+      
+      await Promise.all(updatePromises);
+      
+      // Then set the selected address as default
+      const apiData = transformAddressToAPI({ ...address, isDefault: true });
+      // Pass the complete address data including all IDs
+      await setDefaultAddress(address.id, { ...apiData, mongoId: address.mongoId, idaddress_book: address.idaddress_book });
+      
+      setSuccessMessage('Default address updated successfully');
+      // Reload addresses
+      await loadAddresses();
+    } catch (error) {
+      console.error('Failed to set default address:', error);
+      setApiError(error.message || 'Failed to set default address. Please try again.');
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    if (editingAddress) {
-      // Update existing address
-      setAddresses(prev => prev.map(addr => 
-        addr.id === editingAddress.id 
-          ? { ...addr, ...formData }
-          : formData.isDefault ? { ...addr, isDefault: false } : addr
-      ));
-    } else {
-      // Add new address
-      const newAddress = {
-        id: Date.now(),
-        ...formData
-      };
-      
-      if (formData.isDefault) {
-        // Unset other default addresses
-        setAddresses(prev => [
-          ...prev.map(addr => ({ ...addr, isDefault: false })),
-          newAddress
-        ]);
-      } else {
-        setAddresses(prev => [...prev, newAddress]);
-      }
-    }
+    try {
+      setSubmitLoading(true);
+      setApiError('');
 
-    setShowAddModal(false);
-    setEditingAddress(null);
-    setFormData({
-      name: '',
-      phone: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      pinCode: '',
-      type: 'Home',
-      isDefault: false
-    });
+      // Transform form data to API format
+      const apiData = transformAddressToAPI(formData);
+
+      if (editingAddress) {
+        // Update existing address
+        
+        // If setting as default, first unset other default addresses
+        if (formData.isDefault) {
+          const updatePromises = addresses
+            .filter(addr => addr.id !== editingAddress.id && addr.isDefault)
+            .map(addr => {
+              const data = transformAddressToAPI({ ...addr, isDefault: false });
+              // Pass complete address data with all IDs
+              return updateAddress(addr.id, { ...data, mongoId: addr.mongoId, idaddress_book: addr.idaddress_book });
+            });
+          await Promise.all(updatePromises);
+        }
+        
+        // Debug: Log the address data being used for update
+        console.log('🔍 Updating address with:', {
+          editingAddressId: editingAddress.id,
+          editingAddressMongoId: editingAddress.mongoId,
+          editingAddressIdaddressBook: editingAddress.idaddress_book,
+          apiData: apiData
+        });
+        
+        // Pass complete address data with all IDs for the main update
+        await updateAddress(editingAddress.id, { ...apiData, mongoId: editingAddress.mongoId, idaddress_book: editingAddress.idaddress_book });
+        setSuccessMessage('Address updated successfully');
+      } else {
+        // Add new address
+        
+        // If setting as default, first unset other default addresses
+        if (formData.isDefault) {
+          const updatePromises = addresses
+            .filter(addr => addr.isDefault)
+            .map(addr => {
+              const data = transformAddressToAPI({ ...addr, isDefault: false });
+              // Pass complete address data with all IDs
+              return updateAddress(addr.id, { ...data, mongoId: addr.mongoId, idaddress_book: addr.idaddress_book });
+            });
+          await Promise.all(updatePromises);
+        }
+        
+        await addAddress(apiData);
+        setSuccessMessage('Address added successfully');
+      }
+
+      // Reload addresses
+      await loadAddresses();
+
+      // Close modal and reset form
+      setShowAddModal(false);
+      setEditingAddress(null);
+      setFormData({
+        name: '',
+        email: '',
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        pinCode: '',
+        isDefault: false
+      });
+    } catch (error) {
+      console.error('Failed to save address:', error);
+      setApiError(error.message || 'Failed to save address. Please try again.');
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingAddress(null);
     setErrors({});
+    setApiError('');
   };
 
   return (
@@ -186,6 +267,29 @@ const AddressPage = () => {
         {/* Main Content */}
         <div className="flex-1 p-4 sm:p-8">
           <div className="max-w-6xl">
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-5 h-5" />
+                  <span>{successMessage}</span>
+                </div>
+                <button onClick={() => setSuccessMessage('')} className="text-green-600 hover:text-green-800">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {apiError && (
+              <div className="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between">
+                <span>{apiError}</span>
+                <button onClick={() => setApiError('')} className="text-red-600 hover:text-red-800">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Addresses</h1>
               <button
@@ -198,7 +302,14 @@ const AddressPage = () => {
               </button>
             </div>
             
-            {addresses.length === 0 ? (
+            {loading ? (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading addresses...</p>
+                </div>
+              </div>
+            ) : addresses.length === 0 ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -216,34 +327,27 @@ const AddressPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {addresses.map((address) => (
+                {addresses.map((address, index) => (
                   <div
-                    key={address.id}
+                    key={address.mongoId || address.id || `address-${index}`}
                     className={`bg-white rounded-lg shadow-sm border-2 p-4 sm:p-6 relative transition-all hover:shadow-md ${
                       address.isDefault ? 'border-emerald-500' : 'border-gray-200'
                     }`}
                   >
-                    {/* Address Type Badge */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        address.type === 'Home' ? 'bg-blue-100 text-blue-800' :
-                        address.type === 'Office' ? 'bg-purple-100 text-purple-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {address.type === 'Home' ? '🏠' : address.type === 'Office' ? '💼' : '📍'} {address.type}
-                      </span>
-                      {address.isDefault && (
+                    {/* Default Badge */}
+                    {address.isDefault && (
+                      <div className="flex items-center justify-end mb-3">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                           <CheckCircleIcon className="w-3 h-3 mr-1" />
                           Default
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Address Details */}
                     <div className="mb-4">
                       <h3 className="font-semibold text-gray-900 mb-1">{address.name}</h3>
-                      <p className="text-sm text-gray-600 mb-1">Phone: {address.phone}</p>
+                      {address.email && <p className="text-sm text-gray-600 mb-1">Email: {address.email}</p>}
                       <p className="text-sm text-gray-600 mt-2">
                         {address.addressLine1}
                         {address.addressLine2 && <>, {address.addressLine2}</>}
@@ -257,7 +361,7 @@ const AddressPage = () => {
                     <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
                       {!address.isDefault && (
                         <button
-                          onClick={() => handleSetDefault(address.id)}
+                          onClick={() => handleSetDefault(address)}
                           className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
                         >
                           Set as Default
@@ -271,7 +375,7 @@ const AddressPage = () => {
                         <PencilIcon className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteAddress(address.id)}
+                        onClick={() => handleDeleteAddress(address)}
                         className="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
                         title="Delete"
                       >
@@ -305,6 +409,13 @@ const AddressPage = () => {
 
             {/* Modal Body */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* API Error in Modal */}
+              {apiError && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                  {apiError}
+                </div>
+              )}
+
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -323,23 +434,22 @@ const AddressPage = () => {
                 {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
               </div>
 
-              {/* Phone */}
+              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number <span className="text-red-500">*</span>
+                  Email Address (Optional)
                 </label>
                 <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
-                  maxLength={10}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
+                    errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="10-digit mobile number"
+                  placeholder="your.email@example.com"
                 />
-                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
 
               {/* Address Line 1 */}
@@ -413,28 +523,6 @@ const AddressPage = () => {
                 </div>
               </div>
 
-              {/* Address Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Type
-                </label>
-                <div className="flex gap-4">
-                  {['Home', 'Office', 'Other'].map((type) => (
-                    <label key={type} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="type"
-                        value={type}
-                        checked={formData.type === type}
-                        onChange={handleInputChange}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{type}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
               {/* Set as Default */}
               <div className="flex items-center">
                 <input
@@ -452,15 +540,24 @@ const AddressPage = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={submitLoading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                  disabled={submitLoading}
+                  className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {editingAddress ? 'Update Address' : 'Save Address'}
+                  {submitLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editingAddress ? 'Update Address' : 'Save Address'}</span>
+                  )}
                 </button>
               </div>
             </form>

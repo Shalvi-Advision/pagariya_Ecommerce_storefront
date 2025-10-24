@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -7,7 +7,8 @@ import { usePincode } from '../context/PincodeContext';
 import { useResponsive } from '../hooks/useResponsive';
 import Button from './Button';
 import CategoriesDrawer from './CategoriesDrawer';
-import { fetchCategories } from '../api/productsApi';
+import SearchDropdown from './SearchDropdown';
+import { fetchCategories, searchProductsAPI } from '../api/productsApi';
 import { getActiveDepartments } from '../services/groceryApi';
 import {
   MapPinIcon,
@@ -45,6 +46,12 @@ const Header = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const currentCategory = useMemo(() => searchParams.get('category') || 'all', [searchParams]);
+
+  // Search dropdown state
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
 
   useEffect(() => {
@@ -94,14 +101,116 @@ const Header = () => {
     navigate('/');
   };
 
+  // Debounced search function
+  const performSearch = useCallback(async (searchTerm) => {
+    // Require at least 2 characters for search
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      setIsSearching(false);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      const response = await searchProductsAPI(searchTerm);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Only show dropdown if we have actual results
+        setSearchResults(response.data);
+        setShowSearchDropdown(true);
+      } else {
+        // Show "no results" state only if search was attempted
+        setSearchResults([]);
+        setShowSearchDropdown(searchTerm.trim().length >= 2);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+      // Don't show dropdown on error
+      setShowSearchDropdown(false);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle search input change with debounce
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearch(value);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Only search if we have at least 2 characters
+    if (value.trim().length >= 2) {
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        performSearch(value);
+      }, 400); // 400ms debounce
+    } else {
+      // Clear results and hide dropdown for short searches
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      setIsSearching(false);
+    }
+  };
+
+  // Handle search input focus
+  const handleSearchFocus = () => {
+    // Only show dropdown if we have a valid search term (2+ chars) and results
+    if (search.trim().length >= 2 && searchResults.length > 0) {
+      setShowSearchDropdown(true);
+    }
+  };
+
+  // Close search dropdown
+  const closeSearchDropdown = () => {
+    setShowSearchDropdown(false);
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    const params = {};
-    if (search && search.trim()) params.q = search.trim();
-    if (currentCategory && currentCategory !== 'all') params.category = currentCategory;
-    setSearchParams(params);
-    navigate({ pathname: '/', search: `?${new URLSearchParams(params).toString()}` });
+    
+    // Only process if we have a valid search term
+    if (!search || search.trim().length < 2) {
+      return;
+    }
+    
+    // If there are search results and dropdown is open, navigate to first result
+    if (searchResults.length > 0 && showSearchDropdown) {
+      const firstProduct = searchResults[0];
+      const productId = firstProduct.p_code || firstProduct.id || firstProduct._id;
+      if (productId) {
+        navigate(`/product/${productId}?dept_id=${firstProduct.dept_id || '2'}&category_id=${firstProduct.category_id || '72'}&sub_category_id=${firstProduct.sub_category_id || '391'}`);
+        setShowSearchDropdown(false);
+        setSearch(''); // Clear search after navigation
+        return;
+      }
+    }
+    
+    // If no results in dropdown but have valid search term, 
+    // perform traditional search navigation with the search term
+    if (search.trim().length >= 2) {
+      const params = {};
+      params.q = search.trim();
+      if (currentCategory && currentCategory !== 'all') params.category = currentCategory;
+      setSearchParams(params);
+      navigate({ pathname: '/', search: `?${new URLSearchParams(params).toString()}` });
+      setShowSearchDropdown(false);
+    }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const goToCategory = (cat) => {
     if (cat && cat !== 'all') {
@@ -187,27 +296,49 @@ const Header = () => {
             </span>
           </div>
 
-          {/* Search - Responsive */}
-          <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl lg:max-w-4xl w-full mx-2 sm:mx-4">
+          {/* Search - Responsive with Dropdown */}
+          <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl lg:max-w-4xl w-full mx-2 sm:mx-4 relative">
             <div className="flex">
-              <div className="flex items-center gap-2 flex-1 border border-gray-300 rounded-l-lg px-2 sm:px-3 focus-within:ring-2 focus-within:ring-primary-500">
+              <div className="flex items-center gap-2 flex-1 border border-gray-300 rounded-l-lg px-2 sm:px-3 focus-within:ring-2 focus-within:ring-primary-500 bg-white">
                 <MagnifyingGlassIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search for products"
+                  onChange={handleSearchChange}
+                  onFocus={handleSearchFocus}
+                  placeholder="Search for products..."
                   className="w-full py-2 outline-none text-gray-800 placeholder-gray-400 text-sm sm:text-base"
+                  autoComplete="off"
+                  aria-label="Search products"
+                  aria-autocomplete="list"
+                  aria-controls="search-results"
+                  aria-expanded={showSearchDropdown}
                 />
+                {isSearching && (
+                  <div className="flex-shrink-0">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                  </div>
+                )}
               </div>
               <button 
                 type="submit" 
                 className="bg-primary-600 hover:bg-primary-700 text-white px-3 sm:px-4 py-2 rounded-r-lg font-medium text-xs sm:text-sm transition-colors"
+                aria-label="Search"
               >
                 <span className="hidden sm:inline">SEARCH</span>
                 <span className="sm:hidden">🔍</span>
               </button>
             </div>
+
+            {/* Search Dropdown */}
+            <SearchDropdown
+              isOpen={showSearchDropdown}
+              products={searchResults}
+              loading={isSearching}
+              searchTerm={search}
+              onClose={closeSearchDropdown}
+              onProductClick={() => setSearch('')}
+            />
           </form>
 
           {/* Right: Actions */}

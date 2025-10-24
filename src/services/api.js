@@ -177,30 +177,42 @@ const getThrottledApiCall = (endpoint) => {
 // Internal API post implementation
 const apiPostInternal = async (endpoint, data) => {
   try {
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🌐 apiPost called:', { endpoint, data });
-      console.log('🌐 Full URL:', `${API_BASE_URL}${endpoint}`);
-    }
+    // Enhanced logging for debugging
+    console.log('🌐 apiPost called:', { 
+      endpoint, 
+      data,
+      API_BASE_URL,
+      fullURL: `${API_BASE_URL}${endpoint}`
+    });
     
     const response = await api.post(endpoint, data);
     
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ apiPost response status:', response.status);
-    }
+    console.log('✅ apiPost response status:', response.status);
+    console.log('✅ apiPost response data:', response.data);
     
     return response.data;
   } catch (error) {
     console.error('❌ apiPost error:', error.message);
+    console.error('❌ Error response status:', error.response?.status);
+    console.error('❌ Error response data:', error.response?.data);
+    console.error('❌ Error request config:', error.config);
     
-    // Only log detailed error in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('❌ Error response status:', error.response?.status);
-      console.error('❌ Error response data:', error.response?.data);
+    // Provide more specific error messages
+    if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+      throw new Error('Network error - unable to reach server. Please check your internet connection.');
+    } else if (error.response?.status === 404) {
+      throw new Error('API endpoint not found. Please check the API configuration.');
+    } else if (error.response?.status === 500) {
+      throw new Error('Server error. Please try again later.');
+    } else if (error.response?.status === 401) {
+      throw new Error('Authentication failed. Please login again.');
+    } else if (error.response?.status === 403) {
+      throw new Error('Access denied. Please check your permissions.');
+    } else if (error.response?.data) {
+      throw new Error(error.response.data.message || error.response.data.error || 'API request failed');
+    } else {
+      throw new Error(error.message || 'Failed to fetch product details');
     }
-    
-    throw error.response?.data || error;
   }
 };
 
@@ -499,10 +511,10 @@ const processProductData = (product) => {
 const productDetailsCache = new Map();
 const PRODUCT_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
-export const getProductDetails = async (p_code, store_code, project_code) => {
+export const getProductDetails = async (p_code, dept_id, category_id, sub_category_id, store_code) => {
   try {
     // Generate cache key based on parameters
-    const cacheKey = `product:${p_code}:${store_code}:${project_code}`;
+    const cacheKey = `product:${p_code}:${dept_id}:${category_id}:${sub_category_id}:${store_code}`;
     
     // Check if we have a cached version
     const cachedProduct = productDetailsCache.get(cacheKey);
@@ -511,34 +523,72 @@ export const getProductDetails = async (p_code, store_code, project_code) => {
       return cachedProduct.data;
     }
     
-    // Minimal logging in production
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 getProductDetails called with:', { p_code, store_code, project_code });
+    // Enhanced logging for debugging
+    console.log('🔍 getProductDetails called with:', { 
+      p_code, 
+      dept_id,
+      category_id,
+      sub_category_id,
+      store_code,
+      API_BASE_URL,
+      endpoint: '/products/get-product-by-pcode'
+    });
+    
+    // Validate parameters
+    if (!p_code) {
+      throw new Error('Product code (p_code) is required');
+    }
+    if (!dept_id) {
+      throw new Error('Department ID is required');
+    }
+    if (!category_id) {
+      throw new Error('Category ID is required');
+    }
+    if (!sub_category_id) {
+      throw new Error('Sub-category ID is required');
+    }
+    if (!store_code) {
+      throw new Error('Store code is required');
     }
     
-    // Use apiPost with caching enabled for product details
-    const response = await apiPost('/products/getpcodeproducts', {
-      p_code,
+    const url = `${API_BASE_URL}/products/get-product-by-pcode`;
+    const requestBody = {
       store_code,
-      project_code
-    }, true); // Enable caching for this POST request
+      dept_id,
+      category_id,
+      sub_category_id,
+      pcode: p_code
+    };
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch product: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('📦 getProductDetails response:', data);
     
     // Check if the response indicates an error
-    if (response && response.success === false) {
-      throw new Error(response.message || 'Product not found');
+    if (data && data.success === false) {
+      throw new Error(data.message || 'Product not found');
     }
     
     // Check if response has data
-    if (!response || !response.data) {
+    if (!data || !data.data) {
       throw new Error('Product data not found in response');
     }
     
     // Process the product data to convert MongoDB types
-    const processedData = processProductData(response.data);
+    const processedData = processProductData(data.data);
     
     // Create the final response
     const finalResponse = {
-      ...response,
+      ...data,
       data: processedData
     };
     

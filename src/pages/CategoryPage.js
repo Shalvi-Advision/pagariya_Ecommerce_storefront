@@ -761,7 +761,11 @@ const CategoryPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                   {/* Product Cards */}
                   {filteredProducts.map((product, index) => (
-                    <div key={product._id || product.p_code || index} className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200">
+                    <div 
+                      key={product._id || product.p_code || index} 
+                      className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
+                      onClick={() => navigate(`/product/${product.p_code || product._id}?dept_id=${product.dept_id || departmentId}&category_id=${product.category_id || selectedCategory?.idcategory_master}&sub_category_id=${product.sub_category_id || selectedSubcategory?.idsub_category_master}`)}
+                    >
                       {/* Product Image */}
                       <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden p-4">
                         <img
@@ -804,13 +808,23 @@ const CategoryPage = () => {
 
                         {/* Package Size Selector */}
                         {product.package_size && (
-                          <select className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mb-2 focus:outline-none focus:ring-1 focus:ring-green-500">
+                          <select 
+                            className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mb-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+                            onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking the select
+                          >
                             <option>{product.package_size}</option>
                           </select>
                         )}
 
                         {/* Add to Cart Button */}
-                        <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-1">
+                        <button 
+                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent navigation when clicking the button
+                            // TODO: Add to cart functionality
+                            console.log('Add to cart clicked for product:', product);
+                          }}
+                        >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>

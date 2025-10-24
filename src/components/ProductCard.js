@@ -196,7 +196,7 @@ const ProductCard = ({ product, onAddToCart }) => {
 
         {/* Product Image Link */}
         <Link 
-          to={`/product/${safePcode}`} 
+          to={`/product/${safePcode}?dept_id=${product.dept_id || '2'}&category_id=${product.category_id || '72'}&sub_category_id=${product.sub_category_id || '391'}`} 
           className="block w-full h-full flex items-center justify-center relative overflow-hidden rounded-lg"
           onClick={() => {
             console.log('🖼️ ProductCard Product Image clicked - PCode:', safePcode, 'Product ID:', safeId, 'Product Name:', safeName);

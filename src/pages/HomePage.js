@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { getProductsOptimized } from '../api/productsApi';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { getProductsOptimized, searchProductsAPI } from '../api/productsApi';
 import { useCart } from '../context/CartContext';
 import { useCartDrawer } from '../context/CartDrawerContext';
 import Card from '../components/Card';
@@ -20,6 +20,7 @@ import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon } from '@heroicons/reac
 
 const HomePage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const searchQuery = searchParams.get('q') || '';
   const categoryFilter = searchParams.get('category') || '';
   
@@ -35,35 +36,74 @@ const HomePage = () => {
   const { addItem } = useCart();
   const { openDrawer } = useCartDrawer();
 
+  // Helper function to get store code
+  const getStoreCode = () => {
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      try {
+        const location = JSON.parse(locationData);
+        return location?.store?.store_code || 'AVB';
+      } catch (error) {
+        console.warn('Failed to parse location data:', error);
+      }
+    }
+    return 'AVB'; // Default store code
+  };
+
   // Memoize loadProducts function to prevent recreating it on every render
   const loadProducts = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await getProductsOptimized({
-        page,
-        limit: 100, // Increased limit to get more products for search
-        dept_id: "2",
-        category_id: "72",
-        sub_category_id: "391"
-      });
-
-      setAllProducts(response.products || []); // Store all products for filtering
-      setPagination(response.pagination || null);
-
-      // Check if data is from cache (offline mode) or fallback
-      if (response.isOffline) {
-        setIsDataFromCache(true);
+      // Check if we're in search mode
+      if (searchQuery && searchQuery.trim().length >= 2) {
+        // Use search API
+        const storeCode = getStoreCode();
+        const searchResponse = await searchProductsAPI(searchQuery);
+        
+        if (searchResponse.success && searchResponse.data) {
+          setAllProducts(searchResponse.data);
+          setPagination({
+            page: 1,
+            limit: searchResponse.data.length,
+            total_products: searchResponse.count || searchResponse.data.length,
+            total_pages: 1,
+            has_next: false,
+            has_prev: false
+          });
+          setIsDataFromCache(false);
+          setIsFallbackData(false);
+        } else {
+          setAllProducts([]);
+          setPagination(null);
+        }
       } else {
-        setIsDataFromCache(false);
-      }
-      
-      // Check if data is from fallback
-      if (response.isFallback) {
-        setIsFallbackData(true);
-      } else {
-        setIsFallbackData(false);
+        // Use regular product listing API
+        const response = await getProductsOptimized({
+          page,
+          limit: 100, // Increased limit to get more products for search
+          dept_id: "2",
+          category_id: "72",
+          sub_category_id: "391"
+        });
+
+        setAllProducts(response.products || []); // Store all products for filtering
+        setPagination(response.pagination || null);
+
+        // Check if data is from cache (offline mode) or fallback
+        if (response.isOffline) {
+          setIsDataFromCache(true);
+        } else {
+          setIsDataFromCache(false);
+        }
+        
+        // Check if data is from fallback
+        if (response.isFallback) {
+          setIsFallbackData(true);
+        } else {
+          setIsFallbackData(false);
+        }
       }
     } catch (err) {
       console.error('Error loading products:', err);
@@ -78,28 +118,26 @@ const HomePage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchQuery]);
   
   // Filter products based on search query
   const filteredProducts = useMemo(() => {
-    if (!searchQuery) {
+    // If we used API search, products are already filtered
+    if (searchQuery && searchQuery.trim().length >= 2) {
+      return allProducts; // Already filtered by API
+    }
+    
+    // Otherwise, apply client-side filtering for category filter
+    if (!categoryFilter) {
       return allProducts;
     }
 
-    const query = searchQuery.toLowerCase().trim();
+    // Apply category filtering
     return allProducts.filter(product => {
-      // Search in product name, brand, description
-      const searchableText = [
-        product.product_name || '',
-        product.brand || '',
-        product.description || '',
-        product.category || '',
-        product.sub_category || ''
-      ].join(' ').toLowerCase();
-
-      return searchableText.includes(query);
+      const productCategory = product.category || product.category_name || '';
+      return productCategory.toLowerCase().includes(categoryFilter.toLowerCase());
     });
-  }, [allProducts, searchQuery]);
+  }, [allProducts, searchQuery, categoryFilter]);
 
   // Paginate filtered products
   const paginatedProducts = useMemo(() => {
@@ -352,6 +390,28 @@ const HomePage = () => {
                     </>
                   )}
                 </p>
+              </div>
+            )}
+
+            {/* Search Results Header */}
+            {searchQuery && searchQuery.trim().length >= 2 && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Search results for: "{searchQuery}"
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      Found {filteredProducts.length} products
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded-md hover:bg-blue-100 transition-colors"
+                  >
+                    Clear search
+                  </button>
+                </div>
               </div>
             )}
 
