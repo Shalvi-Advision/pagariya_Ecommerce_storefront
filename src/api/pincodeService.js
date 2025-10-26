@@ -186,6 +186,17 @@ export const formatPincodeData = (pincodeData) => {
  * @returns {Object} Formatted store data
  */
 export const formatStoreData = (storeData) => {
+  // Ensure boolean values are properly handled
+  const selfPickup = typeof storeData.delivery_options?.self_pickup === 'boolean' 
+    ? storeData.delivery_options.self_pickup 
+    : storeData.delivery_options?.self_pickup === 'yes' || storeData.delivery_options?.self_pickup === true;
+    
+  const homeDelivery = typeof storeData.delivery_options?.home_delivery === 'boolean'
+    ? storeData.delivery_options.home_delivery
+    : storeData.delivery_options?.home_delivery === 'yes' || storeData.delivery_options?.home_delivery === true;
+  
+  const isEnabled = storeData.is_enabled === 'Enabled' || storeData.is_enabled === true;
+  
   return {
     _id: storeData.id,
     storeCode: storeData.store_code,
@@ -198,12 +209,12 @@ export const formatStoreData = (storeData) => {
     storeOfferName: storeData.offer,
     latitude: storeData.location?.latitude,
     longitude: storeData.location?.longitude,
-    homeDelivery: storeData.delivery_options?.home_delivery,
-    selfPickup: storeData.delivery_options?.self_pickup,
+    homeDelivery: homeDelivery,
+    selfPickup: selfPickup,
     storeMessage: storeData.message,
     contactNumber: storeData.contact?.phone,
     email: storeData.contact?.email,
     whatsappNumber: storeData.contact?.whatsapp,
-    isEnabled: storeData.is_enabled === 'Enabled'
+    isEnabled: isEnabled
   };
 };

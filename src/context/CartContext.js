@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import cartService from '../services/cartService';
+import { debounce, retryWithBackoff, isUserAuthenticated, getUserMobile } from '../utils/cartUtils';
 
 // Cart Context
 const CartContext = createContext();
@@ -9,20 +11,31 @@ const cartActions = {
   REMOVE_ITEM: 'REMOVE_ITEM',
   UPDATE_QUANTITY: 'UPDATE_QUANTITY',
   CLEAR_CART: 'CLEAR_CART',
-  LOAD_CART: 'LOAD_CART'
+  LOAD_CART: 'LOAD_CART',
+  SET_LOADING: 'SET_LOADING',
+  SET_SYNCING: 'SET_SYNCING',
+  SET_SYNC_ERROR: 'SET_SYNC_ERROR',
+  SET_LAST_SYNCED: 'SET_LAST_SYNCED',
+  SET_VALIDATION_RESULT: 'SET_VALIDATION_RESULT'
 };
 
 // Cart Reducer
 const cartReducer = (state, action) => {
   switch (action.type) {
     case cartActions.ADD_ITEM: {
-      const existingItem = state.items.find(item => item.id === action.payload.id);
+      const existingItem = state.items.find(item => 
+        item.id === action.payload.id || 
+        item.p_code === action.payload.p_code ||
+        item.p_code === action.payload.id
+      );
 
       if (existingItem) {
         return {
           ...state,
           items: state.items.map(item =>
-            item.id === action.payload.id
+            (item.id === action.payload.id || 
+             item.p_code === action.payload.p_code ||
+             item.p_code === action.payload.id)
               ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
@@ -38,14 +51,18 @@ const cartReducer = (state, action) => {
     case cartActions.REMOVE_ITEM:
       return {
         ...state,
-        items: state.items.filter(item => item.id !== action.payload),
+        items: state.items.filter(item => 
+          item.id !== action.payload && 
+          item.p_code !== action.payload
+        ),
       };
 
     case cartActions.UPDATE_QUANTITY:
       return {
         ...state,
         items: state.items.map(item =>
-          item.id === action.payload.id
+          (item.id === action.payload.id || 
+           item.p_code === action.payload.id)
             ? { ...item, quantity: Math.max(1, action.payload.quantity) }
             : item
         ),
@@ -55,10 +72,49 @@ const cartReducer = (state, action) => {
       return {
         ...state,
         items: [],
+        syncError: null,
+        validationResult: null
       };
 
     case cartActions.LOAD_CART:
-      return action.payload;
+      return {
+        ...state,
+        ...action.payload,
+        loading: false
+      };
+
+    case cartActions.SET_LOADING:
+      return {
+        ...state,
+        loading: action.payload
+      };
+
+    case cartActions.SET_SYNCING:
+      return {
+        ...state,
+        syncing: action.payload
+      };
+
+    case cartActions.SET_SYNC_ERROR:
+      return {
+        ...state,
+        syncError: action.payload,
+        syncing: false
+      };
+
+    case cartActions.SET_LAST_SYNCED:
+      return {
+        ...state,
+        lastSynced: action.payload,
+        syncError: null,
+        syncing: false
+      };
+
+    case cartActions.SET_VALIDATION_RESULT:
+      return {
+        ...state,
+        validationResult: action.payload
+      };
 
     default:
       return state;
@@ -106,13 +162,26 @@ const dummyItems = [
 
 // Initial cart state
 const initialCartState = {
-  items: dummyItems, // Add dummy items for testing
+  items: [],
+  loading: false,
+  syncing: false,
+  syncError: null,
+  lastSynced: null,
+  validationResult: null
 };
 
 // Cart Provider Component
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialCartState);
   const [currentUserId, setCurrentUserId] = React.useState(null);
+  const debouncedSyncRef = useRef(null);
+
+  // Initialize debounced sync function
+  useEffect(() => {
+    debouncedSyncRef.current = debounce(async () => {
+      await syncCart();
+    }, 800);
+  }, []);
 
   // Get current user from localStorage
   useEffect(() => {
@@ -124,103 +193,282 @@ export const CartProvider = ({ children }) => {
       } catch (error) {
         console.error('Error parsing user data:', error);
       }
+    } else {
+      setCurrentUserId(null);
     }
   }, []);
 
-  // Load cart from localStorage on mount and when user changes
+  // Fetch cart from API on mount and when user changes
   useEffect(() => {
-    if (currentUserId) {
-      const savedCart = localStorage.getItem(`cart_${currentUserId}`);
-      if (savedCart) {
-        try {
-          const cartData = JSON.parse(savedCart);
-          dispatch({ type: cartActions.LOAD_CART, payload: cartData });
-        } catch (error) {
-          console.error('Error loading cart from localStorage:', error);
-        }
-      } else {
-        // If no saved cart for this user, start with empty cart
-        dispatch({ type: cartActions.LOAD_CART, payload: { items: [] } });
-      }
+    if (currentUserId && isUserAuthenticated()) {
+      fetchCart();
     } else {
-      // If no user, start with empty cart
-      dispatch({ type: cartActions.LOAD_CART, payload: { items: [] } });
+      // Load guest cart from localStorage
+      loadGuestCart();
     }
   }, [currentUserId]);
 
-  // Save cart to localStorage whenever it changes and we have a user
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (currentUserId) {
-      localStorage.setItem(`cart_${currentUserId}`, JSON.stringify(state));
+      localStorage.setItem(`cart_${currentUserId}`, JSON.stringify({
+        items: state.items,
+        lastSynced: state.lastSynced
+      }));
+    } else {
+      // Save guest cart
+      localStorage.setItem('guest_cart', JSON.stringify({
+        items: state.items,
+        lastSynced: state.lastSynced
+      }));
     }
-  }, [state, currentUserId]);
+  }, [state.items, state.lastSynced, currentUserId]);
+
+  // Fetch cart from API
+  const fetchCart = useCallback(async () => {
+    if (!isUserAuthenticated()) return;
+
+    dispatch({ type: cartActions.SET_LOADING, payload: true });
+
+    try {
+      const response = await retryWithBackoff(() => cartService.getCart());
+      
+      if (response.success) {
+        dispatch({
+          type: cartActions.LOAD_CART,
+          payload: {
+            items: response.data.items || [],
+            lastSynced: new Date().toISOString()
+          }
+        });
+      } else {
+        throw new Error(response.message || 'Failed to fetch cart');
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+      dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
+      
+      // Fallback to localStorage
+      loadGuestCart();
+    }
+  }, []);
+
+  // Load guest cart from localStorage
+  const loadGuestCart = useCallback(() => {
+    try {
+      const savedCart = localStorage.getItem('guest_cart');
+      if (savedCart) {
+        const cartData = JSON.parse(savedCart);
+        dispatch({
+          type: cartActions.LOAD_CART,
+          payload: {
+            items: cartData.items || [],
+            lastSynced: cartData.lastSynced || null
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading guest cart:', error);
+    }
+  }, []);
+
+  // Sync cart to API
+  const syncCart = useCallback(async () => {
+    if (!isUserAuthenticated() || state.items.length === 0) return;
+
+    dispatch({ type: cartActions.SET_SYNCING, payload: true });
+
+    try {
+      const response = await retryWithBackoff(() => cartService.saveCart(state.items));
+      
+      if (response.success) {
+        dispatch({ type: cartActions.SET_LAST_SYNCED, payload: new Date().toISOString() });
+      } else {
+        throw new Error(response.message || 'Failed to sync cart');
+      }
+    } catch (error) {
+      console.error('Error syncing cart:', error);
+      dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
+    }
+  }, [state.items]);
+
+  // Validate cart
+  const validateCart = useCallback(async () => {
+    if (!isUserAuthenticated()) {
+      return { success: true, message: 'Guest user - validation skipped' };
+    }
+
+    try {
+      const response = await cartService.validateCart();
+      dispatch({ type: cartActions.SET_VALIDATION_RESULT, payload: response });
+      return response;
+    } catch (error) {
+      console.error('Error validating cart:', error);
+      const errorResponse = { success: false, message: error.message };
+      dispatch({ type: cartActions.SET_VALIDATION_RESULT, payload: errorResponse });
+      return errorResponse;
+    }
+  }, []);
+
+  // Merge guest cart with backend cart (called on login)
+  const mergeGuestCart = useCallback(async (guestItems) => {
+    if (!isUserAuthenticated() || !guestItems.length) return;
+
+    try {
+      const response = await cartService.mergeGuestCart(guestItems);
+      
+      if (response.success) {
+        dispatch({
+          type: cartActions.LOAD_CART,
+          payload: {
+            items: response.data.mergedItems,
+            lastSynced: new Date().toISOString()
+          }
+        });
+        return response;
+      } else {
+        throw new Error(response.message || 'Failed to merge cart');
+      }
+    } catch (error) {
+      console.error('Error merging guest cart:', error);
+      throw error;
+    }
+  }, []);
 
   // Cart actions
-  const addItem = (product, quantity = 1) => {
+  const addItem = useCallback(async (product, quantity = 1) => {
+    // Create cart item with proper structure
+    const cartItem = {
+      id: product.p_code || product.id,
+      p_code: product.p_code || product.id,
+      title: product.title || product.product_name,
+      product_name: product.product_name || product.title,
+      price: product.price || product.unit_price,
+      unit_price: product.unit_price || product.price,
+      quantity: quantity,
+      image: product.image || product.pcode_img,
+      pcode_img: product.pcode_img || product.image,
+      brand: product.brand || product.brand_name,
+      brand_name: product.brand_name || product.brand,
+      packageSize: product.packageSize || `${product.package_size || 1} ${product.package_unit || 'GM'}`,
+      package_size: product.package_size || 1,
+      package_unit: product.package_unit || 'GM',
+      store_code: product.store_code || cartService.getStoreCode()
+    };
+
     // Check if item already exists in cart
-    const existingItem = state.items.find(item => item.id === product.id);
+    const existingItem = state.items.find(item => 
+      item.id === cartItem.id || 
+      item.p_code === cartItem.p_code ||
+      item.p_code === cartItem.id
+    );
     
     if (existingItem) {
       // If item exists, update its quantity
       dispatch({
         type: cartActions.UPDATE_QUANTITY,
-        payload: { id: product.id, quantity },
+        payload: { id: cartItem.id, quantity: existingItem.quantity + quantity },
       });
     } else {
       // If item doesn't exist, add it
       dispatch({
         type: cartActions.ADD_ITEM,
-        payload: {
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          image: product.image,
-          quantity,
-        },
+        payload: cartItem,
       });
     }
-  };
 
-  const removeItem = (itemId) => {
+    // Sync to API if authenticated
+    if (isUserAuthenticated()) {
+      try {
+        await cartService.addItemToCart(cartItem);
+        dispatch({ type: cartActions.SET_LAST_SYNCED, payload: new Date().toISOString() });
+      } catch (error) {
+        console.error('Error adding item to API:', error);
+        dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
+      }
+    }
+  }, [state.items]);
+
+  const removeItem = useCallback((itemId) => {
     dispatch({ type: cartActions.REMOVE_ITEM, payload: itemId });
-  };
+    
+    // Debounced sync to API
+    if (isUserAuthenticated() && debouncedSyncRef.current) {
+      debouncedSyncRef.current();
+    }
+  }, []);
 
-  const updateQuantity = (itemId, quantity) => {
+  const updateQuantity = useCallback((itemId, quantity) => {
     dispatch({
       type: cartActions.UPDATE_QUANTITY,
       payload: { id: itemId, quantity },
     });
-  };
+    
+    // Debounced sync to API
+    if (isUserAuthenticated() && debouncedSyncRef.current) {
+      debouncedSyncRef.current();
+    }
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(async () => {
     dispatch({ type: cartActions.CLEAR_CART });
-  };
+    
+    // Clear on API if authenticated
+    if (isUserAuthenticated()) {
+      try {
+        await cartService.clearCart();
+        dispatch({ type: cartActions.SET_LAST_SYNCED, payload: new Date().toISOString() });
+      } catch (error) {
+        console.error('Error clearing cart on API:', error);
+        dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
+      }
+    }
+  }, []);
 
-  const clearUserCart = () => {
+  const clearUserCart = useCallback(() => {
     if (currentUserId) {
       localStorage.removeItem(`cart_${currentUserId}`);
     }
+    localStorage.removeItem('guest_cart');
     dispatch({ type: cartActions.CLEAR_CART });
-  };
+  }, [currentUserId]);
 
-  const resetToDummyData = () => {
+  const resetToDummyData = useCallback(() => {
     dispatch({ type: cartActions.LOAD_CART, payload: { items: dummyItems } });
-  };
+  }, []);
 
   // Computed values
   const totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
   const totalPrice = state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const value = {
+    // State
     items: state.items,
+    loading: state.loading,
+    syncing: state.syncing,
+    syncError: state.syncError,
+    lastSynced: state.lastSynced,
+    validationResult: state.validationResult,
+    
+    // Computed values
     totalItems,
     totalPrice,
+    
+    // Actions
     addItem,
     removeItem,
     updateQuantity,
     clearCart,
     clearUserCart,
     resetToDummyData,
+    fetchCart,
+    syncCart,
+    validateCart,
+    mergeGuestCart,
+    
+    // Utility
+    isAuthenticated: isUserAuthenticated(),
+    userMobile: getUserMobile()
   };
 
   return (

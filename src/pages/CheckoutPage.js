@@ -6,6 +6,9 @@ import { useOrders } from '../context/OrderContext';
 import { usePincode } from '../context/PincodeContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { getPincodeStores, formatStoreData } from '../api/pincodeService';
+import { getAddresses, transformAddressFromAPI } from '../api/addressApi';
+import { getDeliverySlots, generateTimeSlotsFromAPI, generateDefaultTimeSlots, transformDeliverySlotFromAPI } from '../api/deliverySlotsApi';
+import { getEnabledPaymentModes, mapPaymentModeToUI } from '../api/paymentModesApi';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -64,85 +67,8 @@ const FALLBACK_PICKUP_POINTS = [
   }
 ];
 
-// Mock data for saved addresses (from Address Book)
-const SAVED_ADDRESSES = [
-  {
-    id: 1,
-    name: 'Rajesh Kumar',
-    phone: '9876543210',
-    addressLine1: 'Plot No 15, Sector 3',
-    addressLine2: 'Near City Mall',
-    city: 'Navi Mumbai',
-    pinCode: '410206',
-    isDefault: true,
-    type: 'Home'
-  },
-  {
-    id: 2,
-    name: 'Rajesh Kumar',
-    phone: '9876543210',
-    addressLine1: 'Office 402, Tower B, Tech Park',
-    addressLine2: 'Seawoods',
-    city: 'Navi Mumbai',
-    pinCode: '400706',
-    isDefault: false,
-    type: 'Office'
-  },
-  {
-    id: 3,
-    name: 'Priya Sharma',
-    phone: '9123456789',
-    addressLine1: 'Flat 301, Lotus Residency',
-    addressLine2: 'Kharghar',
-    city: 'Navi Mumbai',
-    pinCode: '410210',
-    isDefault: false,
-    type: 'Home'
-  }
-];
 
-// Function to generate dynamic time slots for next two days
-const generateTimeSlots = () => {
-  const today = new Date();
-  const timeSlots = [];
-  let slotId = 1;
-
-  // Generate slots for next 2 days
-  for (let i = 1; i <= 2; i++) {
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + i);
-    
-    const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
-    const day = targetDate.getDate();
-    const month = targetDate.toLocaleDateString('en-US', { month: 'long' });
-    const year = targetDate.getFullYear();
-    
-    const dateString = `${dayName} ${day}-${month}-${year}`;
-    
-    // Define available time slots with realistic availability
-    const availableSlots = [
-      { time: '07:00 AM - 10:00 AM', available: true },
-      { time: '10:00 AM - 12:30 PM', available: true },
-      { time: '11:00 AM - 02:00 PM', available: Math.random() > 0.2 }, // 20% chance unavailable
-      { time: '12:00 PM - 03:00 PM', available: true },
-      { time: '02:00 PM - 05:00 PM', available: true },
-      { time: '04:30 PM - 07:30 PM', available: Math.random() > 0.1 }, // 10% chance unavailable
-      { time: '07:30 PM - 10:00 PM', available: true },
-      { time: '08:00 PM - 11:00 PM', available: Math.random() > 0.15 } // 15% chance unavailable
-    ];
-
-    timeSlots.push({
-      date: dateString,
-      slots: availableSlots.map(slot => ({
-        id: slotId++,
-        time: slot.time,
-        available: slot.available
-      }))
-    });
-  }
-
-  return timeSlots;
-};
+// This function is replaced by generateDefaultTimeSlots from the API
 
 const CheckoutPage = () => {
   const { items, totalItems, totalPrice, clearCart, clearUserCart } = useCart();
@@ -153,12 +79,22 @@ const CheckoutPage = () => {
   const { isMobile, isTablet, getResponsiveValue } = useResponsive();
 
   // State for dynamic time slots
-  const [timeSlots, setTimeSlots] = useState(generateTimeSlots());
+  const [timeSlots, setTimeSlots] = useState(generateDefaultTimeSlots());
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   
   // State for dynamic pickup stores
   const [pickupStores, setPickupStores] = useState([]);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
   const [storesError, setStoresError] = useState(null);
+
+  // State for saved addresses from API
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [addressesError, setAddressesError] = useState(null);
+
+  // State for payment modes from API
+  const [enabledPaymentModes, setEnabledPaymentModes] = useState([]);
+  const [isLoadingPaymentModes, setIsLoadingPaymentModes] = useState(false);
 
   // Function to fetch stores for the selected pincode
   const fetchPickupStores = async (pincode) => {
@@ -171,13 +107,43 @@ const CheckoutPage = () => {
     setStoresError(null);
 
     try {
+      console.log('🏪 Fetching pickup stores for pincode:', pincode);
       const response = await getPincodeStores(pincode);
+      console.log('🏪 API Response:', response);
       
       if (response.success && response.data && response.data.length > 0) {
-        // Filter stores that support self-pickup
-        const pickupEnabledStores = response.data
-          .filter(store => store.self_pickup === 'yes')
-          .map(store => formatStoreData(store))
+        console.log('🏪 Total stores from API:', response.data.length);
+        
+        // Transform API data to UI format first
+        const formattedStores = response.data.map(store => formatStoreData(store));
+        
+        console.log('🏪 Formatted stores:', formattedStores);
+        console.log('🏪 First store details:', formattedStores[0]);
+        
+        // Log filtering criteria for each store
+        formattedStores.forEach((store, index) => {
+          console.log(`🏪 Store ${index}:`, {
+            name: store.storeName,
+            selfPickup: store.selfPickup,
+            isEnabled: store.isEnabled,
+            passesFilter: store.isEnabled === true
+          });
+        });
+        
+        // Filter stores that are enabled
+        // Note: Currently showing all enabled stores regardless of self_pickup status
+        // as the API stores might not have self_pickup enabled
+        const pickupEnabledStores = formattedStores
+          .filter(store => {
+            const passes = store.isEnabled === true;
+            if (!passes) {
+              console.log(`❌ Store filtered out: ${store.storeName}`, {
+                isEnabled: store.isEnabled,
+                typeOfIsEnabled: typeof store.isEnabled
+              });
+            }
+            return passes;
+          })
           .map(store => ({
             id: store._id,
             name: store.storeName,
@@ -192,6 +158,9 @@ const CheckoutPage = () => {
             minOrderAmount: store.minOrderAmount,
             storeMessage: store.storeMessage
           }));
+          
+        console.log('✅ Filtered pickup-enabled stores:', pickupEnabledStores);
+        console.log('✅ Number of stores after filtering:', pickupEnabledStores.length);
         
         setPickupStores(pickupEnabledStores);
       } else {
@@ -211,17 +180,6 @@ const CheckoutPage = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Shipping Information
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: 'India',
-
     // Payment Information
     paymentMethod: 'card', // 'card', 'upi', 'netbanking', 'paytm', 'cod'
     cardNumber: '',
@@ -237,15 +195,29 @@ const CheckoutPage = () => {
     differentBilling: false,
   });
 
-  // New checkout section state
-  const [checkoutData, setCheckoutData] = useState({
-    selectedPincode: '410206',
-    deliveryMode: 'home', // 'pickup' or 'home'
-    selectedPickupPoint: null,
-    selectedAddress: null,
-    selectedTimeSlot: null,
-    selectedDate: null,
+  // New checkout section state - initialized with actual pincode
+  const [checkoutData, setCheckoutData] = useState(() => {
+    const currentPincode = getCurrentPincode();
+    return {
+      selectedPincode: currentPincode || '',
+      deliveryMode: 'home', // 'pickup' or 'home'
+      selectedPickupPoint: null,
+      selectedAddress: null,
+      selectedTimeSlot: null,
+      selectedDate: null,
+    };
   });
+
+  // Update selected pincode from context when it changes
+  useEffect(() => {
+    const currentPincode = getCurrentPincode();
+    if (currentPincode && currentPincode !== checkoutData.selectedPincode) {
+      setCheckoutData(prev => ({
+        ...prev,
+        selectedPincode: currentPincode
+      }));
+    }
+  }, [confirmedLocation, getCurrentPincode, checkoutData.selectedPincode]);
 
   // Load stores when delivery mode changes to pickup
   useEffect(() => {
@@ -261,6 +233,98 @@ const CheckoutPage = () => {
     }
   }, [checkoutData.deliveryMode, getCurrentPincode]);
 
+  // Load saved addresses from API on component mount
+  useEffect(() => {
+    const loadSavedAddresses = async () => {
+      try {
+        setIsLoadingAddresses(true);
+        setAddressesError(null);
+        const response = await getAddresses();
+        
+        if (response.success && response.data) {
+          // Transform API data to UI format
+          const transformedAddresses = response.data.map(transformAddressFromAPI);
+          setSavedAddresses(transformedAddresses);
+        } else {
+          setSavedAddresses([]);
+        }
+      } catch (error) {
+        console.error('Failed to load addresses:', error);
+        setAddressesError('Failed to load addresses. Please try again.');
+        setSavedAddresses([]);
+      } finally {
+        setIsLoadingAddresses(false);
+      }
+    };
+
+    loadSavedAddresses();
+  }, []);
+
+  // Load delivery slots from API on component mount
+  useEffect(() => {
+    const loadDeliverySlots = async () => {
+      try {
+        setIsLoadingSlots(true);
+        const response = await getDeliverySlots();
+        
+        console.log('📅 Delivery Slots API Response:', response);
+        
+        if (response.success && response.data && response.data.length > 0) {
+          console.log('✅ Found delivery slots from API:', response.data);
+          // Transform API data to UI format
+          const transformedSlots = response.data.map(transformDeliverySlotFromAPI);
+          console.log('📅 Transformed slots:', transformedSlots);
+          // Generate time slots from API data
+          const generatedSlots = generateTimeSlotsFromAPI(transformedSlots);
+          console.log('📅 Generated time slots:', generatedSlots);
+          setTimeSlots(generatedSlots);
+        } else {
+          // Use default slots if API fails or returns no data
+          console.warn('⚠️ No delivery slots found from API, using default slots. Response:', response);
+          setTimeSlots(generateDefaultTimeSlots());
+        }
+      } catch (error) {
+        console.error('❌ Failed to load delivery slots:', error);
+        // Use default slots on error
+        setTimeSlots(generateDefaultTimeSlots());
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+
+    loadDeliverySlots();
+  }, []);
+
+  // Load payment modes from API on component mount
+  useEffect(() => {
+    const loadPaymentModes = async () => {
+      try {
+        setIsLoadingPaymentModes(true);
+        const modes = await getEnabledPaymentModes();
+        
+        // Set the first enabled payment mode as default
+        if (modes.length > 0) {
+          const defaultMode = mapPaymentModeToUI(modes[0].name);
+          if (defaultMode) {
+            setFormData(prev => ({
+              ...prev,
+              paymentMethod: defaultMode
+            }));
+          }
+        }
+        
+        setEnabledPaymentModes(modes);
+      } catch (error) {
+        console.error('❌ Failed to load payment modes:', error);
+        setEnabledPaymentModes([]);
+      } finally {
+        setIsLoadingPaymentModes(false);
+      }
+    };
+
+    loadPaymentModes();
+  }, []);
+
   // Modal states
   const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
   const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
@@ -268,6 +332,17 @@ const CheckoutPage = () => {
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Helper function to get payment method UI details
+  const getPaymentMethodDetails = (paymentMode) => {
+    const methodMap = {
+      'POD': { value: 'cod', icon: '💵', name: 'Cash on Delivery', description: 'Pay when you receive your order' },
+      'Online Payment': { value: 'card', icon: '💳', name: 'Credit/Debit Card', description: 'Visa, Mastercard, RuPay' },
+      'Bank Transfer': { value: 'netbanking', icon: '🏦', name: 'Net Banking', description: 'All major banks supported' },
+      'Redeem Points': { value: 'points', icon: '⭐', name: 'Redeem Points', description: 'Use loyalty points' },
+    };
+    return methodMap[paymentMode] || { value: 'card', icon: '💳', name: paymentMode, description: '' };
+  };
 
   // Redirect if not authenticated or cart is empty
   React.useEffect(() => {
@@ -283,10 +358,9 @@ const CheckoutPage = () => {
   }, [isAuthenticated, items, navigate]);
 
   const steps = [
-    { id: 1, name: 'Shipping', description: 'Shipping information' },
-    { id: 2, name: 'Checkout', description: 'Delivery & time slot' },
-    { id: 3, name: 'Payment', description: 'Payment details' },
-    { id: 4, name: 'Review', description: 'Review your order' },
+    { id: 1, name: 'Checkout', description: 'Delivery & time slot' },
+    { id: 2, name: 'Payment', description: 'Payment details' },
+    { id: 3, name: 'Review', description: 'Review your order' },
   ];
 
   const handleInputChange = (e) => {
@@ -308,19 +382,7 @@ const CheckoutPage = () => {
   const validateStep = (step) => {
     const newErrors = {};
 
-    if (step === 1) {
-      // Shipping validation
-      if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-      if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-      if (!formData.email.trim()) newErrors.email = 'Email is required';
-      if (!formData.email.includes('@')) newErrors.email = 'Please enter a valid email';
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-      if (!/^\d{10}$/.test(formData.phone.replace(/\s/g, ''))) newErrors.phone = 'Phone number must be exactly 10 digits';
-      if (!formData.address.trim()) newErrors.address = 'Address is required';
-      if (!formData.city.trim()) newErrors.city = 'City is required';
-      if (!formData.zipCode.trim()) newErrors.zipCode = 'ZIP code is required';
-      if (!/^\d{6}$/.test(formData.zipCode.replace(/\s/g, ''))) newErrors.zipCode = 'ZIP code must be 6 digits';
-    } else if (step === 2) {
+    if (step === 2) {
       // Payment validation based on selected method
       if (formData.paymentMethod === 'card') {
         if (!formData.cardNumber.trim()) newErrors.cardNumber = 'Card number is required';
@@ -348,12 +410,18 @@ const CheckoutPage = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      if (currentStep === 1 && !checkoutData.selectedTimeSlot) {
+        // Don't allow next if time slot not selected
+        return;
+      }
       setCurrentStep(prev => prev + 1);
     }
   };
 
   const handleBack = () => {
-    setCurrentStep(prev => prev - 1);
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
   };
 
   // Checkout section handlers
@@ -382,26 +450,6 @@ const CheckoutPage = () => {
     }));
   };
 
-  const handleSavedAddressSelect = (e) => {
-    const addressId = parseInt(e.target.value);
-    if (!addressId) {
-      // Reset form if "Select an address" is chosen
-      return;
-    }
-    
-    const selectedAddress = SAVED_ADDRESSES.find(addr => addr.id === addressId);
-    if (selectedAddress) {
-      setFormData(prev => ({
-        ...prev,
-        firstName: selectedAddress.name.split(' ')[0] || '',
-        lastName: selectedAddress.name.split(' ').slice(1).join(' ') || '',
-        phone: selectedAddress.phone,
-        address: `${selectedAddress.addressLine1}${selectedAddress.addressLine2 ? ', ' + selectedAddress.addressLine2 : ''}`,
-        city: selectedAddress.city,
-        zipCode: selectedAddress.pinCode
-      }));
-    }
-  };
 
   const handleTimeSlotSelect = (date, timeSlot) => {
     setCheckoutData(prev => ({
@@ -413,19 +461,17 @@ const CheckoutPage = () => {
 
   const handleConfirmLocation = () => {
     if (checkoutData.deliveryMode === 'pickup' && checkoutData.selectedPickupPoint) {
-      // Generate fresh time slots when opening modal
-      setTimeSlots(generateTimeSlots());
+      // Open time slot modal
       setShowTimeSlotModal(true);
     } else if (checkoutData.deliveryMode === 'home' && checkoutData.selectedAddress) {
-      // Generate fresh time slots when opening modal
-      setTimeSlots(generateTimeSlots());
+      // Open time slot modal
       setShowTimeSlotModal(true);
     }
   };
 
   const handleConfirmTimeSlot = () => {
     setShowTimeSlotModal(false);
-    setCurrentStep(3); // Move to payment step
+    setCurrentStep(2); // Move to payment step
   };
 
   const handleTimeSlotModalClose = () => {
@@ -445,20 +491,9 @@ const CheckoutPage = () => {
       const order = {
         userId: user?.id ?? user?.mobile_no ?? 'guest',
         items: items,
-        shippingInfo: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: formData.country,
-        },
+        checkoutData: checkoutData, // Include all checkout details
         paymentMethod: formData.paymentMethod,
         paymentDetails: getPaymentDetails(),
-        checkoutData: checkoutData, // Include all checkout details
         subtotal: totalPrice,
         shippingCost: shippingCost,
         taxAmount: taxAmount,
@@ -517,8 +552,24 @@ const CheckoutPage = () => {
     return null; // Will redirect in useEffect
   }
 
+  // Check if pincode is selected
+  const currentPincode = getCurrentPincode();
+  const hasPincode = !!currentPincode || !!checkoutData.selectedPincode;
+
   return (
     <div className="container mx-auto px-4 py-4 sm:py-8">
+      {/* Warning if no pincode is selected */}
+      {!hasPincode && (
+        <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div className="flex-1">
+            <p className="font-medium">Please select a pincode to continue</p>
+            <p className="text-sm">Please use the pincode selector in the header to select your delivery location.</p>
+          </div>
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         {/* Progress Indicator */}
         <div className="mb-6 sm:mb-8">
@@ -550,120 +601,8 @@ const CheckoutPage = () => {
           {/* Main Content */}
           <div className={`${isMobile ? 'order-2' : 'lg:col-span-2'}`}>
             <Card>
-              {/* Step 1: Shipping Information */}
+              {/* Step 1: Checkout - Delivery Mode & Time Slot */}
               {currentStep === 1 && (
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-semibold text-gray-900">Shipping Information</h2>
-
-                  {/* Saved Addresses Dropdown */}
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Select from Saved Addresses
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/address')}
-                        className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                      >
-                        Manage Addresses
-                      </button>
-                    </div>
-                    <select
-                      onChange={handleSavedAddressSelect}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white"
-                    >
-                      <option value="">Choose a saved address...</option>
-                      {SAVED_ADDRESSES.map((address) => (
-                        <option key={address.id} value={address.id}>
-                          {address.type === 'Home' ? '🏠' : address.type === 'Office' ? '💼' : '📍'} {address.name} - {address.addressLine1}, {address.city} - {address.pinCode}
-                          {address.isDefault ? ' (Default)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-600 mt-2">
-                      Select an address to auto-fill the form below
-                    </p>
-                  </div>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">Or enter manually</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="First Name"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      error={errors.firstName}
-                      required
-                    />
-                    <Input
-                      label="Last Name"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      error={errors.lastName}
-                      required
-                    />
-                  </div>
-
-                  <Input
-                    label="Email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    error={errors.email}
-                    required
-                  />
-
-                  <Input
-                    label="Phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
-
-                  <Input
-                    label="Address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    error={errors.address}
-                    required
-                  />
-
-                  <Input
-                    label="City"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    error={errors.city}
-                    required
-                  />
-
-                  <Input
-                    label="PIN Code"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleInputChange}
-                    error={errors.zipCode}
-                    required
-                    placeholder="6-digit PIN code"
-                  />
-                </div>
-              )}
-
-              {/* Step 2: Checkout - Delivery Mode & Time Slot */}
-              {currentStep === 2 && (
                 <div className="space-y-6">
                   <h2 className="text-2xl font-semibold text-gray-900">Checkout</h2>
 
@@ -673,7 +612,7 @@ const CheckoutPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span>Selected Pincode: {checkoutData.selectedPincode}</span>
+                    <span>Selected Pincode: {checkoutData.selectedPincode || getCurrentPincode() || 'Not selected'}</span>
                   </div>
 
                   {/* Step 1: Select a delivery mode */}
@@ -868,85 +807,112 @@ const CheckoutPage = () => {
                         </button>
                       </div>
                       
-                      <div className="space-y-3">
-                        {SAVED_ADDRESSES.map((address) => (
-                          <label 
-                            key={address.id}
-                            className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                              checkoutData.selectedAddress?.id === address.id
-                                ? 'border-green-500 bg-green-50'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
+                      {isLoadingAddresses ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                          <span className="ml-2 text-gray-600">Loading addresses...</span>
+                        </div>
+                      ) : addressesError ? (
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                          <p className="text-sm">{addressesError}</p>
+                          <button
+                            onClick={() => window.location.reload()}
+                            className="mt-2 text-sm underline hover:text-red-900"
                           >
-                            <input
-                              type="radio"
-                              name="address"
-                              value={address.id}
-                              checked={checkoutData.selectedAddress?.id === address.id}
-                              onChange={() => handleAddressSelect({
-                                id: address.id,
-                                name: address.name,
-                                address: `${address.addressLine1}${address.addressLine2 ? ', ' + address.addressLine2 : ''}, ${address.city} ${address.pinCode}`,
-                                phone: address.phone,
-                                type: address.type,
-                                isDefault: address.isDefault
-                              })}
-                              className="text-green-600 focus:ring-green-500 mt-1"
-                            />
-                            <div className="ml-3 flex-1">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <p className="font-medium text-gray-900">{address.name}</p>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                      address.type === 'Home' ? 'bg-blue-100 text-blue-800' :
-                                      address.type === 'Office' ? 'bg-purple-100 text-purple-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {address.type === 'Home' ? '🏠' : address.type === 'Office' ? '💼' : '📍'} {address.type}
-                                    </span>
-                                    {address.isDefault && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Default
-                                      </span>
+                            Try again
+                          </button>
+                        </div>
+                      ) : savedAddresses.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 mx-auto rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-gray-700 font-medium mb-2">No saved addresses</p>
+                          <p className="text-sm text-gray-500 mb-4">Add an address to continue with home delivery</p>
+                          <button
+                            onClick={() => navigate('/address')}
+                            className="text-green-600 hover:text-green-700 text-sm font-medium"
+                          >
+                            + Add New Address
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {savedAddresses.map((address) => (
+                            <label 
+                              key={address.id || address.mongoId}
+                              className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                                checkoutData.selectedAddress?.id === address.id
+                                  ? 'border-green-500 bg-green-50'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="address"
+                                value={address.id}
+                                checked={checkoutData.selectedAddress?.id === address.id}
+                                onChange={() => handleAddressSelect({
+                                  id: address.id,
+                                  name: address.name,
+                                  address: `${address.addressLine1}${address.addressLine2 ? ', ' + address.addressLine2 : ''}, ${address.city} ${address.pinCode}`,
+                                  email: address.email,
+                                  city: address.city,
+                                  pinCode: address.pinCode
+                                })}
+                                className="text-green-600 focus:ring-green-500 mt-1"
+                              />
+                              <div className="ml-3 flex-1">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
+                                      <p className="font-medium text-gray-900">{address.name}</p>
+                                      {address.isDefault && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                          Default
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-gray-600">
+                                      {address.addressLine1}
+                                      {address.addressLine2 && <>, {address.addressLine2}</>}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      {address.city} - {address.pinCode}
+                                    </p>
+                                    {address.email && (
+                                      <p className="text-sm text-gray-500 mt-1">Email: {address.email}</p>
                                     )}
                                   </div>
-                                  <p className="text-sm text-gray-600">
-                                    {address.addressLine1}
-                                    {address.addressLine2 && <>, {address.addressLine2}</>}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    {address.city} - {address.pinCode}
-                                  </p>
-                                  <div className="mt-2">
-                                    <p className="text-sm text-gray-500">Phone: {address.phone}</p>
-                                  </div>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigate('/address');
+                                    }}
+                                    className="text-blue-600 hover:text-blue-700 text-sm flex items-center ml-2"
+                                  >
+                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Edit
+                                  </button>
                                 </div>
-                                <button 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate('/address');
-                                  }}
-                                  className="text-blue-600 hover:text-blue-700 text-sm flex items-center ml-2"
-                                >
-                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  Edit
-                                </button>
                               </div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                       
                       <Button 
                         onClick={handleConfirmLocation}
-                        disabled={!checkoutData.selectedAddress}
+                        disabled={!checkoutData.selectedAddress || savedAddresses.length === 0}
                         className="w-full bg-green-600 hover:bg-green-700"
                       >
                         CONFIRM ADDRESS
@@ -1016,8 +982,8 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              {/* Step 3: Payment Information */}
-              {currentStep === 3 && (
+              {/* Step 2: Payment Information */}
+              {currentStep === 2 && (
                 <div className="space-y-6">
                   <h2 className="text-2xl font-semibold text-gray-900">Payment Information</h2>
 
@@ -1027,122 +993,50 @@ const CheckoutPage = () => {
                       Select Payment Method <span className="text-red-500">*</span>
                     </label>
 
-                    <div className="space-y-3">
-                      {/* Credit/Debit Card */}
-                      <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        formData.paymentMethod === 'card'
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="card"
-                          checked={formData.paymentMethod === 'card'}
-                          onChange={handleInputChange}
-                          className="text-primary-600 focus:ring-primary-500"
-                        />
-                        <div className="ml-3 flex items-center">
-                          <span className="text-lg mr-2">💳</span>
-                          <div>
-                            <p className="font-medium text-gray-900">Credit/Debit Card</p>
-                            <p className="text-sm text-gray-500">Visa, Mastercard, RuPay</p>
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* UPI */}
-                      <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        formData.paymentMethod === 'upi'
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="upi"
-                          checked={formData.paymentMethod === 'upi'}
-                          onChange={handleInputChange}
-                          className="text-primary-600 focus:ring-primary-500"
-                        />
-                        <div className="ml-3 flex items-center">
-                          <span className="text-lg mr-2">📱</span>
-                          <div>
-                            <p className="font-medium text-gray-900">UPI</p>
-                            <p className="text-sm text-gray-500">Paytm, Google Pay, PhonePe, BHIM UPI</p>
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Net Banking */}
-                      <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        formData.paymentMethod === 'netbanking'
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="netbanking"
-                          checked={formData.paymentMethod === 'netbanking'}
-                          onChange={handleInputChange}
-                          className="text-primary-600 focus:ring-primary-500"
-                        />
-                        <div className="ml-3 flex items-center">
-                          <span className="text-lg mr-2">🏦</span>
-                          <div>
-                            <p className="font-medium text-gray-900">Net Banking</p>
-                            <p className="text-sm text-gray-500">All major banks supported</p>
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Paytm */}
-                      <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        formData.paymentMethod === 'paytm'
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="paytm"
-                          checked={formData.paymentMethod === 'paytm'}
-                          onChange={handleInputChange}
-                          className="text-primary-600 focus:ring-primary-500"
-                        />
-                        <div className="ml-3 flex items-center">
-                          <span className="text-lg mr-2">💰</span>
-                          <div>
-                            <p className="font-medium text-gray-900">Paytm</p>
-                            <p className="text-sm text-gray-500">Paytm Wallet</p>
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Cash on Delivery */}
-                      <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        formData.paymentMethod === 'cod'
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="cod"
-                          checked={formData.paymentMethod === 'cod'}
-                          onChange={handleInputChange}
-                          className="text-primary-600 focus:ring-primary-500"
-                        />
-                        <div className="ml-3 flex items-center">
-                          <span className="text-lg mr-2">💵</span>
-                          <div>
-                            <p className="font-medium text-gray-900">Cash on Delivery</p>
-                            <p className="text-sm text-gray-500">Pay when you receive your order</p>
-                          </div>
-                        </div>
-                      </label>
-                    </div>
+                    {isLoadingPaymentModes ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                        <span className="ml-2 text-gray-600">Loading payment methods...</span>
+                      </div>
+                    ) : enabledPaymentModes.length === 0 ? (
+                      <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+                        <p className="text-sm">No payment methods available. Please try again later.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {enabledPaymentModes.map((mode) => {
+                          const details = getPaymentMethodDetails(mode.name);
+                          return (
+                            <label 
+                              key={mode.id} 
+                              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                                formData.paymentMethod === details.value
+                                  ? 'border-primary-500 bg-primary-50'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="paymentMethod"
+                                value={details.value}
+                                checked={formData.paymentMethod === details.value}
+                                onChange={handleInputChange}
+                                className="text-primary-600 focus:ring-primary-500"
+                              />
+                              <div className="ml-3 flex items-center">
+                                <span className="text-lg mr-2">{details.icon}</span>
+                                <div>
+                                  <p className="font-medium text-gray-900">{details.name}</p>
+                                  {details.description && (
+                                    <p className="text-sm text-gray-500">{details.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Conditional Payment Forms */}
@@ -1243,8 +1137,8 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              {/* Step 4: Review Order */}
-              {currentStep === 4 && (
+              {/* Step 3: Review Order */}
+              {currentStep === 3 && (
                 <div className="space-y-6">
                   <h2 className="text-2xl font-semibold text-gray-900">Review Your Order</h2>
 
@@ -1289,21 +1183,38 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Shipping Address */}
-                    <div className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
-                      <div className="flex-shrink-0">
-                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
+                    {checkoutData.selectedAddress && (
+                      <div className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
+                        <div className="flex-shrink-0">
+                          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Shipping Address</h3>
+                          <p className="text-sm text-gray-600">
+                            {checkoutData.selectedAddress.name}<br />
+                            {checkoutData.selectedAddress.address}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">Shipping Address</h3>
-                        <p className="text-sm text-gray-600">
-                          {formData.firstName} {formData.lastName}<br />
-                          {formData.address}<br />
-                          {formData.city} {formData.zipCode}
-                        </p>
+                    )}
+                    {checkoutData.selectedPickupPoint && (
+                      <div className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
+                        <div className="flex-shrink-0">
+                          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Pickup Address</h3>
+                          <p className="text-sm text-gray-600">
+                            {checkoutData.selectedPickupPoint.name}<br />
+                            {checkoutData.selectedPickupPoint.address}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Payment Method */}
                     <div className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
@@ -1315,11 +1226,11 @@ const CheckoutPage = () => {
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">Payment Method</h3>
                         <p className="text-sm text-gray-600">
-                          {formData.paymentMethod === 'card' && `Card ending in ${formData.cardNumber.slice(-4)}`}
-                          {formData.paymentMethod === 'upi' && `UPI ID: ${formData.upiId}`}
-                          {formData.paymentMethod === 'netbanking' && `Net Banking: ${formData.bankName}`}
-                          {formData.paymentMethod === 'paytm' && `Paytm: ****${formData.paytmNumber.slice(-4)}`}
-                          {formData.paymentMethod === 'cod' && 'Cash on Delivery'}
+                        {formData.paymentMethod === 'card' && formData.cardNumber && `Card ending in ${formData.cardNumber.slice(-4)}`}
+                        {formData.paymentMethod === 'upi' && formData.upiId && `UPI ID: ${formData.upiId}`}
+                        {formData.paymentMethod === 'netbanking' && formData.bankName && `Net Banking: ${formData.bankName}`}
+                        {formData.paymentMethod === 'paytm' && formData.paytmNumber && `Paytm: ****${formData.paytmNumber.slice(-4)}`}
+                        {formData.paymentMethod === 'cod' && 'Cash on Delivery'}
                         </p>
                       </div>
                     </div>
@@ -1337,7 +1248,7 @@ const CheckoutPage = () => {
                   <div />
                 )}
 
-                {currentStep < 4 ? (
+                {currentStep < 3 ? (
                   <Button onClick={handleNext} className={isMobile ? 'w-full' : ''}>
                     Next
                   </Button>

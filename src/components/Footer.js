@@ -29,21 +29,6 @@ const Footer = () => {
                   About Us
                 </Link>
               </li>
-              <li>
-                <Link to="/products" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
-                  Products
-                </Link>
-              </li>
-              <li>
-                <Link to="/cart" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
-                  Shopping Cart
-                </Link>
-              </li>
-              <li>
-                <Link to="/checkout" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
-                  Checkout
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -59,16 +44,6 @@ const Footer = () => {
               <li>
                 <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
                   Shipping Info
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
-                  Returns
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
-                  FAQ
                 </a>
               </li>
             </ul>

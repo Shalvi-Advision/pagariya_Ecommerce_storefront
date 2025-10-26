@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import { useFavorite } from '../context/FavoriteContext';
 import GroceryProductCard from '../components/GroceryProductCard';
-import { ChevronDownIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, Bars3Icon, XMarkIcon, HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { getProductsOptimized } from '../api/productsApi';
 import groceryApiService from '../services/groceryApi';
+import { createCartItemFromProduct } from '../utils/cartUtils';
 
 const CategoryPage = () => {
   const { categoryName } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { isMobile, isTablet, isDesktop } = useResponsive();
+  const { addItem } = useCart();
+  const { showError } = useToast();
+  const { isFavorite, toggleFavorite } = useFavorite();
   
   // State management
   const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -46,6 +54,7 @@ const CategoryPage = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [departmentId, setDepartmentId] = useState(null);
   const [usingFallbackData, setUsingFallbackData] = useState(false);
+  const [addingToCart, setAddingToCart] = useState({});
 
   // Convert category slug back to department name
   const getDepartmentNameFromSlug = (slug) => {
@@ -57,6 +66,13 @@ const CategoryPage = () => {
     try {
       setLoading(true);
       const departmentName = getDepartmentNameFromSlug(categoryName);
+      
+      // Reset state when switching departments
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+      setSubcategories([]);
+      setProducts([]);
+      
       setSelectedDepartment(departmentName);
       
       // Fetch department image from API
@@ -107,10 +123,7 @@ const CategoryPage = () => {
           );
           if (categoryToSelect) {
             setSelectedCategory(categoryToSelect);
-            // Load subcategories for this category
-            if (departmentId) {
-              loadSubcategories(departmentId, categoryToSelect.idcategory_master);
-            }
+            // Load subcategories for this category - will be handled by useEffect after departmentId is set
           }
         }
 
@@ -132,7 +145,7 @@ const CategoryPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [categoryName]);
+  }, [categoryName, location.state]);
 
   // Load subcategories for a department and category
   const loadSubcategories = useCallback(async (deptId, categoryId) => {
@@ -150,6 +163,7 @@ const CategoryPage = () => {
       if (response.success && response.data && response.data.length > 0) {
         setSubcategories(response.data);
         // Auto-select first subcategory if available
+        console.log('✅ Auto-selecting first subcategory:', response.data[0].sub_category_name);
         setSelectedSubcategory(response.data[0]);
       } else {
         // Create a fallback subcategory if none exist
@@ -162,6 +176,7 @@ const CategoryPage = () => {
           main_category_name: selectedCategory?.category_name || 'Products'
         };
         setSubcategories([fallbackSubcategory]);
+        console.log('✅ Auto-selecting fallback subcategory:', fallbackSubcategory.sub_category_name);
         setSelectedSubcategory(fallbackSubcategory);
       }
     } catch (err) {
@@ -175,6 +190,7 @@ const CategoryPage = () => {
         main_category_name: selectedCategory?.category_name || 'Products'
       };
       setSubcategories([fallbackSubcategory]);
+      console.log('✅ Auto-selecting error fallback subcategory:', fallbackSubcategory.sub_category_name);
       setSelectedSubcategory(fallbackSubcategory);
     }
   }, [selectedCategory]);
@@ -185,6 +201,14 @@ const CategoryPage = () => {
       loadDepartmentData();
     }
   }, [categoryName, loadDepartmentData]);
+
+  // Load subcategories when both selectedCategory and departmentId are available
+  useEffect(() => {
+    if (selectedCategory && departmentId) {
+      console.log('🔄 Auto-loading subcategories for category:', selectedCategory.category_name, 'departmentId:', departmentId);
+      loadSubcategories(departmentId, selectedCategory.idcategory_master);
+    }
+  }, [selectedCategory, departmentId, loadSubcategories]);
 
   // Memoized loadProducts function to prevent recreating on every render
   const loadProducts = useCallback(async () => {
@@ -358,7 +382,13 @@ const CategoryPage = () => {
 
   // Filter products based on additional filters and sorting
   const filteredProducts = useMemo(() => {
-    let filtered = [...products];
+    // First, remove duplicates based on p_code or _id
+    const uniqueProducts = products.filter((product, index, self) => {
+      const identifier = product.p_code || product._id;
+      return identifier && index === self.findIndex(p => (p.p_code || p._id) === identifier);
+    });
+
+    let filtered = [...uniqueProducts];
 
     // Apply additional filters
     if (filters.brand) {
@@ -393,18 +423,14 @@ const CategoryPage = () => {
     return brands.sort();
   }, [filteredProducts]);
 
-  // Handle category selection - only load subcategories, don't load products yet
+  // Handle category selection - subcategories will be loaded automatically via useEffect
   const handleCategorySelect = useCallback((category) => {
     setSelectedCategory(category);
     setSelectedSubcategory(null); // Reset subcategory
     setProducts([]); // Clear products - wait for subcategory selection
     setCurrentPage(1); // Reset to first page when category changes
-
-    // Load subcategories for this category
-    if (departmentId) {
-      loadSubcategories(departmentId, category.idcategory_master);
-    }
-  }, [departmentId, loadSubcategories]);
+    // Subcategories will be loaded automatically via useEffect when both selectedCategory and departmentId are available
+  }, []);
 
   // Handle subcategory selection - load products only when subcategory is clicked
   const handleSubcategorySelect = useCallback((subcategory) => {
@@ -446,6 +472,28 @@ const CategoryPage = () => {
   // Toggle sidebar on mobile
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  // Handle add to cart
+  const handleAddToCart = async (product) => {
+    const productId = product.p_code || product._id;
+    
+    try {
+      setAddingToCart(prev => ({ ...prev, [productId]: true }));
+      
+      // Create cart item from product
+      const cartItem = createCartItemFromProduct(product, 1);
+      
+      // Add to cart using context
+      await addItem(cartItem, 1);
+      
+      // Success - no toast message
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      showError('Failed to add item to cart. Please try again.');
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [productId]: false }));
+    }
   };
 
   // Modern Loading state
@@ -644,13 +692,9 @@ const CategoryPage = () => {
         <div className="flex-1 min-w-0">
           {/* Breadcrumb and Title */}
           <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-            <div className="flex items-center text-sm text-gray-500 mb-2">
-              <span className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigate('/')}>Grocery</span>
+            <div className="flex items-center text-sm text-gray-500 mb-2 flex-wrap">
               {selectedDepartment && (
-                <>
-                  <span className="mx-2">›</span>
-                  <span className="text-gray-700">{selectedDepartment}</span>
-                </>
+                <span className="text-gray-700">{selectedDepartment}</span>
               )}
               {selectedCategory && (
                 <>
@@ -658,9 +702,15 @@ const CategoryPage = () => {
                   <span className="text-gray-900 font-medium">{selectedCategory.category_name}</span>
                 </>
               )}
+              {selectedSubcategory && (
+                <>
+                  <span className="mx-2">›</span>
+                  <span className="text-gray-700">{selectedSubcategory.sub_category_name}</span>
+                </>
+              )}
             </div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {selectedCategory?.category_name || selectedDepartment || 'All Products'}
+              {selectedSubcategory?.sub_category_name || selectedCategory?.category_name || selectedDepartment || 'All Products'}
             </h1>
           </div>
 
@@ -760,14 +810,46 @@ const CategoryPage = () => {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                   {/* Product Cards */}
-                  {filteredProducts.map((product, index) => (
+                  {filteredProducts.map((product, index) => {
+                    const uniqueKey = product.p_code || product._id || `${product.product_name}-${index}`;
+                    return (
                     <div 
-                      key={product._id || product.p_code || index} 
+                      key={uniqueKey} 
                       className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
                       onClick={() => navigate(`/product/${product.p_code || product._id}?dept_id=${product.dept_id || departmentId}&category_id=${product.category_id || selectedCategory?.idcategory_master}&sub_category_id=${product.sub_category_id || selectedSubcategory?.idsub_category_master}`)}
                     >
                       {/* Product Image */}
                       <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden p-4">
+                        {/* Favorite Button */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleFavorite({
+                              ...product,
+                              p_code: product.p_code || product._id,
+                              _id: product.p_code || product._id,
+                              product_name: product.product_name,
+                              our_price: product.our_price,
+                              image_url: product.image_url,
+                              brand_name: product.brand_name,
+                              package_size: product.package_size,
+                              package_unit: product.package_unit,
+                              product_mrp: product.product_mrp,
+                              discount_percentage: product.discount_percentage,
+                              store_quantity: product.store_quantity || 1,
+                              max_quantity_allowed: product.max_quantity_allowed || 10
+                            });
+                          }}
+                          className="absolute top-2 right-2 z-20 p-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+                        >
+                          {isFavorite(product.p_code || product._id) ? (
+                            <HeartSolid className="w-4 h-4 text-red-500" />
+                          ) : (
+                            <HeartOutline className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors duration-200" />
+                          )}
+                        </button>
+                        
                         <img
                           src={product.image_url || '/images/logo.jpg'}
                           alt={product.product_name}
@@ -776,18 +858,12 @@ const CategoryPage = () => {
                             e.target.src = '/images/logo.jpg';
                           }}
                         />
-                        {product.discount_percentage > 0 && (
-                          <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded font-semibold">
-                            ₹ {product.discount_percentage} OFF
-                          </div>
-                        )}
-                        {/* Vegetarian/Non-Veg indicator */}
-                        <div className="absolute top-2 right-2">
-                          <div className="w-4 h-4 border-2 border-green-600 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-green-600"></div>
-                          </div>
-                        </div>
-                      </div>
+                {product.discount_percentage > 0 && (
+                  <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded font-semibold z-10">
+                    ₹ {product.discount_percentage} OFF
+                  </div>
+                )}
+              </div>
 
                       {/* Product Info */}
                       <div className="p-3 border-t border-gray-100">
@@ -818,21 +894,35 @@ const CategoryPage = () => {
 
                         {/* Add to Cart Button */}
                         <button 
-                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-1"
+                          className={`w-full py-2 px-4 rounded text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-1 ${
+                            addingToCart[product.p_code || product._id] 
+                              ? 'bg-gray-400 cursor-not-allowed' 
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                          }`}
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent navigation when clicking the button
-                            // TODO: Add to cart functionality
-                            console.log('Add to cart clicked for product:', product);
+                            handleAddToCart(product);
                           }}
+                          disabled={addingToCart[product.p_code || product._id]}
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          ADD TO CART
+                          {addingToCart[product.p_code || product._id] ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              ADDING...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              ADD TO CART
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Modern Pagination Controls */}

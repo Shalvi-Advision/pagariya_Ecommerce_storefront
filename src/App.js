@@ -8,6 +8,7 @@ import { OrderProvider } from './context/OrderContext';
 import { PincodeProvider, usePincode } from './context/PincodeContext';
 import { FavoriteProvider } from './context/FavoriteContext';
 import { ProfileProvider } from './context/ProfileContext';
+import { ToastProvider } from './context/ToastContext';
 
 // Import page components
 import HomePage from './pages/HomePage';
@@ -42,6 +43,9 @@ import DevTools from './components/DevTools';
 //import DebugInfo from './components/';
 import CartDebugTools from './components/CartDebugTools';
 import LocationGuard from './components/LocationGuard';
+import ToastContainer from './components/Toast';
+import { useToast } from './context/ToastContext';
+import { useCartAuthSync } from './hooks/useCartAuthSync';
 
 // Import pincode modals
 import PincodeSelectionModal from './components/PincodeSelectionModal';
@@ -51,9 +55,18 @@ import StoreDetailsModal from './components/StoreDetailsModal';
 // Import PWA utilities
 import pwaUtils from './utils/pwa';
 
+// Toast Container Component
+const ToastContainerWrapper = () => {
+  const { toasts, removeToast } = useToast();
+  return <ToastContainer toasts={toasts} onRemove={removeToast} />;
+};
+
 function AppContent() {
   const { successMessage, clearSuccessMessage, user } = useAuth();
   const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  
+  // Initialize cart-auth sync
+  useCartAuthSync();
   
   // Effect to detect successful login message and show the modal
   useEffect(() => {
@@ -189,6 +202,9 @@ function AppContent() {
           selectedStore={selectedStore}
           isRequired={isLocationRequired}
         />
+        
+        {/* Toast Container - Global */}
+        <ToastContainerWrapper />
       </div>
     </Router>
   );
@@ -227,19 +243,21 @@ function App() {
 
   return (
     <AuthProvider>
-      <CartProvider>
-        <CartDrawerProvider>
-          <OrderProvider>
-            <PincodeProvider>
-              <FavoriteProvider>
-                <ProfileProvider>
-                  <AppContent />
-                </ProfileProvider>
-              </FavoriteProvider>
-            </PincodeProvider>
-          </OrderProvider>
-        </CartDrawerProvider>
-      </CartProvider>
+      <ToastProvider>
+        <CartProvider>
+          <CartDrawerProvider>
+            <OrderProvider>
+              <PincodeProvider>
+                <FavoriteProvider>
+                  <ProfileProvider>
+                    <AppContent />
+                  </ProfileProvider>
+                </FavoriteProvider>
+              </PincodeProvider>
+            </OrderProvider>
+          </CartDrawerProvider>
+        </CartProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

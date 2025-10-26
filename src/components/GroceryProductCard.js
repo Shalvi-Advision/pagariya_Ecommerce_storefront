@@ -5,12 +5,13 @@ import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 
 const GroceryProductCard = ({ product, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedWeight, setSelectedWeight] = useState(product.selectedWeight || product.weightOptions[0]);
+  const safeWeightOptions = product?.weightOptions || [];
+  const [selectedWeight, setSelectedWeight] = useState(product?.selectedWeight || safeWeightOptions[0] || '1 kg');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // Extract product data
+  // Extract product data with safe defaults
   const {
     id,
     name,
@@ -18,13 +19,30 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
     brand,
     mrp,
     price,
+    our_price,
     discount,
+    discount_percentage,
     weightOptions,
     image,
     image_url,
     pcode_img,
-    p_code: pcode
-  } = product;
+    p_code: pcode,
+    product_name,
+    product_mrp,
+    package_size,
+    package_unit
+  } = product || {};
+
+  // Use safe values for display
+  const displayName = name || product_name || 'Product';
+  const displayPrice = price || our_price || 0;
+  const displayMrp = mrp || product_mrp || 0;
+  const displayDiscount = discount || discount_percentage || 0;
+  const displayImage = image_url || pcode_img || image || '/images/logo.jpg';
+  const displayPcode = pcode || id || 'unknown';
+
+  // Create weight options if not provided
+  const weightOptionsList = weightOptions || (package_size && package_unit ? [`${package_size} ${package_unit}`] : ['1 unit']);
 
   // Debug logging for image fields
   console.log('🖼️ GroceryProductCard product data:', product);
@@ -73,16 +91,16 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
       {/* Image Container */}
       <div className="relative bg-gradient-to-br from-orange-50 to-orange-100 h-40 flex items-center justify-center p-6 flex-shrink-0">
         <Link 
-          to={`/product/${pcode || id}`} 
+          to={`/product/${displayPcode}`} 
           className="block w-full h-full flex items-center justify-center"
           onClick={() => {
-            console.log('🖼️ GroceryProductCard Product Image clicked - PCode:', pcode || 'N/A', 'Product ID:', id, 'Product Name:', name);
+            console.log('🖼️ GroceryProductCard Product Image clicked - PCode:', displayPcode, 'Product Name:', displayName);
           }}
         >
           {!imageError ? (
             <img
-              src={image_url || pcode_img || image || '/images/logo.jpg'}
-              alt={name}
+              src={displayImage}
+              alt={displayName}
               className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'
               }`}
@@ -130,40 +148,44 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
         <h3 
           className="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2 cursor-pointer hover:text-green-600 transition-colors"
           onClick={() => {
-            console.log('🔗 GroceryProductCard Product Name clicked - PCode:', pcode || 'N/A', 'Product ID:', id, 'Product Name:', name);
+            console.log('🔗 GroceryProductCard Product Name clicked - PCode:', displayPcode, 'Product Name:', displayName);
             // Navigate to product details with required parameters
-            window.location.href = `/product/${pcode || id}?dept_id=${product.dept_id || '2'}&category_id=${product.category_id || '72'}&sub_category_id=${product.sub_category_id || '391'}`;
+            window.location.href = `/product/${displayPcode}?dept_id=${product.dept_id || '2'}&category_id=${product.category_id || '72'}&sub_category_id=${product.sub_category_id || '391'}`;
           }}
         >
-          {name}
+          {displayName}
         </h3>
 
         {/* Pricing */}
         <div className="mb-3">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg font-bold text-gray-900">₹ {price}</span>
-            <span className="text-sm text-gray-500 line-through">₹ {mrp}</span>
-            <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-              ₹ {discount} OFF
-            </div>
+            <span className="text-lg font-bold text-gray-900">₹ {displayPrice}</span>
+            <span className="text-sm text-gray-500 line-through">₹ {displayMrp}</span>
+            {displayDiscount > 0 && (
+              <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                ₹ {displayDiscount} OFF
+              </div>
+            )}
           </div>
           <p className="text-xs text-gray-500">(Inclusive of all taxes)</p>
         </div>
 
         {/* Weight Selector */}
-        <div className="mb-4">
-          <select
-            value={selectedWeight}
-            onChange={(e) => setSelectedWeight(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            {weightOptions.map((weight, index) => (
-              <option key={index} value={weight}>
-                {weight} ({getPricePerUnit(weight)})
-              </option>
-            ))}
-          </select>
-        </div>
+        {weightOptionsList.length > 0 && (
+          <div className="mb-4">
+            <select
+              value={selectedWeight}
+              onChange={(e) => setSelectedWeight(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              {weightOptionsList.map((weight, index) => (
+                <option key={index} value={weight}>
+                  {weight}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 mt-auto">

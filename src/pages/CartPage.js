@@ -1,17 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import cartService from '../services/cartService';
 import Button from '../components/Button';
 import {
   TrashIcon,
   MinusIcon,
   PlusIcon,
   InformationCircleIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  ArrowPathIcon,
+  CloudArrowUpIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 
 const CartPage = () => {
-  const { items, totalItems, totalPrice, removeItem, updateQuantity, clearCart } = useCart();
+  const { 
+    items, 
+    totalItems, 
+    totalPrice, 
+    removeItem, 
+    updateQuantity, 
+    clearCart,
+    loading,
+    syncing,
+    syncError,
+    lastSynced,
+    validationResult,
+    validateCart,
+    syncCart,
+    isAuthenticated,
+    userMobile
+  } = useCart();
+  const { showSuccess, showError, showInfo } = useToast();
   const navigate = useNavigate();
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [processingCheckout, setProcessingCheckout] = useState(false);
 
   // Calculate savings (assuming 20% discount for demo purposes)
   const calculateSavings = (price) => {
@@ -29,10 +57,87 @@ const CartPage = () => {
 
   const handleRemoveItem = (itemId) => {
     removeItem(itemId);
+    showSuccess('Item removed from cart');
   };
 
-  const handleRemoveAll = () => {
-    clearCart();
+  const handleRemoveAll = async () => {
+    try {
+      await clearCart();
+      setShowClearModal(false);
+      showSuccess('Cart cleared successfully');
+    } catch (error) {
+      showError('Failed to clear cart');
+    }
+  };
+
+  const handleValidateCart = async () => {
+    setValidating(true);
+    try {
+      const result = await validateCart();
+      if (result.success) {
+        showSuccess('Cart validation successful');
+      } else {
+        showError(result.message || 'Cart validation failed');
+      }
+    } catch (error) {
+      showError('Failed to validate cart');
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handleSyncCart = async () => {
+    try {
+      await syncCart();
+      showSuccess('Cart synced successfully');
+    } catch (error) {
+      showError('Failed to sync cart');
+    }
+  };
+
+  const handleProceedToCheckout = async () => {
+    setProcessingCheckout(true);
+    try {
+      // Step 1: Validate cart
+      const validateResponse = await cartService.validateCart();
+      
+      if (!validateResponse.success) {
+        showError(validateResponse.message || 'Cart validation failed');
+        setProcessingCheckout(false);
+        return;
+      }
+
+      // Step 2: Save cart to database
+      const saveResponse = await cartService.saveCart(items);
+      
+      if (!saveResponse.success) {
+        showError(saveResponse.message || 'Failed to save cart');
+        setProcessingCheckout(false);
+        return;
+      }
+
+      // Step 3: Navigate to checkout
+      navigate('/checkout');
+      
+    } catch (error) {
+      console.error('Error processing checkout:', error);
+      showError(error.message || 'Failed to process checkout');
+    } finally {
+      setProcessingCheckout(false);
+    }
+  };
+
+  const formatLastSynced = (timestamp) => {
+    if (!timestamp) return 'Never';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hour${Math.floor(diffMins / 60) > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
   };
 
   if (items.length === 0) {
@@ -68,12 +173,14 @@ const CartPage = () => {
             <div className="lg:col-span-2">
               {/* Header */}
               <div className="mb-4 sm:mb-6">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  My Cart
-                  <span className="text-base sm:text-lg font-normal text-gray-500 ml-2">
-                    ({totalItems} item{totalItems !== 1 ? 's' : ''})
-                  </span>
-                </h1>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    My Cart
+                    <span className="text-base sm:text-lg font-normal text-gray-500 ml-2">
+                      ({totalItems} item{totalItems !== 1 ? 's' : ''})
+                    </span>
+                  </h1>
+                </div>
               </div>
 
               {/* Column Headers - Hidden on mobile */}
@@ -235,15 +342,18 @@ const CartPage = () => {
                   })}
                 </div>
 
-                {/* Remove All */}
+                {/* Remove All and Action Buttons */}
                 <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-200">
-                  <button
-                    onClick={handleRemoveAll}
-                    className="flex items-center gap-2 text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                    <span className="text-xs sm:text-sm font-medium">Remove all</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <button
+                      onClick={() => setShowClearModal(true)}
+                      className="flex items-center gap-2 text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                      <span className="text-xs sm:text-sm font-medium">Remove all</span>
+                    </button>
+                    
+                  </div>
                 </div>
               </div>
             </div>
@@ -278,17 +388,65 @@ const CartPage = () => {
 
                 {/* Checkout Button */}
                 <button
-                  onClick={() => navigate('/checkout')}
-                  className="w-full mt-4 sm:mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg transition-colors text-sm sm:text-base"
+                  onClick={handleProceedToCheckout}
+                  disabled={processingCheckout}
+                  className="w-full mt-4 sm:mt-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg transition-colors text-sm sm:text-base flex items-center justify-center gap-2"
                 >
-                  <span className="hidden sm:inline">PROCEED TO CHECKOUT</span>
-                  <span className="sm:hidden">CHECKOUT</span>
+                  {processingCheckout ? (
+                    <>
+                      <ArrowPathIcon className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">PROCEED TO CHECKOUT</span>
+                      <span className="sm:hidden">CHECKOUT</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Clear Cart Confirmation Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <ExclamationTriangleIcon className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Clear Cart</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to remove all items from your cart? This will permanently delete all {totalItems} item{totalItems !== 1 ? 's' : ''} from your cart.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowClearModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRemoveAll}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+                >
+                  Clear Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ShoppingCartIcon, MinusIcon, PlusIcon, XMarkIcon, HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { useFavorite } from '../context/FavoriteContext';
+import { useToast } from '../context/ToastContext';
+import { createCartItemFromProduct } from '../utils/cartUtils';
 
 // Utility function to safely render values (with fallbacks)
 const safeValue = (value, defaultValue = '') => {
@@ -15,7 +17,9 @@ const ProductCard = ({ product, onAddToCart }) => {
   const [showQuantitySelector, setShowQuantitySelector] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorite();
+  const [addingToCart, setAddingToCart] = useState(false);
+  const { addToFavorites, removeFromFavorites, isFavorite, toggleFavorite } = useFavorite();
+  const { showError } = useToast();
 
   // Debug: Log the raw product data
   console.log('🔍 ProductCard received product data:', product);
@@ -74,48 +78,47 @@ const ProductCard = ({ product, onAddToCart }) => {
     ? Math.round((safeMrp * safeDiscountPercentage) / 100)
     : Math.round(safeMrp - safePrice);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     // Debug logging for pcode
     console.log('🛒 ProductCard Add to Cart clicked - PCode:', pcode || 'N/A', 'Product ID:', safeId, 'Product Name:', safeName);
     
     if (safeStoreQuantity > 0 && quantity <= safeMaxQuantity) {
-      // Create product object for cart
-      const productForCart = {
-        id: safeId,
-        title: safeName,
-        price: safePrice,
-        image: safeImage,
-        brand: safeBrandName,
-        packageSize: `${safePackageSize} ${safePackageUnit}`,
-        mrp: safeMrp,
-        discountPercentage: safeDiscountPercentage
-      };
+      setAddingToCart(true);
       
-      // Call the parent's onAddToCart function with the product and quantity
-      onAddToCart(productForCart, quantity);
-      
-      // Show quantity selector for further adjustments
-      setShowQuantitySelector(true);
+      try {
+        // Create cart item with proper structure using utility function
+        const cartItem = createCartItemFromProduct(product, quantity);
+        
+        // Call the parent's onAddToCart function with the product and quantity
+        await onAddToCart(cartItem, quantity);
+        
+        // Show quantity selector for further adjustments
+        setShowQuantitySelector(true);
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+        showError('Failed to add item to cart');
+      } finally {
+        setAddingToCart(false);
+      }
+    } else if (safeStoreQuantity === 0) {
+      showError('This product is out of stock');
+    } else if (quantity > safeMaxQuantity) {
+      showError(`Maximum quantity allowed is ${safeMaxQuantity}`);
     }
   };
 
-  const handleQuantityChange = (newQuantity) => {
+  const handleQuantityChange = async (newQuantity) => {
     if (newQuantity >= 1 && newQuantity <= safeMaxQuantity) {
       setQuantity(newQuantity);
       
-      // Update cart with new quantity
-      const productForCart = {
-        id: safeId,
-        title: safeName,
-        price: safePrice,
-        image: safeImage,
-        brand: safeBrandName,
-        packageSize: `${safePackageSize} ${safePackageUnit}`,
-        mrp: safeMrp,
-        discountPercentage: safeDiscountPercentage
-      };
-      
-      onAddToCart(productForCart, newQuantity);
+      try {
+        // Update cart with new quantity
+        const cartItem = createCartItemFromProduct(product, newQuantity);
+        await onAddToCart(cartItem, newQuantity);
+      } catch (error) {
+        console.error('Error updating cart quantity:', error);
+        showError('Failed to update quantity');
+      }
     }
   };
 
@@ -148,24 +151,27 @@ const ProductCard = ({ product, onAddToCart }) => {
         <button
           onClick={(e) => {
             e.preventDefault();
-            if (isFavorite(safeId)) {
-              removeFromFavorites(safeId);
-            } else {
-              addToFavorites({
-                id: safeId,
-                name: safeName,
-                price: safePrice,
-                image: safeImage,
-                brand: safeBrandName,
-                packageSize: `${safePackageSize} ${safePackageUnit}`,
-                mrp: safeMrp,
-                discountPercentage: safeDiscountPercentage
-              });
-            }
+            e.stopPropagation();
+            toggleFavorite({
+              ...product,
+              p_code: safePcode,
+              _id: safeId,
+              product_name: safeName,
+              our_price: safePrice,
+              pcode_img: safeImage,
+              image_url: safeImage,
+              brand_name: safeBrandName,
+              package_size: safePackageSize,
+              package_unit: safePackageUnit,
+              product_mrp: safeMrp,
+              discount_percentage: safeDiscountPercentage,
+              store_quantity: safeStoreQuantity,
+              max_quantity_allowed: safeMaxQuantity
+            });
           }}
           className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 p-1.5 sm:p-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-110"
         >
-          {isFavorite(safeId) ? (
+          {isFavorite(safePcode) ? (
             <HeartSolid className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
           ) : (
             <HeartOutline className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-red-500 transition-colors duration-200" />
@@ -316,16 +322,26 @@ const ProductCard = ({ product, onAddToCart }) => {
             {!showQuantitySelector ? (
               <button
                 onClick={handleAddToCart}
-                disabled={safeStoreQuantity === 0}
+                disabled={safeStoreQuantity === 0 || addingToCart}
                 className={`w-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 shadow-md ${
-                  safeStoreQuantity > 0
+                  safeStoreQuantity > 0 && !addingToCart
                     ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white hover:shadow-lg transform hover:scale-105'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                <ShoppingCartIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">{safeStoreQuantity > 0 ? 'ADD TO CART' : 'OUT OF STOCK'}</span>
-                <span className="sm:hidden">{safeStoreQuantity > 0 ? 'ADD' : 'OUT'}</span>
+                {addingToCart ? (
+                  <>
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="hidden sm:inline">ADDING...</span>
+                    <span className="sm:hidden">ADDING...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCartIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden sm:inline">{safeStoreQuantity > 0 ? 'ADD TO CART' : 'OUT OF STOCK'}</span>
+                    <span className="sm:hidden">{safeStoreQuantity > 0 ? 'ADD' : 'OUT'}</span>
+                  </>
+                )}
               </button>
             ) : (
               <div className="flex items-center gap-2 sm:gap-3">

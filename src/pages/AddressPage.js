@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AccountSidebar from '../components/AccountSidebar';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
+import { usePincode } from '../context/PincodeContext';
 import { 
   getAddresses, 
   addAddress, 
@@ -13,6 +14,7 @@ import {
 } from '../api/addressApi';
 
 const AddressPage = () => {
+  const { getCurrentPincode, confirmedLocation } = usePincode();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -35,6 +37,17 @@ const AddressPage = () => {
   useEffect(() => {
     loadAddresses();
   }, []);
+
+  // Initialize pincode from context when confirmed location changes
+  useEffect(() => {
+    const currentPincode = getCurrentPincode();
+    if (currentPincode) {
+      setFormData(prev => ({
+        ...prev,
+        pinCode: currentPincode
+      }));
+    }
+  }, [confirmedLocation, getCurrentPincode]);
 
   // Auto-hide success message after 3 seconds
   useEffect(() => {
@@ -89,8 +102,9 @@ const AddressPage = () => {
     }
     if (!formData.addressLine1.trim()) newErrors.addressLine1 = 'Address is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
+    // PIN code validation is not needed as it's automatically set from context
     if (!formData.pinCode.trim()) newErrors.pinCode = 'PIN code is required';
-    if (!/^\d{6}$/.test(formData.pinCode.replace(/\s/g, ''))) newErrors.pinCode = 'PIN code must be 6 digits';
+    if (formData.pinCode && !/^\d{6}$/.test(formData.pinCode.replace(/\s/g, ''))) newErrors.pinCode = 'PIN code must be 6 digits';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -98,13 +112,14 @@ const AddressPage = () => {
 
   const handleAddAddress = () => {
     setEditingAddress(null);
+    const currentPincode = getCurrentPincode();
     setFormData({
       name: '',
       email: '',
       addressLine1: '',
       addressLine2: '',
       city: '',
-      pinCode: '',
+      pinCode: currentPincode || '',
       isDefault: false
     });
     setErrors({});
@@ -115,13 +130,14 @@ const AddressPage = () => {
   const handleEditAddress = (address) => {
     // Store the original address data to preserve all IDs
     setEditingAddress(address);
+    const currentPincode = getCurrentPincode();
     setFormData({
       name: address.name,
       email: address.email || '',
       addressLine1: address.addressLine1,
       addressLine2: address.addressLine2 || '',
       city: address.city,
-      pinCode: address.pinCode,
+      pinCode: currentPincode || address.pinCode, // Use current pincode from context, fallback to address pincode
       isDefault: address.isDefault
     });
     setErrors({});
@@ -235,13 +251,14 @@ const AddressPage = () => {
       // Close modal and reset form
       setShowAddModal(false);
       setEditingAddress(null);
+      const currentPincode = getCurrentPincode();
       setFormData({
         name: '',
         email: '',
         addressLine1: '',
         addressLine2: '',
         city: '',
-        pinCode: '',
+        pinCode: currentPincode || '',
         isDefault: false
       });
     } catch (error) {
@@ -507,19 +524,20 @@ const AddressPage = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     PIN Code <span className="text-red-500">*</span>
+                    <span className="text-xs text-gray-500 ml-2">(Fixed from selected location)</span>
                   </label>
                   <input
                     type="text"
                     name="pinCode"
                     value={formData.pinCode}
-                    onChange={handleInputChange}
+                    readOnly
                     maxLength={6}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                      errors.pinCode ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
                     placeholder="6-digit PIN"
                   />
-                  {errors.pinCode && <p className="text-red-500 text-sm mt-1">{errors.pinCode}</p>}
+                  <p className="text-xs text-gray-500 mt-1">
+                    PIN code is automatically set from your selected location
+                  </p>
                 </div>
               </div>
 
