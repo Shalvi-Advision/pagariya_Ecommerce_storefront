@@ -103,7 +103,7 @@ const SeasonalOfferBanner = () => {
         onClick={handleSeasonalBannerClick}
       >
         <img
-          src="/images/seasonal banner.png"
+          src={`${process.env.PUBLIC_URL}/images/seasonal banner.png`}
           alt="Seasonal Offer - Prepare for Diwali"
           className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
           style={{
@@ -112,7 +112,8 @@ const SeasonalOfferBanner = () => {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            objectPosition: 'center'
+            objectPosition: 'center center',
+            display: 'block'
           }}
           onLoad={() => {
             console.log('🖼️ Seasonal banner image loaded successfully');

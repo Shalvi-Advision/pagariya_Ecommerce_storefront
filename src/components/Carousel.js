@@ -44,12 +44,19 @@ const Carousel = () => {
   const loadLocalBanners = useCallback(() => {
     console.log('🔄 Loading HeroCarouselBanners.jpg');
     setLoading(true);
-    // Local banner image that is bundled with the app
+    // Local banner images that are bundled with the app
     const localBanners = [
       {
         _id: 'local_1',
         redirect_link: '#',
         banner_img: process.env.PUBLIC_URL + '/images/HeroCarouselBanners.jpg',
+        is_active: true,
+        
+      },
+      {
+        _id: 'local_2',
+        redirect_link: '#',
+        banner_img: process.env.PUBLIC_URL + '/images/2_HeroCarouselBanners-copy.jpg',
         is_active: true,
         
       }

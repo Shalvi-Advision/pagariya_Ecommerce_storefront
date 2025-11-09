@@ -8,7 +8,7 @@ const GSTBanner = () => {
 
   return (
     <div 
-      className="relative w-full h-[120px] sm:h-[150px] lg:h-[180px] xl:h-[200px] overflow-hidden rounded-lg cursor-pointer group"
+      className="relative w-full h-[180px] sm:h-[220px] lg:h-[260px] xl:h-[300px] overflow-hidden rounded-lg cursor-pointer group"
       onClick={handleBannerClick}
       style={{ 
         maxWidth: '100%',
@@ -18,8 +18,8 @@ const GSTBanner = () => {
       {/* GST Banner Image */}
       <div className="w-full h-full relative overflow-hidden">
         <img
-          src="/images/gst banner.png"
-          alt="GST Rate Benefits - Save Extra with new GST rates"
+          src={`${process.env.PUBLIC_URL}/images/seasonal_banner.jpg`}
+          alt="Seasonal Banner"
           className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
           style={{
             maxWidth: '100%',
@@ -27,7 +27,8 @@ const GSTBanner = () => {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            objectPosition: 'center'
+            objectPosition: 'center center',
+            display: 'block'
           }}
           onLoad={() => {
             console.log('🖼️ GST Banner image loaded successfully');
