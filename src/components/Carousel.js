@@ -20,9 +20,9 @@ const Carousel = () => {
   // Image loading state (simplified)
   const [imageErrors, setImageErrors] = useState(new Set());
 
-  // Fetch banners on component mount
+  // Fetch banners on component mount - Always use local HeroCarouselBanners.jpg
   useEffect(() => {
-    loadBanners();
+    loadLocalBanners();
   }, []);
 
   // Auto-advance slides every 4 seconds (increased for better UX)
@@ -40,43 +40,25 @@ const Carousel = () => {
     }
   }, [banners.length]);
 
-  // Load banners from API with fallback for CORS issues
+  // Load local HeroCarouselBanners.jpg image
   const loadLocalBanners = useCallback(() => {
-    console.log('🔄 Loading local banner images as fallback');
-    // Local banner images that are bundled with the app
+    console.log('🔄 Loading HeroCarouselBanners.jpg');
+    setLoading(true);
+    // Local banner image that is bundled with the app
     const localBanners = [
       {
         _id: 'local_1',
         redirect_link: '#',
-        banner_img: process.env.PUBLIC_URL + '/images/banner1.jpg',
+        banner_img: process.env.PUBLIC_URL + '/images/HeroCarouselBanners.jpg',
         is_active: true,
-        title: 'Welcome to Our Store',
-        description: 'Discover amazing products',
-        alt_text: 'Welcome banner'
-      },
-      {
-        _id: 'local_2',
-        redirect_link: '#',
-        banner_img: process.env.PUBLIC_URL + '/images/banner2.jpg',
-        is_active: true,
-        title: 'Special Offers',
-        description: 'Limited time deals',
-        alt_text: 'Special offers banner'
-      },
-      {
-        _id: 'local_3',
-        redirect_link: '#',
-        banner_img: process.env.PUBLIC_URL + '/images/banner3.jpg',
-        is_active: true,
-        title: 'New Arrivals',
-        description: 'Fresh products daily',
-        alt_text: 'New arrivals banner'
+        
       }
     ];
     
     setBanners(localBanners);
-    setIsOffline(true);
-    setIsFallback(true);
+    setIsOffline(false);
+    setIsFallback(false);
+    setLoading(false);
   }, []);
 
   // Load banners from API
@@ -337,7 +319,8 @@ const Carousel = () => {
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  objectPosition: 'center'
+                  objectPosition: 'center center',
+                  display: 'block'
                 }}
                 onLoad={() => {
                   console.log('🖼️ Image loaded:', banner._id, banner.banner_img);

@@ -41,7 +41,7 @@ const CategoryBanner = () => {
             id: category.id || category._id || `cat_${index + 1}`,
             name: category.name || category.category_name || category.title || `Category ${index + 1}`,
             image: imageUrl,
-            color: 'bg-blue-600'
+            color: 'bg-green-100'
           };
           
           console.log('🔍 Mapped category for CategoryBanner:', mappedCategory);
@@ -63,19 +63,19 @@ const CategoryBanner = () => {
           id: 1,
           name: 'STORAGE & ORGANISERS',
           image: null,
-          color: 'bg-blue-600'
+          color: 'bg-green-300'
         },
         {
           id: 2,
           name: 'COOKWARE',
           image: null,
-          color: 'bg-blue-600'
+          color: 'bg-green-300'
         },
         {
           id: 3,
           name: 'SERVEWARE',
           image: null,
-          color: 'bg-blue-600'
+          color: 'bg-green-300'
         }
       ];
       setCategories(fallbackCategories);
@@ -85,104 +85,78 @@ const CategoryBanner = () => {
     }
   };
 
-  const handleOfferClick = () => {
-    console.log('Offer section clicked');
-  };
-
   const handleCategoryClick = (category) => {
     console.log('Category clicked:', category);
   };
 
   return (
-    <div className="relative w-full h-[180px] sm:h-[220px] lg:h-[260px] xl:h-[300px] overflow-hidden rounded-lg flex">
-      {/* Left Section - 40% - Offer Name */}
+    <div className="relative w-full h-[180px] sm:h-[220px] lg:h-[260px] xl:h-[300px] overflow-hidden rounded-lg">
+      {/* Background Image */}
       <div 
-        className="w-2/5 h-full bg-blue-600 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors duration-300"
-        onClick={handleOfferClick}
-      >
-        <div className="text-center text-white">
-          <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold leading-tight">
-            THE MEGA
-          </h2>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold leading-tight mb-4">
-            KITCHEN FEST
-          </h2>
-          <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-semibold text-sm sm:text-base transition-colors duration-300 shadow-lg">
-            SHOP NOW
-          </button>
-        </div>
-      </div>
-
-      {/* Right Section - 50% - Kitchen Background with Category Cards */}
-      <div className="w-3/5 h-full relative overflow-hidden">
-        {/* Kitchen Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(/images/kitchen.jpg)',
-            filter: 'blur(1px)'
-          }}
-        />
-        
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black bg-opacity-20" />
-        
-        {/* Category Cards Overlay */}
-        <div className="relative h-full flex items-center justify-center px-4">
-          <div className="flex gap-3 sm:gap-4 lg:gap-6 w-full max-w-lg">
-            {loading ? (
-              // Loading state
-              Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="flex-1 bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
-                  <div className="h-20 sm:h-24 lg:h-28 xl:h-32 bg-gray-200"></div>
-                  <div className="bg-gray-300 px-2 py-2 sm:py-3">
-                    <div className="h-4 bg-gray-400 rounded"></div>
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${process.env.PUBLIC_URL}/images/3Category-Banners.jpg)`,
+        }}
+      />
+      
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-10" />
+      
+      {/* Category Cards Overlay - Positioned on Right Side */}
+      <div className="relative h-full flex items-center justify-end px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="flex gap-4 sm:gap-5 lg:gap-6 xl:gap-8 mr-2 sm:mr-4 lg:mr-6">
+          {loading ? (
+            // Loading state
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="w-24 sm:w-28 lg:w-32 xl:w-36 bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+                <div className="h-20 sm:h-24 lg:h-28 xl:h-32 bg-gray-200"></div>
+                <div className="bg-gray-300 px-2 py-2 sm:py-3">
+                  <div className="h-4 bg-gray-400 rounded"></div>
+                </div>
+              </div>
+            ))
+          ) : (
+            categories.map((category, index) => (
+              <div
+                key={category.id}
+                className="w-24 sm:w-28 lg:w-32 xl:w-36 bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-300"
+                onClick={() => handleCategoryClick(category)}
+              >
+                {/* Product Image Area */}
+                <div className="h-20 sm:h-24 lg:h-28 xl:h-32 bg-gray-100 flex items-center justify-center relative">
+                  {category.image ? (
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => {
+                        console.log('✅ CategoryBanner image loaded:', category.name, category.image);
+                      }}
+                      onError={(e) => {
+                        console.log('❌ CategoryBanner image failed to load:', category.name, category.image);
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 bg-gray-300 rounded-full flex items-center justify-center ${category.image ? 'hidden' : 'flex'}`}
+                  >
+                    <span className="text-gray-600 text-sm sm:text-base font-bold">
+                      {index + 1}
+                    </span>
                   </div>
                 </div>
-              ))
-            ) : (
-              categories.map((category, index) => (
-                <div
-                  key={category.id}
-                  className="flex-1 bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-300"
-                  onClick={() => handleCategoryClick(category)}
-                >
-                  {/* Product Image Area */}
-                  <div className="h-20 sm:h-24 lg:h-28 xl:h-32 bg-gray-100 flex items-center justify-center relative">
-                    {category.image ? (
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-full h-full object-cover"
-                        onLoad={() => {
-                          console.log('✅ CategoryBanner image loaded:', category.name, category.image);
-                        }}
-                        onError={(e) => {
-                          console.log('❌ CategoryBanner image failed to load:', category.name, category.image);
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div 
-                      className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 bg-gray-300 rounded-full flex items-center justify-center ${category.image ? 'hidden' : 'flex'}`}
-                    >
-                      <span className="text-gray-600 text-sm sm:text-base font-bold">
-                        {index + 1}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Category Name */}
-                  <div className={`${category.color} px-2 py-2 sm:py-3`}>
-                    <p className="text-white text-sm sm:text-base font-semibold text-center leading-tight">
-                      {category.name}
-                    </p>
-                  </div>
+                
+                {/* Category Name */}
+                <div className={`${category.color} px-2 py-2 sm:py-3`}>
+                  <p className="text-gray-800 text-sm sm:text-base font-semibold text-center leading-tight">
+                    {category.name}
+                  </p>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -265,8 +265,23 @@ const Header = () => {
         <div className="flex items-center justify-between py-2 sm:py-3 gap-2 sm:gap-4">
           {/* Left: Logo + Location */}
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-shrink-0">
-            <Link to="/" className="text-lg sm:text-xl lg:text-2xl font-extrabold text-primary-600 tracking-tight">
-              E-Shop
+            <Link to="/" className="flex items-center">
+              <img
+                src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg`}
+                alt="Pagariya Mart"
+                className="h-10 sm:h-10 lg:h-14 w-auto object-contain"
+                style={{
+                  maxHeight: '50px',
+                  maxWidth: '250px',
+                  display: 'block'
+                }}
+                onLoad={() => {
+                  console.log('🖼️ Main Logo loaded successfully');
+                }}
+                onError={() => {
+                  console.log('❌ Main Logo failed to load');
+                }}
+              />
             </Link>
             {/* Desktop Location Button */}
             <div className="hidden lg:block">

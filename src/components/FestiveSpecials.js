@@ -97,6 +97,32 @@ const FestiveSpecials = () => {
 
   return (
     <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
+      {/* Promotional Banner at the top */}
+      <div className="relative w-full mb-4 sm:mb-6 lg:mb-8">
+        <div className="relative w-full h-[180px] sm:h-[220px] lg:h-[260px] xl:h-[300px] overflow-hidden rounded-lg">
+          <img
+            src={`${process.env.PUBLIC_URL}/images/2Promotional_Banners.jpg`}
+            alt="Divine Essentials - Promotional Banner"
+            className="w-full h-full object-cover object-center"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center center',
+              display: 'block'
+            }}
+            onLoad={() => {
+              console.log('🖼️ Promotional Banner image loaded successfully');
+            }}
+            onError={() => {
+              console.log('❌ Promotional Banner image failed to load');
+            }}
+          />
+        </div>
+      </div>
+
       {/* Vibrant Festive Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-amber-50/50 to-yellow-50/50"></div>
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-br from-orange-400/20 to-amber-400/20 rounded-full blur-3xl -translate-y-1/4"></div>
