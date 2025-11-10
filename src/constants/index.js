@@ -55,7 +55,7 @@ export const APP_CONSTANTS = {
   DEFAULT_LANGUAGE: 'en',
 
   // API constants
-  API_BASE_URL: process.env.REACT_APP_API_URL || "https://ecommerceapi-web.onrender.com/api",
+  API_BASE_URL: process.env.REACT_APP_API_URL || "https://ecomretail.shalviadvision.com/api",
   PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE || 'PROJ001',
   DEFAULT_STORE_CODE: process.env.REACT_APP_DEFAULT_STORE_CODE || 'STORE001',
   IMAGE_BASE_URL: process.env.REACT_APP_IMAGE_URL || 'http://localhost:5000/uploads',
