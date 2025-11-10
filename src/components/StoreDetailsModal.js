@@ -107,9 +107,9 @@ const StoreDetailsModal = ({
                     <div className="absolute -top-1 left-3 w-2 h-2 bg-green-300 rounded"></div>
                     <div className="absolute -top-1 left-5 w-2 h-2 bg-blue-300 rounded"></div>
                     <div className="absolute -top-1 left-7 w-2 h-2 bg-red-300 rounded"></div>
-                    {/* D-Mart text */}
+                    {/* Pagariya text */}
                     <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-teal-600">
-                      D-Mart
+                      Pagariya
                     </div>
                   </div>
                 </div>

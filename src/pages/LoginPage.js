@@ -95,11 +95,7 @@ const LoginPage = () => {
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 bg-white px-6 py-3 rounded-2xl shadow-lg">
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-emerald-600">E</span>
-                  <div className="flex flex-col items-start">
-                    <span className="text-xl font-bold text-gray-800 leading-none">Shop</span>
-                    <span className="text-xs font-medium text-rose-500 leading-none">Ready</span>
-                  </div>
+                  <span className="text-xl font-bold text-emerald-600">Pagariya Mart</span>
                 </div>
               </div>
             </div>
@@ -160,9 +156,8 @@ const LoginPage = () => {
                 {/* Bag Handle */}
                 <path d="M 270 360 Q 270 345 292.5 345 Q 315 345 315 360" fill="none" stroke="#14b8a6" strokeWidth="3"/>
                 
-                {/* D-Mart Logo on Bag */}
-                <text x="268" y="400" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" fill="#10b981">E</text>
-                <text x="285" y="400" fontFamily="Arial, sans-serif" fontSize="16" fontWeight="bold" fill="#0d9488">Shop</text>
+                {/* Pagariya Logo on Bag */}
+                <text x="250" y="400" fontFamily="Arial, sans-serif" fontSize="18" fontWeight="bold" fill="#10b981">Pagariya</text>
                 
                 {/* Vegetables in bag */}
                 <ellipse cx="280" cy="425" rx="10" ry="12" fill="#f97316"/>
@@ -195,11 +190,7 @@ const LoginPage = () => {
           <div className="lg:hidden flex justify-center mb-6">
             <div className="inline-flex items-center gap-2 bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-3 rounded-2xl shadow-sm">
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-emerald-600">E</span>
-                <div className="flex flex-col items-start">
-                  <span className="text-lg font-bold text-gray-800 leading-none">Shop</span>
-                  <span className="text-xs font-medium text-rose-500 leading-none">Ready</span>
-                </div>
+                <span className="text-lg font-bold text-emerald-600">Pagariya Mart</span>
               </div>
             </div>
           </div>

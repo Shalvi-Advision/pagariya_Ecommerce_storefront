@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Company Info */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="text-lg font-semibold mb-3 sm:mb-4">E-Shop</h3>
+            <h3 className="text-lg font-semibold mb-3 sm:mb-4">Pagariya Mart</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
               Your one-stop destination for quality products at great prices.
               Shop with confidence and enjoy fast, reliable delivery.
@@ -70,7 +70,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center">
           <p className="text-gray-400 text-xs sm:text-sm">
-            © 2024 E-Shop. All rights reserved.
+            © 2024 Pagariya Mart. All rights reserved.
           </p>
         </div>
       </div>

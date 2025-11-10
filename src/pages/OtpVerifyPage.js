@@ -171,7 +171,7 @@ const OtpVerifyPage = () => {
             </h3>
             <p className="text-lg text-gray-600">
               {isRegistration 
-                ? 'Just one more step to complete your D-Mart registration'
+                ? 'Just one more step to complete your Pagariya registration'
                 : 'Enter the verification code we sent to your mobile number'}
             </p>
           </div>

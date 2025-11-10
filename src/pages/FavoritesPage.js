@@ -251,11 +251,11 @@ const FavoritesPage = () => {
               <div className="p-3 border-t border-gray-100">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">DMart</span></p>
+                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">Pagariya</span></p>
                     <p className="text-xs text-gray-400 line-through">₹ {product.product_mrp}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">DMart</span></p>
+                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">Pagariya</span></p>
                     <p className="text-base font-bold text-gray-900">₹ {product.our_price}</p>
                   </div>
                 </div>

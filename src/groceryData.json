@@ -24,7 +24,7 @@
         "subcategories": []
       },
       {
-        "name": "DMart Grocery",
+        "name": "Pagariya Grocery",
         "count": 99,
         "subcategories": []
       },
@@ -47,9 +47,9 @@
     "products": [
       {
         "id": 1,
-        "name": "DMart Premia Chana Dal",
+        "name": "Pagariya Premia Chana Dal",
         "subcategory": "Chana Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 138,
         "price": 106,
         "discount": 32,
@@ -59,9 +59,9 @@
       },
       {
         "id": 2,
-        "name": "DMart Swaad Chana Dal",
+        "name": "Pagariya Swaad Chana Dal",
         "subcategory": "Chana Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 131,
         "price": 91,
         "discount": 40,
@@ -95,9 +95,9 @@
       },
       {
         "id": 5,
-        "name": "DMart Premia Moong Dal",
+        "name": "Pagariya Premia Moong Dal",
         "subcategory": "Moong Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 125,
         "price": 95,
         "discount": 30,
@@ -119,9 +119,9 @@
       },
       {
         "id": 7,
-        "name": "DMart Swaad Tur Dal",
+        "name": "Pagariya Swaad Tur Dal",
         "subcategory": "Tur Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 145,
         "price": 110,
         "discount": 35,
@@ -143,9 +143,9 @@
       },
       {
         "id": 9,
-        "name": "DMart Premia Urad Dal",
+        "name": "Pagariya Premia Urad Dal",
         "subcategory": "Urad Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 135,
         "price": 105,
         "discount": 30,
@@ -167,9 +167,9 @@
       },
       {
         "id": 11,
-        "name": "DMart Swaad Masoor Dal",
+        "name": "Pagariya Swaad Masoor Dal",
         "subcategory": "Masoor Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 120,
         "price": 90,
         "discount": 30,
@@ -191,9 +191,9 @@
       },
       {
         "id": 13,
-        "name": "DMart Premia Daliya",
+        "name": "Pagariya Premia Daliya",
         "subcategory": "Daliya",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 110,
         "price": 85,
         "discount": 25,
@@ -215,9 +215,9 @@
       },
       {
         "id": 15,
-        "name": "DMart Swaad Mix Dal",
+        "name": "Pagariya Swaad Mix Dal",
         "subcategory": "Mix Dal",
-        "brand": "DMart",
+        "brand": "Pagariya",
         "mrp": 150,
         "price": 115,
         "discount": 35,

@@ -362,8 +362,8 @@ A: Based on your purchase frequency and recency.
 
 ## 📞 Support
 
-Need assistance? Contact D-Mart support:
-- Email: support@dmart.com
+Need assistance? Contact Pagariya support:
+- Email: support@pagariya.com
 - Phone: 1800-XXX-XXXX
 - Chat: Available on website
 

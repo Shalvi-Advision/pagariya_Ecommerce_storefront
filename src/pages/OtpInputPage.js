@@ -148,7 +148,7 @@ const OtpInputPage = () => {
 
             {/* Message */}
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              {isRegistration ? 'Welcome to D-Mart!' : 'Secure Verification'}
+              {isRegistration ? 'Welcome to Pagariya!' : 'Secure Verification'}
             </h3>
             <p className="text-lg text-gray-600">
               {isRegistration 

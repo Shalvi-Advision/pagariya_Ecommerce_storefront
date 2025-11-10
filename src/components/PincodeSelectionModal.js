@@ -200,7 +200,7 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect, isRequired })
                 <div className="flex flex-col items-center">
                   <div className="w-6 h-4 bg-green-500 rounded-t"></div>
                   <div className="w-6 h-2 bg-gray-300 rounded-b"></div>
-                  <div className="text-xs text-gray-600 font-medium">D Mart</div>
+                  <div className="text-xs text-gray-600 font-medium">Pagariya</div>
                 </div>
                 <div className="w-2 h-4 bg-green-600 rounded-full"></div>
               </div>

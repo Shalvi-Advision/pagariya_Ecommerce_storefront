@@ -45,7 +45,7 @@ This shows all products from all categories.
 ### ⚠️ **Categories without Products:**
 - Pulses (0 products)
 - Dry Fruits (0 products)
-- DMart Grocery (0 products)
+- Pagariya Grocery (0 products)
 - Cooking Oil (0 products)
 - Ghee & Vanaspati (0 products)
 - Flours & Grains (0 products)

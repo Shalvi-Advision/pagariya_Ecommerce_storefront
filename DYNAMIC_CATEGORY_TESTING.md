@@ -97,19 +97,19 @@ REACT_APP_API_URL=https://your-api-domain.com/api
 - **Dals** (48 products) - Has subcategories
 - **Pulses** (67 products) - No subcategories
 - **Dry Fruits** (148 products) - No subcategories
-- **DMart Grocery** (99 products) - No subcategories
+- **Pagariya Grocery** (99 products) - No subcategories
 - **Cooking Oil** (98 products) - No subcategories
 - **Ghee & Vanaspati** (41 products) - No subcategories
 - **Flours & Grains** (84 products) - No subcategories
 
 ### Products Available:
-- **Chana Dal**: 4 products (DMart Premia, DMart Swaad, Tata Sampann, Tata Organic)
-- **Moong Dal**: 2 products (DMart Premia, Tata Sampann)
-- **Tur Dal**: 2 products (DMart Swaad, Tata Sampann)
-- **Urad Dal**: 2 products (DMart Premia, Tata Sampann)
-- **Masoor Dal**: 2 products (DMart Swaad, Tata Sampann)
-- **Daliya**: 2 products (DMart Premia, Tata Sampann)
-- **Mix Dal**: 2 products (DMart Swaad, Tata Sampann)
+- **Chana Dal**: 4 products (Pagariya Premia, Pagariya Swaad, Tata Sampann, Tata Organic)
+- **Moong Dal**: 2 products (Pagariya Premia, Tata Sampann)
+- **Tur Dal**: 2 products (Pagariya Swaad, Tata Sampann)
+- **Urad Dal**: 2 products (Pagariya Premia, Tata Sampann)
+- **Masoor Dal**: 2 products (Pagariya Swaad, Tata Sampann)
+- **Daliya**: 2 products (Pagariya Premia, Tata Sampann)
+- **Mix Dal**: 2 products (Pagariya Swaad, Tata Sampann)
 
 ## 🚀 Next Steps for Production
 

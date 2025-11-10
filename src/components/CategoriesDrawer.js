@@ -240,7 +240,7 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <div className="p-6 bg-gray-50">
-              {/* Departments Grid - DMart Style Layout */}
+              {/* Departments Grid - Pagariya Style Layout */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
                 {departments.map((department, index) => {
                   const departmentId = department.department_id;

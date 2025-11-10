@@ -85,9 +85,9 @@ The implementation uses `groceryData.json` with the following structure:
   "products": [
     {
       "id": 1,
-      "name": "DMart Premia Chana Dal",
+      "name": "Pagariya Premia Chana Dal",
       "subcategory": "Chana Dal",
-      "brand": "DMart",
+      "brand": "Pagariya",
       "mrp": 138,
       "price": 106,
       "discount": 32,

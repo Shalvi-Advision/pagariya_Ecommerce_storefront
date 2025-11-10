@@ -87,7 +87,7 @@ const RegisterPage = () => {
 
             {/* Message */}
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              Join E-SHOP!
+              Join Pagariya Mart!
             </h3>
             <p className="text-lg text-gray-600 mb-4">
               Create your account in seconds and start shopping for fresh groceries
@@ -148,7 +148,7 @@ const RegisterPage = () => {
           <div className="lg:hidden flex justify-center mb-6">
             <div className="inline-flex items-center gap-2 bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-3 rounded-2xl shadow-sm">
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-emerald-600">E-SHOP</span>
+                <span className="text-2xl font-bold text-emerald-600">Pagariya Mart</span>
               </div>
             </div>
           </div>
