@@ -740,39 +740,12 @@ const CategoryPage = () => {
                   <option value="">Category</option>
                 </select>
 
-                <select
-                  value={filters.material}
-                  onChange={(e) => handleFilterChange('material', e.target.value)}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all cursor-pointer appearance-none pr-8 bg-no-repeat bg-right"
-                  style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundSize: '1.25rem', backgroundPosition: 'right 0.5rem center'}}
-                >
-                  <option value="">Type</option>
-                  <option value="organic">Organic</option>
-                  <option value="regular">Regular</option>
-                </select>
+                
 
-                <select
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all cursor-pointer appearance-none pr-8 bg-no-repeat bg-right"
-                  style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundSize: '1.25rem', backgroundPosition: 'right 0.5rem center'}}
-                >
-                  <option value="">Properties</option>
-                </select>
 
-                <select
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all cursor-pointer appearance-none pr-8 bg-no-repeat bg-right"
-                  style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundSize: '1.25rem', backgroundPosition: 'right 0.5rem center'}}
-                >
-                  <option value="">Weight</option>
-                </select>
+               
 
-                <select
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all cursor-pointer appearance-none pr-8 bg-no-repeat bg-right"
-                  style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundSize: '1.25rem', backgroundPosition: 'right 0.5rem center'}}
-                >
-                  <option value="">Availability</option>
-                  <option value="in-stock">In Stock</option>
-                  <option value="out-of-stock">Out of Stock</option>
-                </select>
+                
               </div>
 
               {/* Sort By */}
@@ -869,11 +842,11 @@ const CategoryPage = () => {
                       <div className="p-3 border-t border-gray-100">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">Pagariya</span></p>
+                            <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400"></span></p>
                             <p className="text-xs text-gray-400 line-through">₹ {product.product_mrp}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">Pagariya</span></p>
+                            <p className="text-xs text-gray-500 mb-1">Selling Price <span className="text-gray-400"></span></p>
                             <p className="text-base font-bold text-gray-900">₹ {product.our_price}</p>
                           </div>
                         </div>
@@ -882,14 +855,11 @@ const CategoryPage = () => {
 
                         <h3 className="text-sm text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">{product.product_name}</h3>
 
-                        {/* Package Size Selector */}
+                        {/* Package Size Display */}
                         {product.package_size && (
-                          <select 
-                            className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mb-2 focus:outline-none focus:ring-1 focus:ring-green-500"
-                            onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking the select
-                          >
-                            <option>{product.package_size}</option>
-                          </select>
+                          <div className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mb-2 text-gray-700">
+                            {product.package_size} {product.package_unit || 'GM'}
+                          </div>
                         )}
 
                         {/* Add to Cart Button */}

@@ -239,9 +239,9 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
               </div>
             </div>
           ) : (
-            <div className="p-6 bg-gray-50">
-              {/* Departments Grid - Pagariya Style Layout */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+            <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white">
+              {/* Redesigned Departments Layout with Better Bifurcation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                 {departments.map((department, index) => {
                   const departmentId = department.department_id;
                   const departmentName = department.department_name;
@@ -255,46 +255,58 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
                   }
 
                   return (
-                    <div key={index} className="flex flex-col">
-                      {/* Department Icon & Name */}
-                      <div className="flex flex-col items-center mb-3">
-                        {/* Department Icon/Image */}
-                        <div className="w-16 h-16 mb-2 flex items-center justify-center">
-                          {department.image_link ? (
-                            <img
-                              src={departmentImage}
-                              alt={departmentName}
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                const iconElement = e.target.parentElement.querySelector('.fallback-icon');
-                                if (iconElement) iconElement.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`fallback-icon ${department.image_link ? 'hidden' : 'flex'} items-center justify-center`}
-                          >
-                            <span className="text-5xl">
-                              {getDepartmentIcon(departmentName)}
-                            </span>
+                    <div 
+                      key={index} 
+                      className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 overflow-hidden"
+                    >
+                      {/* Department Header Section */}
+                      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 px-4 py-4 border-b-2 border-emerald-200">
+                        <div className="flex items-center gap-3">
+                          {/* Department Icon/Image */}
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-200">
+                            {department.image_link ? (
+                              <img
+                                src={departmentImage}
+                                alt={departmentName}
+                                className="w-full h-full object-contain p-1"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  const iconElement = e.target.parentElement.querySelector('.fallback-icon');
+                                  if (iconElement) iconElement.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className={`fallback-icon ${department.image_link ? 'hidden' : 'flex'} items-center justify-center`}
+                            >
+                              <span className="text-3xl sm:text-4xl">
+                                {getDepartmentIcon(departmentName)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Department Name */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm sm:text-base font-bold text-gray-900 uppercase tracking-wide line-clamp-2">
+                              {departmentName}
+                            </h3>
+                            {departmentCategories.length > 0 && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {departmentCategories.length} {departmentCategories.length === 1 ? 'category' : 'categories'}
+                              </p>
+                            )}
                           </div>
                         </div>
-
-                        {/* Department Name */}
-                        <h3 className="text-sm font-bold text-gray-900 text-center uppercase tracking-wide">
-                          {departmentName}
-                        </h3>
                       </div>
 
-                      {/* Categories List */}
-                      <div className="space-y-1">
+                      {/* Categories List Section */}
+                      <div className="p-4">
                         {isLoadingCategories ? (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="flex items-center justify-center py-6">
+                            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                           </div>
                         ) : departmentCategories.length > 0 ? (
-                          <>
+                          <div className="space-y-1.5">
                             {/* Filter out duplicate categories */}
                             {departmentCategories
                               .filter((category, index, self) => {
@@ -307,16 +319,17 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
                                 <button
                                   key={category.idcategory_master || category.category_name}
                                   onClick={() => handleCategoryClick(category.category_name, departmentName, category)}
-                                  className="block w-full text-left text-sm text-gray-700 hover:text-green-600 hover:underline transition-colors py-0.5"
+                                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 flex items-center gap-2 group"
                                 >
-                                  {category.category_name || 'Not Available'}
+                                  <ChevronRightIcon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 transition-colors flex-shrink-0" />
+                                  <span className="flex-1 truncate">{category.category_name || 'Not Available'}</span>
                                 </button>
                               ))
                             }
-                          </>
+                          </div>
                         ) : (
-                          <div className="text-center py-4">
-                            <p className="text-xs text-gray-500">No categories</p>
+                          <div className="text-center py-6">
+                            <p className="text-xs text-gray-400">No categories available</p>
                           </div>
                         )}
                       </div>

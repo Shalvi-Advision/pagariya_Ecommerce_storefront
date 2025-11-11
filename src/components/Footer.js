@@ -43,7 +43,7 @@ const Footer = () => {
               </li>
               <li>
                 <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
-                  Shipping Info
+                  Track Order
                 </a>
               </li>
             </ul>

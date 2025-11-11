@@ -283,6 +283,24 @@ const Header = () => {
                 }}
               />
             </Link>
+            {/* About Us Button */}
+            <Link
+              to="/about"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:border-primary-300 hover:text-primary-600 transition-colors text-sm font-medium"
+              aria-label="About Us"
+            >
+              <InformationCircleIcon className="w-4 h-4 text-primary-600" />
+              <span>About Us</span>
+            </Link>
+            {/* Mobile About Us Icon */}
+            <Link
+              to="/about"
+              className="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-700 hover:border-primary-300 hover:text-primary-600 transition-colors"
+              aria-label="About Us"
+              title="About Us"
+            >
+              <InformationCircleIcon className="w-5 h-5 text-primary-600" />
+            </Link>
             {/* Desktop Location Button */}
             <div className="hidden lg:block">
               <button 

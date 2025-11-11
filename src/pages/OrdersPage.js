@@ -68,10 +68,16 @@ const OrdersPage = () => {
         address: order.checkoutData.selectedAddress.address,
         type: 'Home Delivery'
       };
+    } else if (order.shippingInfo) {
+      return {
+        name: `${order.shippingInfo.firstName || ''} ${order.shippingInfo.lastName || ''}`.trim() || 'N/A',
+        address: `${order.shippingInfo.address || ''}, ${order.shippingInfo.city || ''}, ${order.shippingInfo.state || ''} ${order.shippingInfo.zipCode || ''}`.trim() || 'Address not available',
+        type: 'Home Delivery'
+      };
     } else {
       return {
-        name: `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}`,
-        address: `${order.shippingInfo.address}, ${order.shippingInfo.city}, ${order.shippingInfo.state} ${order.shippingInfo.zipCode}`,
+        name: 'N/A',
+        address: 'Address not available',
         type: 'Home Delivery'
       };
     }
@@ -112,18 +118,22 @@ const OrdersPage = () => {
     }
     
     // Fallback to order date + 7 days
-    try {
-      const orderDate = new Date(order.orderDate);
-      const deliveryDate = new Date(orderDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return deliveryDate.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    } catch (error) {
-      console.error('Error calculating delivery date:', error);
-      return 'TBD';
+    if (order.orderDate) {
+      try {
+        const orderDate = new Date(order.orderDate);
+        const deliveryDate = new Date(orderDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return deliveryDate.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      } catch (error) {
+        console.error('Error calculating delivery date:', error);
+        return 'TBD';
+      }
     }
+    
+    return 'TBD';
   };
 
   return (
@@ -163,16 +173,20 @@ const OrdersPage = () => {
                           Order #{order.id}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          Placed on {new Date(order.orderDate).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                          })}
+                          {order.orderDate ? (
+                            `Placed on ${new Date(order.orderDate).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}`
+                          ) : (
+                            'Order date not available'
+                          )}
                         </p>
                       </div>
                       <div className="mt-2 sm:mt-0">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status || 'Pending')}`}>
+                          {order.status || 'Pending'}
                         </span>
                       </div>
                     </div>
@@ -219,7 +233,7 @@ const OrdersPage = () => {
                               Payment Method
                             </h4>
                             <p className="text-sm text-gray-600">
-                              {getPaymentMethodDisplay(order.paymentMethod)}
+                              {getPaymentMethodDisplay(order.paymentMethod || 'N/A')}
                             </p>
                           </div>
 
@@ -232,9 +246,15 @@ const OrdersPage = () => {
                               Shipping Address
                             </h4>
                             <p className="text-sm text-gray-600">
-                              {order.shippingInfo.firstName} {order.shippingInfo.lastName}<br />
-                              {order.shippingInfo.address}<br />
-                              {order.shippingInfo.city}, {order.shippingInfo.state} {order.shippingInfo.zipCode}
+                              {order.shippingInfo ? (
+                                <>
+                                  {order.shippingInfo.firstName || ''} {order.shippingInfo.lastName || ''}<br />
+                                  {order.shippingInfo.address || 'Address not available'}<br />
+                                  {order.shippingInfo.city || ''}, {order.shippingInfo.state || ''} {order.shippingInfo.zipCode || ''}
+                                </>
+                              ) : (
+                                'Address not available'
+                              )}
                             </p>
                           </div>
 
@@ -255,28 +275,36 @@ const OrdersPage = () => {
                       <div className="border-t border-gray-200 pt-4">
                         <h4 className="font-medium text-gray-900 mb-3">Order Items</h4>
                         <div className="space-y-2">
-                          {order.items.map((item, index) => (
-                            <div key={index} className="flex justify-between items-center py-2">
-                              <div className="flex items-center">
-                                <img
-                                  src={item.image}
-                                  alt={item.title}
-                                  className="w-12 h-12 object-cover rounded mr-3"
-                                />
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                                  <p className="text-xs text-gray-600">Quantity: {item.quantity}</p>
+                          {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                            order.items.map((item, index) => (
+                              <div key={index} className="flex justify-between items-center py-2">
+                                <div className="flex items-center">
+                                  <img
+                                    src={item.image || '/images/logo.jpg'}
+                                    alt={item.title || 'Product'}
+                                    className="w-12 h-12 object-cover rounded mr-3"
+                                  />
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{item.title || 'Product'}</p>
+                                    <p className="text-xs text-gray-600">Quantity: {item.quantity || 0}</p>
+                                  </div>
                                 </div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  ₹{((item.price || 0) * (item.quantity || 0)).toFixed(2)}
+                                </p>
                               </div>
-                              <p className="text-sm font-medium text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</p>
-                            </div>
-                          ))}
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-500 py-2">No items found</p>
+                          )}
                         </div>
 
                         <div className="border-t border-gray-200 mt-4 pt-4">
                           <div className="flex justify-between items-center">
                             <span className="text-lg font-semibold text-gray-900">Total</span>
-                            <span className="text-lg font-semibold text-gray-900">₹{order.totalAmount.toFixed(2)}</span>
+                            <span className="text-lg font-semibold text-gray-900">
+                              ₹{(order.totalAmount || 0).toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       </div>
