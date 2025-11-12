@@ -69,7 +69,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const isAPIRequest = url.pathname.startsWith('/api/');
   const isStaticAsset = url.pathname.includes('/static/') || 
-                       url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/);
+                       url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|avif|bmp|woff|woff2|ttf|eot)$/);
   const isHTMLRequest = event.request.destination === 'document';
 
   if (isDevelopment) {
@@ -101,7 +101,7 @@ async function developmentStrategy(request) {
     const isStaticAsset = url.pathname.includes('/static/') || 
                          url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/);
     
-    if (isStaticAsset && networkResponse && networkResponse.status === 200) {
+    if (isStaticAsset && networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       // Only cache static assets in development
       const responseToCache = networkResponse.clone();
       const cache = await caches.open(STATIC_CACHE);
@@ -142,7 +142,7 @@ async function networkFirstStrategy(request) {
     const networkResponse = await fetch(request);
     
     // Check if valid response
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       // Clone the response for caching
       const responseToCache = networkResponse.clone();
       
@@ -192,7 +192,7 @@ async function cacheFirstStrategy(request) {
     console.log('Service Worker: Fetching from network', request.url);
     const networkResponse = await fetch(request);
     
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       // Cache the response for future use
       const cache = await caches.open(STATIC_CACHE);
       await cache.put(request, networkResponse.clone());
