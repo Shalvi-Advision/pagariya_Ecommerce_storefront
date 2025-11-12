@@ -37,9 +37,9 @@ const Footer = () => {
             <h4 className="text-sm font-semibold mb-3 sm:mb-4">Customer Service</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
+                <Link to="/contact" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors block py-1">

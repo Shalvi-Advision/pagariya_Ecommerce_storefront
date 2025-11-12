@@ -321,13 +321,7 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Middle: Delivery info (on desktop+) */}
-          <div className="hidden xl:flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
-            <span className="w-2 h-2 rounded-full bg-primary-500 inline-block"></span>
-            <span>
-              Earliest <span className="text-primary-600 font-medium">Home Delivery</span> available
-            </span>
-          </div>
+         
 
           {/* Search - Responsive with Dropdown */}
           <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl lg:max-w-4xl w-full mx-2 sm:mx-4 relative">
