@@ -8,6 +8,9 @@ const PopularCategoriesAPI = () => {
   const [loading, setLoading] = useState(true);
   const [sectionData, setSectionData] = useState(null);
   const [backgroundColor, setBackgroundColor] = useState('#EFEFEF');
+  const [storeCode, setStoreCode] = useState(null);
+
+  console.log('🎬 PopularCategoriesAPI: Component mounted/rendered');
 
   // Color mappings for categories
   const colorMappings = [
@@ -46,22 +49,34 @@ const PopularCategoriesAPI = () => {
 
   // Helper function to get store code
   const getStoreCode = () => {
+    console.log('🔍 PopularCategoriesAPI: Getting store code from localStorage');
     const locationData = localStorage.getItem('confirmedLocation');
+    console.log('📦 PopularCategoriesAPI: Raw localStorage data:', locationData);
+
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        return location?.store?.store_code || 'AVB';
+        console.log('📍 PopularCategoriesAPI: Parsed location:', location);
+
+        // Check both field names: store_code and storeCode
+        const code = location?.store?.store_code || location?.store?.storeCode || null;
+
+        console.log('🏪 PopularCategoriesAPI: Store object:', location?.store);
+        console.log('🏪 PopularCategoriesAPI: Extracted store_code:', code);
+        return code;
       } catch (error) {
-        console.warn('Failed to parse location data:', error);
+        console.error('❌ PopularCategoriesAPI: Failed to parse location data:', error);
       }
+    } else {
+      console.warn('⚠️ PopularCategoriesAPI: No confirmedLocation in localStorage');
     }
-    return 'AVB';
+    return null;
   };
 
   // Helper function to get icon for category
   const getCategoryIcon = (categoryName) => {
     if (!categoryName) return categoryIcons.DEFAULT;
-    
+
     // Try to find a matching icon
     for (const [key, icon] of Object.entries(categoryIcons)) {
       if (categoryName.toLowerCase().includes(key.toLowerCase())) {
@@ -71,12 +86,60 @@ const PopularCategoriesAPI = () => {
     return categoryIcons.DEFAULT;
   };
 
+  // Initialize and listen for store code changes
   useEffect(() => {
+    console.log('🔄 PopularCategoriesAPI: Store code initialization useEffect fired');
+
+    const updateStoreCode = () => {
+      console.log('🔄 PopularCategoriesAPI: Updating store code...');
+      const code = getStoreCode();
+      console.log('✅ PopularCategoriesAPI: Setting storeCode state to:', code);
+      setStoreCode(code);
+    };
+
+    // Initial load
+    updateStoreCode();
+
+    // Listen for storage changes (when store code is updated)
+    const handleStorageChange = (e) => {
+      console.log('📡 PopularCategoriesAPI: Storage change event:', e.key);
+      if (e.key === 'confirmedLocation' || e.key === null) {
+        updateStoreCode();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Custom event listener for same-tab updates
+    const handleLocationUpdate = () => {
+      console.log('📡 PopularCategoriesAPI: locationUpdated event received');
+      updateStoreCode();
+    };
+    window.addEventListener('locationUpdated', handleLocationUpdate);
+
+    return () => {
+      console.log('🧹 PopularCategoriesAPI: Cleaning up event listeners');
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('locationUpdated', handleLocationUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('🔄 PopularCategoriesAPI: Fetch useEffect fired, storeCode:', storeCode);
+
+    // Only fetch if we have a store code
+    if (!storeCode) {
+      console.warn('⏳ PopularCategoriesAPI: Waiting for store code to be set... (storeCode is null/undefined)');
+      setLoading(false);
+      return;
+    }
+
     const fetchPopularCategories = async () => {
       try {
         setLoading(true);
-        const storeCode = getStoreCode();
+        console.log(`🚀 PopularCategoriesAPI: Starting fetch for store code: ${storeCode}`);
         const response = await getPopularCategories({ store_code: storeCode });
+        console.log('📥 PopularCategoriesAPI: API response received:', response);
 
         if (response.success && response.data && response.data.length > 0) {
           // Get the first section
@@ -117,7 +180,7 @@ const PopularCategoriesAPI = () => {
     };
 
     fetchPopularCategories();
-  }, []);
+  }, [storeCode]);
 
   // Don't render if no categories
   if (!loading && categories.length === 0) {

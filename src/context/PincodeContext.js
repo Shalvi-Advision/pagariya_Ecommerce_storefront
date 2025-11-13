@@ -41,6 +41,10 @@ export const PincodeProvider = ({ children }) => {
   const syncWithLocalStorage = useCallback(() => {
     if (confirmedLocation) {
       localStorage.setItem('confirmedLocation', JSON.stringify(confirmedLocation));
+      // Dispatch custom event to notify components of location change
+      window.dispatchEvent(new CustomEvent('locationUpdated', {
+        detail: confirmedLocation
+      }));
     }
   }, [confirmedLocation]);
 
@@ -235,6 +239,10 @@ export const PincodeProvider = ({ children }) => {
     localStorage.removeItem('confirmedLocation');
     setIsLocationRequired(true);
     setIsPincodeModalOpen(true);
+    // Dispatch event to notify components of location reset
+    window.dispatchEvent(new CustomEvent('locationUpdated', {
+      detail: null
+    }));
   };
 
   // Get display text for header

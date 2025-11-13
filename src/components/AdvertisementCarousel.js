@@ -8,20 +8,103 @@ const AdvertisementCarousel = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [storeCode, setStoreCode] = useState(null);
+
+  console.log('🎬 AdvertisementCarousel: Component mounted/rendered');
+
+  // Helper function to get store code
+  const getStoreCode = () => {
+    console.log('🔍 AdvertisementCarousel: Getting store code from localStorage');
+    const locationData = localStorage.getItem('confirmedLocation');
+    console.log('📦 AdvertisementCarousel: Raw localStorage data:', locationData);
+
+    if (locationData) {
+      try {
+        const location = JSON.parse(locationData);
+        console.log('📍 AdvertisementCarousel: Parsed location:', location);
+
+        // Check both field names: store_code and storeCode
+        const code = location?.store?.store_code || location?.store?.storeCode || null;
+
+        console.log('🏪 AdvertisementCarousel: Store object:', location?.store);
+        console.log('🏪 AdvertisementCarousel: Extracted store_code:', code);
+        return code;
+      } catch (error) {
+        console.error('❌ AdvertisementCarousel: Failed to parse location data:', error);
+      }
+    } else {
+      console.warn('⚠️ AdvertisementCarousel: No confirmedLocation in localStorage');
+    }
+    return null;
+  };
+
+  // Initialize and listen for store code changes
+  useEffect(() => {
+    console.log('🔄 AdvertisementCarousel: Store code initialization useEffect fired');
+
+    const updateStoreCode = () => {
+      console.log('🔄 AdvertisementCarousel: Updating store code...');
+      const code = getStoreCode();
+      console.log('✅ AdvertisementCarousel: Setting storeCode state to:', code);
+      setStoreCode(code);
+    };
+
+    // Initial load
+    updateStoreCode();
+
+    // Listen for storage changes (when store code is updated)
+    const handleStorageChange = (e) => {
+      console.log('📡 AdvertisementCarousel: Storage change event:', e.key);
+      if (e.key === 'confirmedLocation' || e.key === null) {
+        updateStoreCode();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Custom event listener for same-tab updates
+    const handleLocationUpdate = () => {
+      console.log('📡 AdvertisementCarousel: locationUpdated event received');
+      updateStoreCode();
+    };
+    window.addEventListener('locationUpdated', handleLocationUpdate);
+
+    return () => {
+      console.log('🧹 AdvertisementCarousel: Cleaning up event listeners');
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('locationUpdated', handleLocationUpdate);
+    };
+  }, []);
 
   useEffect(() => {
+    console.log('🔄 AdvertisementCarousel: Fetch useEffect fired, storeCode:', storeCode);
+
+    // Only fetch if we have a store code
+    if (!storeCode) {
+      console.warn('⏳ AdvertisementCarousel: Waiting for store code to be set... (storeCode is null/undefined)');
+      setLoading(false);
+      return;
+    }
+
     const fetchAdvertisements = async () => {
       try {
         setLoading(true);
-        const response = await getAdvertisements({ category: 'homepage' });
+        console.log(`🚀 AdvertisementCarousel: Starting fetch for store code: ${storeCode}`);
+        const response = await getAdvertisements({
+          category: 'homepage',
+          store_code: storeCode
+        });
+        console.log('📥 AdvertisementCarousel: API response received:', response);
 
         if (response.success && response.data && response.data.length > 0) {
+          console.log(`✅ AdvertisementCarousel: Found ${response.data.length} advertisements`);
           setAdvertisements(response.data);
         } else {
+          console.warn('⚠️ AdvertisementCarousel: No advertisements found or invalid response');
           setAdvertisements([]);
         }
       } catch (error) {
-        console.error('Error fetching advertisements:', error);
+        console.error('❌ AdvertisementCarousel: Error fetching advertisements:', error);
         setAdvertisements([]);
       } finally {
         setLoading(false);
@@ -29,7 +112,7 @@ const AdvertisementCarousel = () => {
     };
 
     fetchAdvertisements();
-  }, []);
+  }, [storeCode]);
 
   // Auto-rotation effect
   useEffect(() => {

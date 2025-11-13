@@ -6,7 +6,7 @@ const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 // Offline storage utilities
 const DB_NAME = 'ShalviEcommerceDB';
 const MERCHANDISING_STORE = 'merchandising';
-const CACHE_EXPIRY = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes in milliseconds (balanced - recommended)
 
 // Initialize IndexedDB for merchandising
 const initMerchandisingDB = () => {
@@ -89,6 +89,42 @@ const getCachedMerchandisingData = async (cacheKey) => {
   } catch (error) {
     console.warn('Failed to get cached merchandising data:', error);
     return null;
+  }
+};
+
+// Clear all merchandising cache from IndexedDB
+export const clearMerchandisingCache = async () => {
+  try {
+    const db = await initMerchandisingDB();
+
+    if (!db.objectStoreNames.contains(MERCHANDISING_STORE)) {
+      console.warn('Merchandising object store does not exist');
+      db.close();
+      return { success: false, error: 'Cache store not found' };
+    }
+
+    const transaction = db.transaction([MERCHANDISING_STORE], 'readwrite');
+    const store = transaction.objectStore(MERCHANDISING_STORE);
+
+    // Clear all records from the store
+    const clearRequest = store.clear();
+
+    return new Promise((resolve) => {
+      clearRequest.onsuccess = () => {
+        console.log('✅ Merchandising cache cleared from IndexedDB');
+        db.close();
+        resolve({ success: true });
+      };
+
+      clearRequest.onerror = () => {
+        console.error('❌ Error clearing merchandising cache:', clearRequest.error);
+        db.close();
+        resolve({ success: false, error: clearRequest.error });
+      };
+    });
+  } catch (error) {
+    console.error('❌ Error accessing IndexedDB:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -287,20 +323,28 @@ export const getBestSellers = async (params = {}) => {
       store_code = 'AVB'
     } = params;
 
-    const url = `${API_BASE_URL}/best-sellers?store_code=${store_code}&enrich_products=true`;
+    const url = `${API_BASE_URL}/best-sellers/list`;
     const cacheKey = `best_sellers_${store_code}`;
 
+    // Prepare request body
+    const requestBody = {
+      store_code,
+      enrich_products: true
+    };
+
     console.log('🔗 Fetching best sellers from:', url);
+    console.log('📦 Request body:', requestBody);
 
     // If online, try to fetch from network first
     if (isOnline()) {
       try {
         const response = await fetch(url, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }
+          },
+          body: JSON.stringify(requestBody)
         });
 
         console.log('📥 Best sellers response:', {
@@ -383,20 +427,28 @@ export const getPopularCategories = async (params = {}) => {
       store_code = 'AVB'
     } = params;
 
-    const url = `${API_BASE_URL}/popular-categories?store_code=${store_code}&enrich_subcategories=true`;
+    const url = `${API_BASE_URL}/popular-categories/list`;
     const cacheKey = `popular_categories_${store_code}`;
 
+    // Prepare request body
+    const requestBody = {
+      store_code,
+      enrich_subcategories: true
+    };
+
     console.log('🔗 Fetching popular categories from:', url);
+    console.log('📦 Request body:', requestBody);
 
     // If online, try to fetch from network first
     if (isOnline()) {
       try {
         const response = await fetch(url, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }
+          },
+          body: JSON.stringify(requestBody)
         });
 
         console.log('📥 Popular categories response:', {
@@ -463,28 +515,43 @@ export const getPopularCategories = async (params = {}) => {
  * Fetch active advertisements from API
  * @param {Object} params - Query parameters
  * @param {string} params.category - Category filter (default: "homepage")
+ * @param {string} params.store_code - Store code (optional)
  * @returns {Promise<Object>} - API response with active advertisements
  */
 export const getAdvertisements = async (params = {}) => {
   try {
     const {
-      category = 'homepage'
+      category = 'homepage',
+      store_code
     } = params;
 
-    const url = `${API_BASE_URL}/advertisements/active?category=${category}&enrich_products=true`;
-    const cacheKey = `advertisements_${category}`;
+    const url = `${API_BASE_URL}/advertisements/active`;
+    const cacheKey = `advertisements_${category}_${store_code || 'default'}`;
+
+    // Prepare request body
+    const requestBody = {
+      category,
+      enrich_products: true
+    };
+
+    // Add store_code if provided
+    if (store_code) {
+      requestBody.store_code = store_code;
+    }
 
     console.log('🔗 Fetching advertisements from:', url);
+    console.log('📦 Request body:', requestBody);
 
     // If online, try to fetch from network first
     if (isOnline()) {
       try {
         const response = await fetch(url, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }
+          },
+          body: JSON.stringify(requestBody)
         });
 
         console.log('📥 Advertisements response:', {

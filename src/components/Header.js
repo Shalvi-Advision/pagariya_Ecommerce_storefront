@@ -10,6 +10,8 @@ import CategoriesDrawer from './CategoriesDrawer';
 import SearchDropdown from './SearchDropdown';
 import { fetchCategories, searchProductsAPI } from '../api/productsApi';
 import { getActiveDepartments } from '../services/groceryApi';
+import { clearMerchandisingCache } from '../api/merchandisingApi';
+import pwaUtils from '../utils/pwa';
 import {
   MapPinIcon,
   BellIcon,
@@ -20,6 +22,7 @@ import {
   UserIcon,
   HeartIcon,
   InformationCircleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { useFavorite } from '../context/FavoriteContext';
 
@@ -52,6 +55,9 @@ const Header = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchTimeoutRef = useRef(null);
+
+  // Cache clearing state
+  const [isClearingCache, setIsClearingCache] = useState(false);
 
 
   useEffect(() => {
@@ -243,11 +249,11 @@ const Header = () => {
       case 'address':
         navigate('/address');
         break;
-      
+
       case 'orders':
         navigate('/orders');
         break;
-      
+
       case 'logout':
         handleLogout();
         break;
@@ -255,6 +261,33 @@ const Header = () => {
         break;
     }
     setIsAccountDropdownOpen(false);
+  };
+
+  const handleClearCache = async () => {
+    if (isClearingCache) return;
+
+    setIsClearingCache(true);
+
+    try {
+      // Clear IndexedDB merchandising cache
+      const indexedDBResult = await clearMerchandisingCache();
+
+      // Clear Service Worker cache
+      const swResult = await pwaUtils.clearAllCaches();
+
+      if (indexedDBResult.success || swResult) {
+        alert('✅ Cache cleared successfully! The page will reload to fetch fresh data.');
+        // Reload page to fetch fresh data
+        window.location.reload();
+      } else {
+        alert('⚠️ Cache clearing completed with some issues. Try refreshing the page manually.');
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      alert('❌ Failed to clear cache. Please try again or clear your browser cache manually.');
+    } finally {
+      setIsClearingCache(false);
+    }
   };
 
 
@@ -443,6 +476,24 @@ const Header = () => {
                       {/* Divider */}
                       <div className="border-t border-gray-200 my-2"></div>
 
+                      {/* Clear Cache Section */}
+                      <div className="px-4 py-2">
+                        <button
+                          onClick={() => {
+                            handleClearCache();
+                            setIsAccountDropdownOpen(false);
+                          }}
+                          disabled={isClearingCache}
+                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ArrowPathIcon className={`w-4 h-4 text-gray-500 ${isClearingCache ? 'animate-spin' : ''}`} />
+                          {isClearingCache ? 'Clearing Cache...' : 'Clear Cache'}
+                        </button>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-gray-200 my-2"></div>
+
                       {/* Logout Section */}
                       <div className="px-4 py-2">
                         <button
@@ -573,6 +624,24 @@ const Header = () => {
                       {/* Divider */}
                       <div className="border-t border-gray-200 my-2"></div>
 
+                      {/* Clear Cache Section */}
+                      <div className="px-4 py-2">
+                        <button
+                          onClick={() => {
+                            handleClearCache();
+                            setIsUserMenuOpen(false);
+                          }}
+                          disabled={isClearingCache}
+                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ArrowPathIcon className={`w-4 h-4 text-gray-500 ${isClearingCache ? 'animate-spin' : ''}`} />
+                          {isClearingCache ? 'Clearing Cache...' : 'Clear Cache'}
+                        </button>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-gray-200 my-2"></div>
+
                       {/* Logout Section */}
                       <div className="px-4 py-2">
                         <button
@@ -611,6 +680,24 @@ const Header = () => {
                         <InformationCircleIcon className="w-4 h-4 text-gray-500" />
                         About Us
                       </Link>
+
+                      {/* Divider */}
+                      <div className="border-t border-gray-200 my-2"></div>
+
+                      {/* Clear Cache for Unauthenticated Users */}
+                      <div className="px-4 py-2">
+                        <button
+                          onClick={() => {
+                            handleClearCache();
+                            setIsUserMenuOpen(false);
+                          }}
+                          disabled={isClearingCache}
+                          className="w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ArrowPathIcon className={`w-4 h-4 text-gray-500 ${isClearingCache ? 'animate-spin' : ''}`} />
+                          {isClearingCache ? 'Clearing Cache...' : 'Clear Cache'}
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>

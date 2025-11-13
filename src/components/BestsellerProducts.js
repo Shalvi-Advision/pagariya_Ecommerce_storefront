@@ -7,27 +7,90 @@ const BestsellerProducts = () => {
   const [loading, setLoading] = useState(true);
   const [sectionData, setSectionData] = useState(null);
   const [bannerImage, setBannerImage] = useState('/images/seasonal_banner.jpg');
+  const [storeCode, setStoreCode] = useState(null);
+
+  console.log('🎬 BestsellerProducts: Component mounted/rendered');
 
   // Helper function to get store code
   const getStoreCode = () => {
+    console.log('🔍 BestsellerProducts: Getting store code from localStorage');
     const locationData = localStorage.getItem('confirmedLocation');
+    console.log('📦 BestsellerProducts: Raw localStorage data:', locationData);
+
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        return location?.store?.store_code || 'AVB';
+        console.log('📍 BestsellerProducts: Parsed location:', location);
+
+        // Check both field names: store_code and storeCode
+        const code = location?.store?.store_code || location?.store?.storeCode || null;
+
+        console.log('🏪 BestsellerProducts: Store object:', location?.store);
+        console.log('🏪 BestsellerProducts: Extracted store_code:', code);
+        return code;
       } catch (error) {
-        console.warn('Failed to parse location data:', error);
+        console.error('❌ BestsellerProducts: Failed to parse location data:', error);
       }
+    } else {
+      console.warn('⚠️ BestsellerProducts: No confirmedLocation in localStorage');
     }
-    return 'AVB';
+    return null;
   };
 
+  // Initialize and listen for store code changes
   useEffect(() => {
+    console.log('🔄 BestsellerProducts: Store code initialization useEffect fired');
+
+    const updateStoreCode = () => {
+      console.log('🔄 BestsellerProducts: Updating store code...');
+      const code = getStoreCode();
+      console.log('✅ BestsellerProducts: Setting storeCode state to:', code);
+      setStoreCode(code);
+    };
+
+    // Initial load
+    updateStoreCode();
+
+    // Listen for storage changes (when store code is updated)
+    const handleStorageChange = (e) => {
+      console.log('📡 BestsellerProducts: Storage change event:', e.key);
+      if (e.key === 'confirmedLocation' || e.key === null) {
+        updateStoreCode();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Custom event listener for same-tab updates
+    const handleLocationUpdate = () => {
+      console.log('📡 BestsellerProducts: locationUpdated event received');
+      updateStoreCode();
+    };
+    window.addEventListener('locationUpdated', handleLocationUpdate);
+
+    return () => {
+      console.log('🧹 BestsellerProducts: Cleaning up event listeners');
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('locationUpdated', handleLocationUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('🔄 BestsellerProducts: Fetch useEffect fired, storeCode:', storeCode);
+
+    // Only fetch if we have a store code
+    if (!storeCode) {
+      console.warn('⏳ BestsellerProducts: Waiting for store code to be set... (storeCode is null/undefined)');
+      setLoading(false);
+      return;
+    }
+
     const fetchBestSellers = async () => {
       try {
         setLoading(true);
-        const storeCode = getStoreCode();
+        console.log(`🚀 BestsellerProducts: Starting fetch for store code: ${storeCode}`);
         const response = await getBestSellers({ store_code: storeCode });
+        console.log('📥 BestsellerProducts: API response received:', response);
 
         if (response.success && response.data && response.data.length > 0) {
           // Get the first section
@@ -70,7 +133,7 @@ const BestsellerProducts = () => {
     };
 
     fetchBestSellers();
-  }, []);
+  }, [storeCode]);
 
   // Don't render if no products
   if (!loading && products.length === 0) {
