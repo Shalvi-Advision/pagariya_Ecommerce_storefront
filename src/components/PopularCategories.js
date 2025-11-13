@@ -165,10 +165,10 @@ const PopularCategories = () => {
                     <CategoryComponent
                       key={category.id || index}
                       {...categoryProps}
-                      className="flex-shrink-0 w-32 h-32 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100/50 shadow-lg hover:shadow-2xl hover:border-cyan-300 hover:scale-110 transition-all duration-300 cursor-pointer group"
+                      className="flex-shrink-0 w-32 h-40 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100/50 shadow-lg hover:shadow-2xl hover:border-cyan-300 hover:scale-110 transition-all duration-300 cursor-pointer group"
                     >
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <div className={`w-24 h-24 ${category.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-all duration-300 shadow-md relative overflow-hidden`}>
+                      <div className="flex flex-col items-center h-full pt-4">
+                        <div className={`w-24 h-24 flex-shrink-0 ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-300 shadow-md relative overflow-hidden rounded-xl`}>
                           {category.image_link ? (
                             <img 
                               src={category.image_link} 
@@ -182,14 +182,14 @@ const PopularCategories = () => {
                             />
                           ) : null}
                           <div 
-                            className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${category.image_link ? 'hidden' : 'flex'}`}
+                            className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 rounded-xl ${category.image_link ? 'hidden' : 'flex'}`}
                           >
                             <span className={`text-4xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
                               {category.icon}
                             </span>
                           </div>
                         </div>
-                        <span className="text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-cyan-600 transition-colors duration-200">
+                        <span className="text-xs font-semibold text-gray-800 text-center leading-tight group-hover:text-cyan-600 transition-colors duration-200 px-1 line-clamp-2 min-h-[2.5rem] flex items-center">
                           {category.name}
                         </span>
                       </div>
