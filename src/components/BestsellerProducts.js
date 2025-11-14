@@ -105,6 +105,11 @@ const BestsellerProducts = () => {
                                section.banner_urls?.mobile ||
                                '/images/seasonal_banner.jpg';
 
+            // Extract background color from API (with fallback)
+            const backgroundColor = section.background_color || 
+                                   section.backgroundColor || 
+                                   '#F472B6'; // Default pink color
+
             // Extract and format products from the section
             const productsList = section.products?.map(item => ({
               id: item.p_code || item.product_details?.p_code,
@@ -128,6 +133,7 @@ const BestsellerProducts = () => {
             return {
               ...section,
               bannerImage,
+              backgroundColor,
               productsList
             };
           });
@@ -166,12 +172,33 @@ const BestsellerProducts = () => {
           </div>
         </div>
       ) : (
-        sections.map((section, sectionIndex) => (
+        sections.map((section, sectionIndex) => {
+          // Helper function to convert hex to RGB for opacity
+          const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+              r: parseInt(result[1], 16),
+              g: parseInt(result[2], 16),
+              b: parseInt(result[3], 16)
+            } : null;
+          };
+
+          // Get background color from API or use default
+          const bgColor = section.backgroundColor || '#F472B6';
+          const rgb = hexToRgb(bgColor);
+          const bgColorRgb = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)` : bgColor;
+          const bgColorRgb25 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)` : bgColor;
+          const bgColorRgb90 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.9)` : bgColor;
+          const bgColorRgb95 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.95)` : bgColor;
+          const bgColorRgb70 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)` : bgColor;
+          const bgColorRgb98 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.98)` : bgColor;
+
+          return (
           <div key={section._id || sectionIndex} className="relative overflow-hidden py-3 sm:py-4 lg:py-5">
-            {/* Vibrant Pink Background with Animated Gradients */}
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-50/60 via-rose-50/60 to-pink-100/60"></div>
-            <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-br from-pink-400/25 to-rose-400/25 rounded-full blur-3xl -translate-y-1/4 animate-pulse"></div>
-            <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-gradient-to-br from-rose-400/25 to-pink-500/25 rounded-full blur-3xl translate-y-1/4 animate-pulse" style={{ animationDelay: '1s' }}></div>
+            {/* Dynamic Background with Animated Gradients */}
+            <div className="absolute inset-0" style={{ backgroundColor: bgColorRgb }}></div>
+            <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full blur-3xl -translate-y-1/4 animate-pulse" style={{ backgroundColor: bgColorRgb25 }}></div>
+            <div className="absolute bottom-0 left-1/4 w-96 h-96 rounded-full blur-3xl translate-y-1/4 animate-pulse" style={{ backgroundColor: bgColorRgb25, animationDelay: '1s' }}></div>
 
             {/* Container with consistent padding for entire component */}
             <div className="relative container mx-auto px-2 sm:px-4 lg:px-6">
@@ -209,7 +236,12 @@ const BestsellerProducts = () => {
                     }}
                   />
                   {/* Strong overlay gradient for perfect seamless transition */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-pink-300/60 via-70% to-pink-400/90 group-hover:via-pink-400/70 group-hover:to-pink-500/95 transition-all duration-300"></div>
+                  <div 
+                    className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-70% to-90% group-hover:via-70% group-hover:to-95% transition-all duration-300"
+                    style={{
+                      background: `linear-gradient(to bottom, transparent 40%, ${bgColorRgb70} 70%, ${bgColorRgb90} 90%)`
+                    }}
+                  ></div>
                   {/* Click indicator */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
@@ -223,10 +255,10 @@ const BestsellerProducts = () => {
               <div
                 className="relative w-full pt-0 pb-0"
                 style={{
-                  background: 'linear-gradient(to bottom, rgba(244, 143, 177, 1), rgba(236, 72, 153, 0.98), rgba(219, 39, 119, 0.98))',
+                  background: `linear-gradient(to bottom, ${bgColor}, ${bgColorRgb98}, ${bgColorRgb98})`,
                   marginTop: '-1px',
                   borderRadius: '0 0 0.75rem 0.75rem',
-                  boxShadow: '0 20px 25px -5px rgba(236, 72, 153, 0.15), 0 10px 10px -5px rgba(236, 72, 153, 0.1)'
+                  boxShadow: rgb ? `0 20px 25px -5px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15), 0 10px 10px -5px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)'
                 }}
               >
                 {/* Section Title (optional) */}
@@ -271,8 +303,14 @@ const BestsellerProducts = () => {
                     </div>
 
                     {/* Scroll Indicators - Gradient edges */}
-                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-pink-400/40 to-transparent pointer-events-none"></div>
-                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-pink-500/40 to-transparent pointer-events-none"></div>
+                    <div 
+                      className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r to-transparent pointer-events-none"
+                      style={{ background: `linear-gradient(to right, ${bgColorRgb25}, transparent)` }}
+                    ></div>
+                    <div 
+                      className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l to-transparent pointer-events-none"
+                      style={{ background: `linear-gradient(to left, ${bgColorRgb25}, transparent)` }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -300,7 +338,8 @@ const BestsellerProducts = () => {
               }
             `}</style>
           </div>
-        ))
+          );
+        })
       )}
     </>
   );
