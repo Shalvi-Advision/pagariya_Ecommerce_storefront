@@ -208,7 +208,7 @@ const BestsellerProducts = () => {
               {/* Promotional Banner at the top - Seamlessly integrated */}
               <div className="relative w-full">
                 <div 
-                  className="relative w-full h-[140px] sm:h-[160px] lg:h-[180px] xl:h-[200px] overflow-hidden cursor-pointer group" 
+                  className="relative w-full h-[200px] sm:h-[240px] lg:h-[280px] xl:h-[320px] overflow-hidden cursor-pointer group" 
                   style={{ borderRadius: '1rem 1rem 0 0' }}
                   onClick={() => {
                     const sectionId = section._id || section.id;
@@ -238,13 +238,6 @@ const BestsellerProducts = () => {
                       console.log(`❌ Bestseller Banner ${sectionIndex + 1} image failed to load`);
                     }}
                   />
-                  {/* Strong overlay gradient for perfect seamless transition */}
-                  <div 
-                    className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-70% to-90% group-hover:via-70% group-hover:to-95% transition-all duration-300"
-                    style={{
-                      background: `linear-gradient(to bottom, transparent 40%, ${bgColorRgb70} 70%, ${bgColorRgb90} 90%)`
-                    }}
-                  ></div>
                   {/* Click indicator */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
@@ -266,12 +259,12 @@ const BestsellerProducts = () => {
               >
                 {/* Section Title (optional) */}
                 {section.title && (
-                  <div className="px-4 sm:px-6 lg:px-8 pt-4">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                  <div className="px-4 sm:px-6 lg:px-8 pt-4 pb-1">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">
                       {section.title}
                     </h2>
                     {section.description && (
-                      <p className="text-white/90 text-sm sm:text-base mb-2">
+                      <p className="text-white/90 text-sm sm:text-base mb-1">
                         {section.description}
                       </p>
                     )}
@@ -279,7 +272,7 @@ const BestsellerProducts = () => {
                 )}
 
                 {/* Horizontal Scrollable Products with Enhanced Spacing */}
-                <div className="p-4 sm:p-6 lg:p-8">
+                <div className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 pt-1 sm:pt-2">
                   <div className="relative">
                     <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       <div className="flex gap-4 sm:gap-6 lg:gap-8" style={{ width: 'max-content' }}>

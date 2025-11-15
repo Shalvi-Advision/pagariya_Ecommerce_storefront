@@ -154,7 +154,7 @@ const SeasonalOfferBanner = () => {
                 {bannerImage && (
                   <div className="relative w-full">
                     <div 
-                      className="relative w-full h-[160px] sm:h-[200px] lg:h-[240px] xl:h-[280px] overflow-hidden cursor-pointer group" 
+                      className="relative w-full h-[1600px] sm:h-[180px] lg:h-[240px] xl:h-[320px] overflow-hidden cursor-pointer group" 
                       style={{ borderRadius: '1rem 1rem 0 0' }}
                       onClick={() => handleSeasonalBannerClick(section)}
                     >
@@ -178,13 +178,6 @@ const SeasonalOfferBanner = () => {
                           console.log('❌ SeasonalOfferBanner: Seasonal banner image failed to load');
                         }}
                       />
-                      {/* Strong overlay gradient for perfect seamless transition */}
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-70% to-90% group-hover:via-70% group-hover:to-95% transition-all duration-300"
-                        style={{
-                          background: `linear-gradient(to bottom, transparent 40%, ${bgColorRgb70} 70%, ${bgColorRgb90} 90%)`
-                        }}
-                      ></div>
                       {/* Click indicator */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
