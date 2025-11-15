@@ -278,7 +278,7 @@ const FamousCategories = () => {
                           key={category.id || index}
                           {...categoryProps}
                           onClick={handleClick}
-                          className="flex-shrink-0 w-32 h-56 bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-100/50 shadow hover:shadow-md hover:border-purple-300 hover:scale-105 transition-all duration-300 cursor-pointer group overflow-hidden"
+                          className="flex-shrink-0 w-32 h-56 bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-100/50 shadow hover:shadow-md hover:border-purple-300 transition-all duration-300 cursor-pointer group overflow-hidden"
                         >
                           <div className="flex flex-col items-center justify-center h-full pt-4 pb-2">
                             <div className={`w-32 h-32 flex-shrink-0 ${category.color} flex items-center justify-center mb-3 transition-all duration-300 shadow-sm relative overflow-hidden rounded-xl`}>
@@ -286,7 +286,7 @@ const FamousCategories = () => {
                                 <img 
                                   src={category.image_link} 
                                   alt={category.name}
-                                  className="w-full h-full object-cover drop-shadow group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-full object-cover drop-shadow transition-transform duration-300"
                                   onError={(e) => {
                                     e.target.style.display = 'none';
                                     const iconElement = e.target.parentElement.querySelector('.fallback-icon');
