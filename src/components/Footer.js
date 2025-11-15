@@ -49,28 +49,12 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Newsletter */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h4 className="text-sm font-semibold mb-3 sm:mb-4">Stay Updated</h4>
-            <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-              Subscribe to our newsletter for the latest deals and products.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-3 py-2 text-gray-900 rounded-lg sm:rounded-l-lg sm:rounded-r-none focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              />
-              <button className="bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-lg sm:rounded-l-none sm:rounded-r-lg text-sm font-medium transition-colors whitespace-nowrap">
-                Subscribe
-              </button>
-            </div>
-          </div>
+          
         </div>
 
         <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center">
           <p className="text-gray-400 text-xs sm:text-sm">
-            © 2024 Pagariya Mart. All rights reserved.
+            © 2025 Shalvi Advison Ltd. All rights reserved.
           </p>
         </div>
       </div>

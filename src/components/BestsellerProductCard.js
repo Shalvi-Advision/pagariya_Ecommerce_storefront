@@ -5,7 +5,7 @@ import { ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { useFavorite } from '../context/FavoriteContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { createCartItemFromProduct } from '../utils/cartUtils';
+import { createCartItemFromProduct, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
 import { COLORS } from '../constants/theme';
 
 // Helper function to convert hex color to rgba with opacity
@@ -23,9 +23,26 @@ const BestsellerProductCard = ({ product }) => {
   const [addingToCart, setAddingToCart] = useState(false);
   const [showQuantitySelector, setShowQuantitySelector] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [storeEnabled, setStoreEnabled] = useState(true);
   const { toggleFavorite, isFavorite: checkFavorite } = useFavorite();
   const { addItem, updateQuantity, items: cartItems } = useCart();
   const { showError } = useToast();
+
+  // Check store status on mount and when location changes
+  useEffect(() => {
+    const checkStoreStatus = () => {
+      setStoreEnabled(isStoreEnabled());
+    };
+    
+    checkStoreStatus();
+    
+    // Listen for location updates
+    window.addEventListener('locationUpdated', checkStoreStatus);
+    
+    return () => {
+      window.removeEventListener('locationUpdated', checkStoreStatus);
+    };
+  }, []);
 
   // Extract product data with safe defaults
   const {
@@ -97,6 +114,13 @@ const BestsellerProductCard = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Check if store is enabled
+    if (!storeEnabled) {
+      const storeMessage = getStoreMessage();
+      showError(storeMessage || 'This store is currently not accepting online orders. Please try again later.');
+      return;
+    }
+    
     try {
       setAddingToCart(true);
       
@@ -113,7 +137,11 @@ const BestsellerProductCard = ({ product }) => {
       // Success - no toast message (same as CategoryPage)
     } catch (error) {
       console.error('Error adding to cart:', error);
-      showError('Failed to add item to cart. Please try again.');
+      if (error.code === 'STORE_DISABLED') {
+        showError(error.message);
+      } else {
+        showError('Failed to add item to cart. Please try again.');
+      }
     } finally {
       setAddingToCart(false);
     }
@@ -218,22 +246,23 @@ const BestsellerProductCard = ({ product }) => {
           {!showQuantitySelector ? (
             <button
               onClick={handleAddToCart}
-              disabled={addingToCart}
+              disabled={addingToCart || !storeEnabled}
+              title={!storeEnabled ? (getStoreMessage() || 'Store is not accepting orders') : 'Add to cart'}
               className="w-full h-9 rounded text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 text-white shadow-md hover:shadow-lg"
               style={{
-                background: addingToCart 
+                background: (addingToCart || !storeEnabled)
                   ? COLORS.gray[400]
                   : `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
-                cursor: addingToCart ? 'not-allowed' : 'pointer',
-                opacity: addingToCart ? 0.5 : 1
+                cursor: (addingToCart || !storeEnabled) ? 'not-allowed' : 'pointer',
+                opacity: (addingToCart || !storeEnabled) ? 0.5 : 1
               }}
               onMouseEnter={(e) => {
-                if (!addingToCart) {
+                if (!addingToCart && storeEnabled) {
                   e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
                 }
               }}
               onMouseLeave={(e) => {
-                if (!addingToCart) {
+                if (!addingToCart && storeEnabled) {
                   e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
                 }
               }}
@@ -246,7 +275,7 @@ const BestsellerProductCard = ({ product }) => {
               ) : (
                 <>
                   <ShoppingCartIcon className="w-4 h-4" />
-                  <span>ADD</span>
+                  <span>{!storeEnabled ? 'UNAVAILABLE' : 'ADD'}</span>
                 </>
               )}
             </button>

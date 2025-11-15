@@ -118,8 +118,11 @@ export const PincodeProvider = ({ children }) => {
       console.log('📦 API Response for stores:', response);
 
       if (response.success && response.data) {
+        // Format all stores regardless of is_enabled status
         const formattedStores = response.data.map(formatStoreData);
-        console.log('✅ Formatted stores:', formattedStores);
+        console.log('✅ Formatted stores (all stores, including disabled):', formattedStores);
+        console.log('✅ Total stores to display:', formattedStores.length);
+        // Set all stores without filtering - show both enabled and disabled stores
         setAvailableStores(formattedStores);
       } else {
         console.log('❌ No stores found or API error:', response);

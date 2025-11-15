@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCartIcon, MinusIcon, PlusIcon, XMarkIcon, HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { useFavorite } from '../context/FavoriteContext';
 import { useToast } from '../context/ToastContext';
-import { createCartItemFromProduct } from '../utils/cartUtils';
+import { createCartItemFromProduct, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
 
 // Utility function to safely render values (with fallbacks)
 const safeValue = (value, defaultValue = '') => {
@@ -18,8 +18,25 @@ const ProductCard = ({ product, onAddToCart }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [storeEnabled, setStoreEnabled] = useState(true);
   const { addToFavorites, removeFromFavorites, isFavorite, toggleFavorite } = useFavorite();
   const { showError } = useToast();
+
+  // Check store status on mount and when location changes
+  useEffect(() => {
+    const checkStoreStatus = () => {
+      setStoreEnabled(isStoreEnabled());
+    };
+    
+    checkStoreStatus();
+    
+    // Listen for location updates
+    window.addEventListener('locationUpdated', checkStoreStatus);
+    
+    return () => {
+      window.removeEventListener('locationUpdated', checkStoreStatus);
+    };
+  }, []);
 
   // Debug: Log the raw product data
   console.log('🔍 ProductCard received product data:', product);
@@ -82,6 +99,13 @@ const ProductCard = ({ product, onAddToCart }) => {
     // Debug logging for pcode
     console.log('🛒 ProductCard Add to Cart clicked - PCode:', pcode || 'N/A', 'Product ID:', safeId, 'Product Name:', safeName);
     
+    // Check if store is enabled
+    if (!storeEnabled) {
+      const storeMessage = getStoreMessage();
+      showError(storeMessage || 'This store is currently not accepting online orders. Please try again later.');
+      return;
+    }
+    
     if (safeStoreQuantity > 0 && quantity <= safeMaxQuantity) {
       setAddingToCart(true);
       
@@ -96,7 +120,11 @@ const ProductCard = ({ product, onAddToCart }) => {
         setShowQuantitySelector(true);
       } catch (error) {
         console.error('Error adding to cart:', error);
-        showError('Failed to add item to cart');
+        if (error.code === 'STORE_DISABLED') {
+          showError(error.message);
+        } else {
+          showError('Failed to add item to cart');
+        }
       } finally {
         setAddingToCart(false);
       }
@@ -322,9 +350,10 @@ const ProductCard = ({ product, onAddToCart }) => {
             {!showQuantitySelector ? (
               <button
                 onClick={handleAddToCart}
-                disabled={safeStoreQuantity === 0 || addingToCart}
+                disabled={safeStoreQuantity === 0 || addingToCart || !storeEnabled}
+                title={!storeEnabled ? (getStoreMessage() || 'Store is not accepting orders') : (safeStoreQuantity === 0 ? 'Out of stock' : 'Add to cart')}
                 className={`w-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 shadow-md ${
-                  safeStoreQuantity > 0 && !addingToCart
+                  safeStoreQuantity > 0 && !addingToCart && storeEnabled
                     ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white hover:shadow-lg transform hover:scale-105'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
@@ -338,8 +367,18 @@ const ProductCard = ({ product, onAddToCart }) => {
                 ) : (
                   <>
                     <ShoppingCartIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="hidden sm:inline">{safeStoreQuantity > 0 ? 'ADD TO CART' : 'OUT OF STOCK'}</span>
-                    <span className="sm:hidden">{safeStoreQuantity > 0 ? 'ADD' : 'OUT'}</span>
+                    <span className="hidden sm:inline">
+                      {!storeEnabled 
+                        ? 'STORE UNAVAILABLE' 
+                        : (safeStoreQuantity > 0 ? 'ADD TO CART' : 'OUT OF STOCK')
+                      }
+                    </span>
+                    <span className="sm:hidden">
+                      {!storeEnabled 
+                        ? 'UNAVAILABLE' 
+                        : (safeStoreQuantity > 0 ? 'ADD' : 'OUT')
+                      }
+                    </span>
                   </>
                 )}
               </button>

@@ -270,6 +270,51 @@ export const getStoreCode = () => {
   return 'AVB';
 };
 
+// Check if store is enabled
+export const isStoreEnabled = () => {
+  try {
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      const location = JSON.parse(locationData);
+      const store = location?.store;
+      
+      if (!store) {
+        return false;
+      }
+      
+      // Check isEnabled property (from formatted store data)
+      if (store.isEnabled !== undefined) {
+        return store.isEnabled === true;
+      }
+      
+      // Check is_enabled property (from raw API data)
+      if (store.is_enabled !== undefined) {
+        return store.is_enabled === 'Enabled' || store.is_enabled === true;
+      }
+      
+      // Default to false if status is unknown
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking store status:', error);
+  }
+  return false;
+};
+
+// Get store message (if store is disabled)
+export const getStoreMessage = () => {
+  try {
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      const location = JSON.parse(locationData);
+      return location?.store?.storeMessage || location?.store?.message || null;
+    }
+  } catch (error) {
+    console.error('Error getting store message:', error);
+  }
+  return null;
+};
+
 // Create cart item from product data
 export const createCartItemFromProduct = (product, quantity = 1) => {
   return {
@@ -345,6 +390,8 @@ export default {
   isUserAuthenticated,
   getUserMobile,
   getStoreCode,
+  isStoreEnabled,
+  getStoreMessage,
   createCartItemFromProduct,
   validateCartForCheckout
 };

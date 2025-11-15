@@ -9,7 +9,7 @@ import { ChevronDownIcon, Bars3Icon, XMarkIcon, HeartIcon as HeartOutline, Minus
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { getProductsOptimized } from '../api/productsApi';
 import groceryApiService from '../services/groceryApi';
-import { createCartItemFromProduct } from '../utils/cartUtils';
+import { createCartItemFromProduct, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
 import { COLORS } from '../constants/theme';
 
 // Helper function to convert hex color to rgba with opacity
@@ -68,6 +68,23 @@ const CategoryPage = () => {
   const [addingToCart, setAddingToCart] = useState({});
   const [showQuantitySelector, setShowQuantitySelector] = useState({});
   const [quantities, setQuantities] = useState({});
+  const [storeEnabled, setStoreEnabled] = useState(true);
+
+  // Check store status on mount and when location changes
+  useEffect(() => {
+    const checkStoreStatus = () => {
+      setStoreEnabled(isStoreEnabled());
+    };
+    
+    checkStoreStatus();
+    
+    // Listen for location updates
+    window.addEventListener('locationUpdated', checkStoreStatus);
+    
+    return () => {
+      window.removeEventListener('locationUpdated', checkStoreStatus);
+    };
+  }, []);
 
   // Sync quantity selector state with cart items
   useEffect(() => {
@@ -591,6 +608,13 @@ const CategoryPage = () => {
   const handleAddToCart = async (product) => {
     const productId = product.p_code || product._id;
     
+    // Check if store is enabled
+    if (!storeEnabled) {
+      const storeMessage = getStoreMessage();
+      showError(storeMessage || 'This store is currently not accepting online orders. Please try again later.');
+      return;
+    }
+    
     try {
       setAddingToCart(prev => ({ ...prev, [productId]: true }));
       
@@ -610,7 +634,11 @@ const CategoryPage = () => {
       // Success - no toast message
     } catch (error) {
       console.error('Error adding to cart:', error);
-      showError('Failed to add item to cart. Please try again.');
+      if (error.code === 'STORE_DISABLED') {
+        showError(error.message);
+      } else {
+        showError('Failed to add item to cart. Please try again.');
+      }
     } finally {
       setAddingToCart(prev => ({ ...prev, [productId]: false }));
     }
@@ -1280,23 +1308,25 @@ const CategoryPage = () => {
                           <button 
                             className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md text-white hover:shadow-lg transform hover:scale-105 active:scale-95"
                             style={{
-                              background: addingToCart[product.p_code || product._id] 
+                              background: (addingToCart[product.p_code || product._id] || !storeEnabled)
                                 ? COLORS.gray[400]
                                 : `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
-                              cursor: addingToCart[product.p_code || product._id] ? 'not-allowed' : 'pointer'
+                              cursor: (addingToCart[product.p_code || product._id] || !storeEnabled) ? 'not-allowed' : 'pointer',
+                              opacity: (addingToCart[product.p_code || product._id] || !storeEnabled) ? 0.5 : 1
                             }}
                             onClick={(e) => {
                               e.stopPropagation(); // Prevent navigation when clicking the button
                               handleAddToCart(product);
                             }}
-                            disabled={addingToCart[product.p_code || product._id]}
+                            disabled={addingToCart[product.p_code || product._id] || !storeEnabled}
+                            title={!storeEnabled ? (getStoreMessage() || 'Store is not accepting orders') : 'Add to cart'}
                             onMouseEnter={(e) => {
-                              if (!addingToCart[product.p_code || product._id]) {
+                              if (!addingToCart[product.p_code || product._id] && storeEnabled) {
                                 e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
                               }
                             }}
                             onMouseLeave={(e) => {
-                              if (!addingToCart[product.p_code || product._id]) {
+                              if (!addingToCart[product.p_code || product._id] && storeEnabled) {
                                 e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
                               }
                             }}
@@ -1313,7 +1343,7 @@ const CategoryPage = () => {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
-                                <span>ADD</span>
+                                <span>{!storeEnabled ? 'UNAVAILABLE' : 'ADD'}</span>
                               </>
                             )}
                           </button>

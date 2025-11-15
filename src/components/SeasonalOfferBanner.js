@@ -253,12 +253,13 @@ const SeasonalOfferBanner = () => {
                                   onClick={() => handleCategoryClick(subcategory)}
                                 >
                                   {/* Category Card */}
-                                  <div className="w-24 sm:w-28 lg:w-32 bg-white rounded-xl overflow-hidden group border border-gray-200/50 category-card" style={{ 
+                                  <div className="w-24 sm:w-28 lg:w-32 bg-white rounded-xl overflow-hidden group border border-gray-200/50 category-card flex flex-col" style={{ 
                                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                                    transition: 'all 0.3s ease'
+                                    transition: 'all 0.3s ease',
+                                    height: 'auto'
                                   }}>
                                     {/* Category Image */}
-                                    <div className="w-full h-24 sm:h-28 lg:h-32 relative bg-gradient-to-br from-gray-100 to-gray-200">
+                                    <div className="w-full h-24 sm:h-28 lg:h-32 relative bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
                                       {categoryImage ? (
                                         <img
                                           src={categoryImage.startsWith('http') || categoryImage.startsWith('/') ? categoryImage : `${process.env.PUBLIC_URL}${categoryImage}`}
@@ -288,9 +289,9 @@ const SeasonalOfferBanner = () => {
                                       </div>
                                     </div>
                                     
-                                    {/* Category Name */}
-                                    <div className="p-2 bg-white">
-                                      <p className="text-gray-800 text-xs sm:text-sm font-semibold text-center leading-tight line-clamp-2">
+                                    {/* Category Name - Fixed height container */}
+                                    <div className="p-2 bg-white flex-shrink-0 h-12 sm:h-14 lg:h-16 flex items-center justify-center">
+                                      <p className="text-gray-800 text-xs sm:text-sm font-semibold text-center leading-tight line-clamp-2 w-full">
                                         {categoryName}
                                       </p>
                                     </div>

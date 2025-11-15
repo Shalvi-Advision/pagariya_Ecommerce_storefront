@@ -326,7 +326,7 @@ const HomePage = () => {
       </div> */}
 
       {/* Category Banner with Modern Design */}
-      <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
+      {/*<div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
         <div 
           className="absolute inset-0"
           style={{
@@ -350,7 +350,7 @@ const HomePage = () => {
             <CategoryBanner />
           </div>
         </div>
-      </div>
+      </div>*/}
 
       {/* DealsSection */}
       {/* <DealsSection /> */}
@@ -380,7 +380,7 @@ const HomePage = () => {
       {/* <FestiveSpecials /> */}
 
       {/* Offer Banner with Modern Gradient */}
-      <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
+      {/*<div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
         <div 
           className="absolute inset-0"
           style={{
@@ -404,7 +404,7 @@ const HomePage = () => {
             <OfferBanner />
           </div>
         </div>
-      </div>
+      </div>*/}
 
       {/* Seasonal Offer Banner with Elegant Design */}
       <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">

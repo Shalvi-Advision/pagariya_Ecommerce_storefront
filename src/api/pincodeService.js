@@ -1,5 +1,5 @@
-// API Base URL - Updated to use the new API structure
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://ecomretail.shalviadvision.com/api';
+// API Base URL - Use the same base URL as other API services
+import { API_BASE_URL } from '../constants';
 
 // Cache configuration for enabled pincodes
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -122,29 +122,49 @@ export const checkPincodeServiceability = async (pincode) => {
  */
 export const getPincodeStores = async (pincode) => {
   try {
-    console.log('🌐 Fetching stores for pincode:', pincode);
+    // Ensure pincode is a string and trim any whitespace
+    const pincodeValue = String(pincode).trim();
+    
+    console.log('🌐 Fetching stores for pincode:', pincodeValue);
+    console.log('🌐 Pincode type:', typeof pincodeValue);
     console.log('🌐 API URL:', `${API_BASE_URL}/stores/by-pincode`);
+    
+    const requestBody = { pincode: pincodeValue };
+    console.log('🌐 Request body:', JSON.stringify(requestBody));
     
     const response = await fetch(`${API_BASE_URL}/stores/by-pincode`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify({ pincode }),
+      body: JSON.stringify(requestBody),
     });
 
     console.log('🌐 Response status:', response.status);
     console.log('🌐 Response ok:', response.ok);
+    console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('🌐 Error response body:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     const data = await response.json();
     console.log('🌐 Raw API response:', data);
+    console.log('🌐 Response success:', data.success);
+    console.log('🌐 Response count:', data.count);
+    console.log('🌐 Response data length:', data.data?.length || 0);
+    
     return data;
   } catch (error) {
     console.error('❌ Error fetching pincode stores:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      pincode: pincode
+    });
     throw error;
   }
 };
@@ -215,6 +235,8 @@ export const formatStoreData = (storeData) => {
     contactNumber: storeData.contact?.phone,
     email: storeData.contact?.email,
     whatsappNumber: storeData.contact?.whatsapp,
-    isEnabled: isEnabled
+    isEnabled: isEnabled,
+    // Preserve original is_enabled value for compatibility
+    is_enabled: storeData.is_enabled
   };
 };

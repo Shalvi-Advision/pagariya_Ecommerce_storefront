@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import cartService from '../services/cartService';
-import { debounce, retryWithBackoff, isUserAuthenticated, getUserMobile } from '../utils/cartUtils';
+import { debounce, retryWithBackoff, isUserAuthenticated, getUserMobile, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
 
 // Cart Context
 const CartContext = createContext();
@@ -337,6 +337,15 @@ export const CartProvider = ({ children }) => {
 
   // Cart actions
   const addItem = useCallback(async (product, quantity = 1) => {
+    // Check if store is enabled before allowing cart additions
+    if (!isStoreEnabled()) {
+      const storeMessage = getStoreMessage();
+      const errorMessage = storeMessage || 'This store is currently not accepting online orders. Please try again later.';
+      const error = new Error(errorMessage);
+      error.code = 'STORE_DISABLED';
+      throw error;
+    }
+
     // Create cart item with proper structure
     const cartItem = {
       id: product.p_code || product.id,
@@ -403,6 +412,15 @@ export const CartProvider = ({ children }) => {
   }, []);
 
   const updateQuantity = useCallback((itemId, quantity) => {
+    // Check if store is enabled before allowing quantity updates
+    if (!isStoreEnabled()) {
+      const storeMessage = getStoreMessage();
+      const errorMessage = storeMessage || 'This store is currently not accepting online orders. Please try again later.';
+      const error = new Error(errorMessage);
+      error.code = 'STORE_DISABLED';
+      throw error;
+    }
+
     dispatch({
       type: cartActions.UPDATE_QUANTITY,
       payload: { id: itemId, quantity },

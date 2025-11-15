@@ -20,9 +20,9 @@ const Carousel = () => {
   // Image loading state (simplified)
   const [imageErrors, setImageErrors] = useState(new Set());
 
-  // Fetch banners on component mount - Always use local HeroCarouselBanners.jpg
+  // Fetch banners on component mount - Use API with section_name "home_top"
   useEffect(() => {
-    loadLocalBanners();
+    loadBanners();
   }, []);
 
   // Auto-advance slides every 4 seconds (increased for better UX)
@@ -68,14 +68,15 @@ const Carousel = () => {
     setLoading(false);
   }, []);
 
-  // Load banners from API
+  // Load banners from API with section_name "home_top"
   const loadBanners = async () => {
     try {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await getBanners();
+        // Fetch banners with section_name "home_top"
+        const response = await getBanners({ section_name: 'home_top' });
         
         console.log('📊 Banner API Response:', response);
         
@@ -315,28 +316,62 @@ const Carousel = () => {
                 backgroundColor: banner.banner_bg_color || '#f3f4f6'
               }}
             >
-              {/* Main Banner Image */}
-              <img
-                src={banner.banner_img}
-                alt={banner.alt_text || banner.title || `Banner ${index + 1}`}
-                className="w-full h-full object-cover object-center"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'center center',
-                  display: 'block'
-                }}
-                onLoad={() => {
-                  console.log('🖼️ Image loaded:', banner._id, banner.banner_img);
-                }}
-                onError={() => {
-                  console.log('❌ Image failed to load:', banner._id, banner.banner_img);
-                  handleImageError(banner._id);
-                }}
-              />
+              {/* Main Banner Image - Responsive */}
+              {(banner.banner_img_desktop || banner.banner_img_mobile) ? (
+                <picture>
+                  {/* Desktop image */}
+                  {banner.banner_img_desktop && (
+                    <source
+                      media="(min-width: 768px)"
+                      srcSet={banner.banner_img_desktop}
+                    />
+                  )}
+                  {/* Mobile image or fallback */}
+                  <img
+                    src={banner.banner_img_mobile || banner.banner_img_desktop || banner.banner_img}
+                    alt={banner.alt_text || banner.title || `Banner ${index + 1}`}
+                    className="w-full h-full object-cover object-center"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center center',
+                      display: 'block'
+                    }}
+                    onLoad={() => {
+                      console.log('🖼️ Image loaded:', banner._id, banner.banner_img);
+                    }}
+                    onError={() => {
+                      console.log('❌ Image failed to load:', banner._id, banner.banner_img);
+                      handleImageError(banner._id);
+                    }}
+                  />
+                </picture>
+              ) : (
+                <img
+                  src={banner.banner_img}
+                  alt={banner.alt_text || banner.title || `Banner ${index + 1}`}
+                  className="w-full h-full object-cover object-center"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center center',
+                    display: 'block'
+                  }}
+                  onLoad={() => {
+                    console.log('🖼️ Image loaded:', banner._id, banner.banner_img);
+                  }}
+                  onError={() => {
+                    console.log('❌ Image failed to load:', banner._id, banner.banner_img);
+                    handleImageError(banner._id);
+                  }}
+                />
+              )}
 
               {/* Banner content overlay (optional) */}
               {(banner.title || banner.description) && (

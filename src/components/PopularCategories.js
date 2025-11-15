@@ -127,7 +127,7 @@ const PopularCategories = () => {
       <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       
       <div className="relative container mx-auto px-4">
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl border border-white/60 hover:shadow-2xl transition-all duration-300">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md border border-white/60 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between mb-8">
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -141,7 +141,7 @@ const PopularCategories = () => {
               </h2>
               <p className="text-gray-600 text-sm sm:text-base"></p>
             </div>
-            <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+            <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
               <span>Fresh & Fast Delivery</span>
             </div>
@@ -165,15 +165,15 @@ const PopularCategories = () => {
                     <CategoryComponent
                       key={category.id || index}
                       {...categoryProps}
-                      className="flex-shrink-0 w-32 h-40 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100/50 shadow-lg hover:shadow-2xl hover:border-cyan-300 hover:scale-110 transition-all duration-300 cursor-pointer group"
+                      className="flex-shrink-0 w-32 h-56 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100/50 shadow hover:shadow-md hover:border-cyan-300 hover:scale-105 transition-all duration-300 cursor-pointer group overflow-hidden"
                     >
-                      <div className="flex flex-col items-center h-full pt-4">
-                        <div className={`w-24 h-24 flex-shrink-0 ${category.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-300 shadow-md relative overflow-hidden rounded-xl`}>
+                      <div className="flex flex-col items-center h-full pt-4 pb-2">
+                        <div className={`w-32 h-32 flex-shrink-0 ${category.color} flex items-center justify-center mb-3 transition-all duration-300 shadow-sm relative overflow-hidden rounded-xl`}>
                           {category.image_link ? (
                             <img 
                               src={category.image_link} 
                               alt={category.name}
-                              className="w-full h-full object-cover drop-shadow-lg group-hover:scale-110 transition-transform duration-300"
+                              className="w-full h-full object-cover drop-shadow group-hover:scale-105 transition-transform duration-300"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 const iconElement = e.target.parentElement.querySelector('.fallback-icon');
@@ -182,14 +182,14 @@ const PopularCategories = () => {
                             />
                           ) : null}
                           <div 
-                            className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 rounded-xl ${category.image_link ? 'hidden' : 'flex'}`}
+                            className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center transition-transform duration-300 rounded-xl ${category.image_link ? 'hidden' : 'flex'}`}
                           >
-                            <span className={`text-4xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
+                            <span className={`text-5xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
                               {category.icon}
                             </span>
                           </div>
                         </div>
-                        <span className="text-xs font-semibold text-gray-800 text-center leading-tight group-hover:text-cyan-600 transition-colors duration-200 px-1 line-clamp-2 min-h-[2.5rem] flex items-center">
+                        <span className="text-xs font-semibold text-gray-800 text-center leading-tight group-hover:text-cyan-600 transition-colors duration-200 px-2 line-clamp-2 flex items-center justify-center flex-1">
                           {category.name}
                         </span>
                       </div>
@@ -200,7 +200,7 @@ const PopularCategories = () => {
             )}
             
             {/* Enhanced Scroll Arrow with Gradient */}
-            <button className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full p-3 shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 group">
+            <button className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full p-3 shadow hover:shadow-md hover:scale-105 transition-all duration-200 group">
               <ChevronRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
             </button>
           </div>

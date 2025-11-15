@@ -32,6 +32,7 @@ import FavoritesPage from './pages/FavoritesPage';
 import AboutUsPage from './pages/AboutUsPage';
 import ContactUsPage from './pages/ContactUsPage';
 import BestsellerProductsPage from './pages/BestsellerProductsPage';
+import AdvertisementProductsPage from './pages/AdvertisementProductsPage';
 
 // Import components
 import Header from './components/Header';
@@ -146,6 +147,7 @@ function AppContent() {
                 <Route path="/test-category" element={<TestCategoryPage />} />
                 <Route path="/favorites" element={<FavoritesPage />} />
                 <Route path="/bestsellers/:sectionId" element={<BestsellerProductsPage />} />
+                <Route path="/advertisement/:adId" element={<AdvertisementProductsPage />} />
                 <Route path="/about" element={<AboutUsPage />} />
                 <Route path="/contact" element={<ContactUsPage />} />
                 <Route path="*" element={<NotFoundPage />} />

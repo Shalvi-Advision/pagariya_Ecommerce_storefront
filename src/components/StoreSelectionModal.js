@@ -1,16 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { MapPinIcon, ClockIcon, PhoneIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { usePincode } from '../context/PincodeContext';
+import { getPincodeStores, formatStoreData } from '../api/pincodeService';
 
 const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode, isRequired }) => {
-  // Get data from PincodeContext
-  const {
-    availableStores,
-    isLoadingStores,
-    storesError
-  } = usePincode();
+  // Local state for stores fetched directly from API
+  const [availableStores, setAvailableStores] = useState([]);
+  const [isLoadingStores, setIsLoadingStores] = useState(false);
+  const [storesError, setStoresError] = useState(null);
 
-  // Stores are loaded automatically by PincodeContext when pincode is selected
+  // Fetch stores dynamically when modal opens and pincode is available
+  useEffect(() => {
+    const fetchStores = async () => {
+      // Only fetch if modal is open and pincode is available
+      if (!isOpen) {
+        return;
+      }
+
+      // Handle different pincode formats
+      let pincodeValue = null;
+      if (typeof selectedPincode === 'string') {
+        pincodeValue = selectedPincode;
+      } else if (selectedPincode?.pincode) {
+        pincodeValue = selectedPincode.pincode;
+      } else {
+        console.warn('⚠️ StoreSelectionModal: No valid pincode found', selectedPincode);
+        return;
+      }
+
+      // Ensure pincode is a string and trim whitespace
+      pincodeValue = String(pincodeValue).trim();
+      
+      if (!pincodeValue) {
+        console.warn('⚠️ StoreSelectionModal: Empty pincode value');
+        return;
+      }
+
+      console.log('🔄 StoreSelectionModal: Fetching stores for pincode:', pincodeValue);
+      console.log('🔄 StoreSelectionModal: Selected pincode object:', selectedPincode);
+      console.log('🔄 StoreSelectionModal: Pincode type:', typeof pincodeValue);
+      console.log('🔄 StoreSelectionModal: Pincode value:', JSON.stringify(pincodeValue));
+      
+      setIsLoadingStores(true);
+      setStoresError(null);
+      setAvailableStores([]);
+
+      try {
+        // Fetch stores from API
+        const response = await getPincodeStores(pincodeValue);
+        console.log('📦 StoreSelectionModal: API Response:', response);
+        console.log('📦 StoreSelectionModal: Response success:', response.success);
+        console.log('📦 StoreSelectionModal: Response count:', response.count);
+        console.log('📦 StoreSelectionModal: Response data:', response.data);
+
+        if (response.success && response.data && response.data.length > 0) {
+          // Format all stores regardless of is_enabled status
+          const formattedStores = response.data.map(formatStoreData);
+          console.log('✅ StoreSelectionModal: Formatted stores (all stores, including disabled):', formattedStores);
+          console.log('✅ StoreSelectionModal: Total stores to display:', formattedStores.length);
+          
+          // Set all stores without filtering - show both enabled and disabled stores
+          setAvailableStores(formattedStores);
+        } else {
+          console.log('❌ StoreSelectionModal: No stores found or API error:', response);
+          setStoresError(response.message || 'No stores found for this pincode');
+          setAvailableStores([]);
+        }
+      } catch (error) {
+        console.error('❌ StoreSelectionModal: Error fetching stores:', error);
+        setStoresError('Failed to load stores. Please try again.');
+        setAvailableStores([]);
+      } finally {
+        setIsLoadingStores(false);
+      }
+    };
+
+    fetchStores();
+  }, [isOpen, selectedPincode]);
 
   const handleStoreSelect = (store) => {
     console.log('🏪 Store clicked in StoreSelectionModal:', store);
@@ -91,17 +156,34 @@ const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode, 
             </div>
           ) : (
             <div className="space-y-4">
-              {availableStores.map((store) => (
+              {availableStores.map((store) => {
+                // Check if store is disabled
+                const isDisabled = store.isEnabled === false || 
+                                  store.is_enabled === 'Disabled' || 
+                                  store.is_enabled === false;
+                
+                return (
                 <div
                   key={store._id}
                   onClick={() => handleStoreSelect(store)}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-green-500 hover:shadow-md transition-all cursor-pointer"
+                  className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                    isDisabled 
+                      ? 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:shadow-sm opacity-90' 
+                      : 'border-gray-200 hover:border-green-500 hover:shadow-md'
+                  }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">
-                        {store.storeName || store.store_name}
-                      </h4>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className={`font-semibold ${isDisabled ? 'text-gray-600' : 'text-gray-900'}`}>
+                          {store.storeName || store.store_name}
+                        </h4>
+                        {isDisabled && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded">
+                            Disabled
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 mb-2">
                         {store.storeAddress || store.address}
                       </p>
@@ -167,7 +249,8 @@ const StoreSelectionModal = ({ isOpen, onClose, onStoreSelect, selectedPincode, 
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

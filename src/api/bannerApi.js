@@ -3,6 +3,20 @@ import { APP_CONSTANTS } from '../constants';
 
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
+// Helper to get store_code from localStorage
+const getStoreCode = () => {
+  try {
+    const locationData = localStorage.getItem('confirmedLocation');
+    if (locationData) {
+      const location = JSON.parse(locationData);
+      return location?.store?.store_code || 'AVB';
+    }
+  } catch (error) {
+    console.error('Error getting store code:', error);
+  }
+  return 'AVB';
+};
+
 // Offline storage utilities for banners
 const DB_NAME = 'ShalviEcommerceDB';
 const BANNERS_STORE = 'banners';
@@ -96,46 +110,136 @@ const getCachedBannerData = async (cacheKey) => {
 };
 
 // Process banner data to ensure consistent format
-const processBannerData = (banner) => {
-  if (!banner || typeof banner !== 'object') return banner;
+// If banner has multiple assets, this processes a single asset
+const processBannerData = (banner, asset = null, assetIndex = 0) => {
+  if (!banner || typeof banner !== 'object') return null;
+
+  // Build redirect link from action
+  let redirect_link = '#';
+  if (banner.action) {
+    if (banner.action.type === 'category') {
+      redirect_link = `/category/${banner.action.value}`;
+    } else if (banner.action.type === 'product') {
+      redirect_link = `/product/${banner.action.value}`;
+    } else if (banner.action.type === 'url') {
+      redirect_link = banner.action.value;
+    }
+  }
+
+  // Determine image URL - prefer responsive images, fallback to image_url
+  let banner_img = banner.image_url || '/images/placeholder-banner.jpg';
+  let banner_img_mobile = null;
+  let banner_img_desktop = null;
+  
+  // If a specific asset is provided, use it
+  if (asset) {
+    banner_img_desktop = asset.desktop;
+    banner_img_mobile = asset.mobile;
+    // Default to desktop, fallback to mobile, then image_url
+    banner_img = asset.desktop || asset.mobile || banner_img;
+  } else if (banner.banner_assets && banner.banner_assets.length > 0) {
+    // Use the first banner asset if no specific asset provided
+    const firstAsset = banner.banner_assets[0];
+    banner_img_desktop = firstAsset.desktop;
+    banner_img_mobile = firstAsset.mobile;
+    // Default to desktop, fallback to mobile, then image_url
+    banner_img = firstAsset.desktop || firstAsset.mobile || banner_img;
+  } else if (banner.banner_urls && Object.keys(banner.banner_urls).length > 0) {
+    // Use banner_urls if available
+    const firstUrlKey = Object.keys(banner.banner_urls)[0];
+    const urlData = banner.banner_urls[firstUrlKey];
+    banner_img_desktop = urlData.desktop;
+    banner_img_mobile = urlData.mobile;
+    // Default to desktop, fallback to mobile, then image_url
+    banner_img = urlData.desktop || urlData.mobile || banner_img;
+  }
+
+  // Generate unique ID for each asset (if multiple assets exist)
+  const baseId = banner.id || banner._id || `banner_${Date.now()}`;
+  const uniqueId = asset ? `${baseId}_asset_${assetIndex}` : baseId;
 
   return {
-    _id: banner._id || banner.id || `banner_${Date.now()}_${Math.random()}`,
-    redirect_link: banner.redirect_link || '#',
-    banner_img: banner.banner_img || '/images/placeholder-banner.jpg',
-    is_active: banner.is_active === 'Enabled' || banner.is_active === true,
-    banner_type_id: banner.banner_type_id || 1,
-    sequence_id: banner.sequence_id || 0,
+    _id: uniqueId,
+    redirect_link,
+    banner_img,
+    banner_img_desktop: banner_img_desktop || banner_img,
+    banner_img_mobile: banner_img_mobile || banner_img,
+    is_active: banner.is_active === true || banner.is_active === 'Enabled',
+    banner_type_id: 1,
+    sequence_id: banner.sequence || banner.sequence_id || 0,
     store_code: banner.store_code || 'DEFAULT',
     banner_bg_color: banner.banner_bg_color || '#FFFFFF',
-    __v: banner.__v || 0,
     // Additional fields for carousel
     title: banner.title || '',
     description: banner.description || '',
-    alt_text: banner.alt_text || 'Banner image'
+    alt_text: asset?.key ? `${banner.title || 'Banner'} - ${asset.key}` : (banner.title || 'Banner image'),
+    // Store original banner data for reference
+    originalBanner: banner
   };
 };
 
 // Convert banner data from API response format
-const convertBannerData = (apiResponse) => {
+const convertBannerData = (apiResponse, sectionName = 'home_top') => {
   if (!apiResponse || !apiResponse.data) {
     return [];
   }
 
   const banners = [];
   
-  // Handle the nested structure where data contains numbered keys
-  Object.keys(apiResponse.data).forEach(key => {
-    if (Array.isArray(apiResponse.data[key])) {
-      banners.push(...apiResponse.data[key]);
+  // Handle the new response structure: data.banner_sections[]
+  if (apiResponse.data.banner_sections && Array.isArray(apiResponse.data.banner_sections)) {
+    // Find the section matching the requested section_name
+    const targetSection = apiResponse.data.banner_sections.find(
+      section => section.section_name === sectionName
+    );
+    
+    if (targetSection && targetSection.banners && Array.isArray(targetSection.banners)) {
+      banners.push(...targetSection.banners);
+    }
+  }
+
+  // Filter by is_active: true and sort by sequence
+  const activeBanners = banners
+    .filter(banner => banner.is_active === true)
+    .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+
+  // Process banners - if a banner has multiple assets, create multiple processed banners
+  const processedBanners = [];
+  
+  activeBanners.forEach((banner) => {
+    // Check if banner has multiple banner_assets
+    if (banner.banner_assets && banner.banner_assets.length > 0) {
+      // Create one processed banner for each asset
+      banner.banner_assets.forEach((asset, assetIndex) => {
+        const processedBanner = processBannerData(banner, asset, assetIndex);
+        if (processedBanner) {
+          processedBanners.push(processedBanner);
+        }
+      });
+    } else if (banner.banner_urls && Object.keys(banner.banner_urls).length > 0) {
+      // Handle banner_urls - create one processed banner for each URL
+      Object.keys(banner.banner_urls).forEach((urlKey, urlIndex) => {
+        const urlData = banner.banner_urls[urlKey];
+        const asset = {
+          desktop: urlData.desktop,
+          mobile: urlData.mobile,
+          key: urlKey
+        };
+        const processedBanner = processBannerData(banner, asset, urlIndex);
+        if (processedBanner) {
+          processedBanners.push(processedBanner);
+        }
+      });
+    } else {
+      // No multiple assets, process normally
+      const processedBanner = processBannerData(banner);
+      if (processedBanner) {
+        processedBanners.push(processedBanner);
+      }
     }
   });
 
-  // Sort by sequence_id for proper order
-  return banners
-    .filter(banner => banner.is_active === 'Enabled' || banner.is_active === true)
-    .sort((a, b) => (a.sequence_id || 0) - (b.sequence_id || 0))
-    .map(processBannerData);
+  return processedBanners;
 };
 
 // Fallback banner data for offline mode
@@ -232,32 +336,32 @@ const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
 /**
  * Fetch banners from API with offline caching support
  * @param {Object} params - Query parameters
- * @param {string} params.store_code - Store code (default: from env or "KLK")
- * @param {string} params.project_code - Project code (default: from env or "RET90")
+ * @param {string} params.store_code - Store code (default: from localStorage or "AVB")
+ * @param {string} params.section_name - Section name (default: "home_top")
  * @returns {Promise<Object>} - API response with banners
  */
 export const getBanners = async (params = {}) => {
   try {
     const {
-      store_code = process.env.REACT_APP_STORE_CODE || "KLK",
-      project_code = process.env.REACT_APP_PROJECT_CODE || "RET90"
+      store_code = getStoreCode(),
+      section_name = 'home_top'
     } = params;
 
-    const url = `${API_BASE_URL}/banners/get_all_banners`;
+    const url = `${API_BASE_URL}/banners`;
     console.log('🔗 Full API URL:', url);
-    console.log('🔑 Using credentials:', { store_code, project_code });
-    const cacheKey = `banners_${store_code}_${project_code}`;
+    console.log('🔑 Using credentials:', { store_code, section_name });
+    const cacheKey = `banners_${store_code}_${section_name}`;
 
     // If online, try to fetch from network first
     if (isOnline()) {
       try {
         const requestBody = {
           store_code,
-          project_code
+          section_name
         };
 
         console.log('🌐 Fetching banners from API:', { url, requestBody });
-        console.log('📡 API Endpoint: /banners/get_all_banners');
+        console.log('📡 API Endpoint: /api/banners');
         console.log('🌐 Request headers:', {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -320,7 +424,7 @@ export const getBanners = async (params = {}) => {
         }
 
         // Process and convert banner data
-        const processedBanners = convertBannerData(data);
+        const processedBanners = convertBannerData(data, section_name);
         console.log('✅ Processed banners:', processedBanners.length, 'banners');
 
         const processedData = {
