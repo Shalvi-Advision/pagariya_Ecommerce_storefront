@@ -296,19 +296,6 @@ const SeasonalOfferBanner = () => {
                         </div>
                       ) : null}
 
-                      {/* Scroll Indicators - Gradient edges */}
-                      {!loading && sortedSubcategories.length > 0 && (
-                        <>
-                          <div 
-                            className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r to-transparent pointer-events-none"
-                            style={{ background: `linear-gradient(to right, ${bgColorRgb25}, transparent)` }}
-                          ></div>
-                          <div 
-                            className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l to-transparent pointer-events-none"
-                            style={{ background: `linear-gradient(to left, ${bgColorRgb25}, transparent)` }}
-                          ></div>
-                        </>
-                      )}
                     </div>
                   </div>
                 </div>

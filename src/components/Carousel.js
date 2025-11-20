@@ -373,17 +373,17 @@ const Carousel = () => {
                 />
               )}
 
-              {/* Banner content overlay (optional) */}
+              {/* Banner content overlay (optional) - Removed dark overlay for brighter banners */}
               {(banner.title || banner.description) && (
-                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-                  <div className="text-center text-white p-4">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white p-4 drop-shadow-lg">
                     {banner.title && (
-                      <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">
+                      <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 drop-shadow-md">
                         {banner.title}
                       </h3>
                     )}
                     {banner.description && (
-                      <p className="text-sm sm:text-base opacity-90">
+                      <p className="text-sm sm:text-base drop-shadow-md">
                         {banner.description}
                       </p>
                     )}

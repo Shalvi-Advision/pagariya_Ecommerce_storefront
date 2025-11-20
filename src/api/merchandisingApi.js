@@ -232,6 +232,66 @@ const getFallbackBestSellers = () => {
   };
 };
 
+// Fallback data for top sellers
+const getFallbackTopSellers = () => {
+  return {
+    success: true,
+    count: 1,
+    message: 'Using fallback top seller data',
+    data: [
+      {
+        _id: 'fallback_ts_1',
+        title: 'Top Sellers This Week',
+        bg_color: '#FFFFFF',
+        products: [
+          {
+            p_code: 'TS001',
+            position: 1,
+            product_details: {
+              p_code: 'TS001',
+              product_name: 'Ind Chska Kas Methi Mas 25gm',
+              our_price: 24,
+              product_mrp: 30,
+              pcode_img: '/images/logo.jpg',
+              store_quantity: 128,
+              package_size: '25',
+              package_unit: 'GM',
+              brand_name: 'Indian-chaska',
+              discount_percentage: 20,
+              dept_id: '2',
+              category_id: '72',
+              sub_category_id: '391'
+            }
+          },
+          {
+            p_code: 'TS002',
+            position: 2,
+            product_details: {
+              p_code: 'TS002',
+              product_name: 'Ind Chska Kanda Las Mas 500gm',
+              our_price: 150,
+              product_mrp: 175,
+              pcode_img: '/images/logo.jpg',
+              store_quantity: 85,
+              package_size: '500',
+              package_unit: 'GM',
+              brand_name: 'Indian-chaska',
+              discount_percentage: 14,
+              dept_id: '2',
+              category_id: '72',
+              sub_category_id: '391'
+            }
+          }
+        ],
+        is_active: true,
+        sequence: 1
+      }
+    ],
+    isOffline: true,
+    isFallback: true
+  };
+};
+
 // Fallback data for popular categories
 const getFallbackPopularCategories = () => {
   return {
@@ -477,6 +537,110 @@ export const getBestSellers = async (params = {}) => {
   } catch (error) {
     console.error('❌ Error fetching best sellers:', error);
     return getFallbackBestSellers();
+  }
+};
+
+/**
+ * Fetch top seller sections from API
+ * @param {Object} params - Query parameters
+ * @param {string} params.store_code - Store code (default: from env or "AVB")
+ * @returns {Promise<Object>} - API response with top seller sections
+ */
+export const getTopSellers = async (params = {}) => {
+  try {
+    const {
+      store_code = 'AVB'
+    } = params;
+
+    const url = `${API_BASE_URL}/top-sellers/list`;
+    const cacheKey = `top_sellers_${store_code}`;
+
+    // Prepare request body
+    const requestBody = {
+      store_code,
+      enrich_products: true
+    };
+
+    console.log('🔗 Fetching top sellers from:', url);
+    console.log('📦 Request body:', requestBody);
+
+    // If online, try to fetch from network first
+    if (isOnline()) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        console.log('📥 Top sellers response:', {
+          status: response.status,
+          ok: response.ok
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Top sellers API response received');
+
+        if (!data.success || !data.data) {
+          console.warn('⚠️ Invalid top sellers response, using fallback');
+          return getFallbackTopSellers();
+        }
+
+        // Process products in each section
+        const processedData = {
+          ...data,
+          data: data.data.map(section => ({
+            ...section,
+            products: section.products?.map(product => ({
+              ...product,
+              product_details: processProductData(product.product_details)
+            })) || []
+          })),
+          isOffline: false,
+          isFallback: false
+        };
+
+        // Cache the response
+        await cacheMerchandisingData(cacheKey, processedData);
+
+        return processedData;
+      } catch (networkError) {
+        console.warn('Network request failed for top sellers, trying cache:', networkError);
+
+        // Try to get from cache
+        const cachedData = await getCachedMerchandisingData(cacheKey);
+        if (cachedData) {
+          console.log('✅ Serving top sellers from cache');
+          return { ...cachedData, isOffline: true };
+        }
+
+        // Use fallback data
+        console.log('⚠️ No cache available, using fallback top sellers');
+        return getFallbackTopSellers();
+      }
+    } else {
+      // Offline mode - try cache
+      console.log('Offline mode: Attempting to load top sellers from cache');
+      const cachedData = await getCachedMerchandisingData(cacheKey);
+
+      if (cachedData) {
+        console.log('Serving top sellers from cache (offline mode)');
+        return { ...cachedData, isOffline: true };
+      } else {
+        console.log('No cache available in offline mode, using fallback');
+        return getFallbackTopSellers();
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error fetching top sellers:', error);
+    return getFallbackTopSellers();
   }
 };
 
@@ -801,6 +965,7 @@ export const getSeasonalCategories = async (params = {}) => {
 
 export default {
   getBestSellers,
+  getTopSellers,
   getPopularCategories,
   getAdvertisements,
   getSeasonalCategories

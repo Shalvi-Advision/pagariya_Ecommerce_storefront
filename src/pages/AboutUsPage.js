@@ -13,7 +13,7 @@ const AboutUsPage = () => {
   ];
 
   return (
-    <div className="bg-gray-100 min-h-screen py-6">
+    <div className="bg-white min-h-screen py-6">
       <div className="w-full flex flex-col items-center">
         {images.map((image, index) => (
           <img

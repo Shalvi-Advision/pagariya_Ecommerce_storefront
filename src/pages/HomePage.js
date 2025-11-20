@@ -16,6 +16,7 @@ import FestiveSpecials from '../components/FestiveSpecials';
 import OfferBanner from '../components/OfferBanner';
 import SeasonalOfferBanner from '../components/SeasonalOfferBanner';
 import BestsellerProducts from '../components/BestsellerProducts';
+import TopSellerProducts from '../components/TopSellerProducts';
 import AdvertisementCarousel from '../components/AdvertisementCarousel';
 import FamousCategories from '../components/FamousCategories';
 import ProductCard from '../components/ProductCard';
@@ -360,6 +361,9 @@ const HomePage = () => {
 
       {/* Bestseller Products */}
       <BestsellerProducts />
+
+      {/* Top Seller Products */}
+      <TopSellerProducts />
 
       {/* Famous Categories */}
       <FamousCategories />

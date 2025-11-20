@@ -1,50 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BestsellerProductCard from './BestsellerProductCard';
-import { getBestSellers } from '../api/merchandisingApi';
+import { getTopSellers } from '../api/merchandisingApi';
 
-const BestsellerProducts = () => {
+const TopSellerProducts = () => {
   const navigate = useNavigate();
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [storeCode, setStoreCode] = useState(null);
 
-  console.log('🎬 BestsellerProducts: Component mounted/rendered');
+  console.log('🎬 TopSellerProducts: Component mounted/rendered');
 
   // Helper function to get store code
   const getStoreCode = () => {
-    console.log('🔍 BestsellerProducts: Getting store code from localStorage');
+    console.log('🔍 TopSellerProducts: Getting store code from localStorage');
     const locationData = localStorage.getItem('confirmedLocation');
-    console.log('📦 BestsellerProducts: Raw localStorage data:', locationData);
+    console.log('📦 TopSellerProducts: Raw localStorage data:', locationData);
 
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        console.log('📍 BestsellerProducts: Parsed location:', location);
+        console.log('📍 TopSellerProducts: Parsed location:', location);
 
         // Check both field names: store_code and storeCode
         const code = location?.store?.store_code || location?.store?.storeCode || null;
 
-        console.log('🏪 BestsellerProducts: Store object:', location?.store);
-        console.log('🏪 BestsellerProducts: Extracted store_code:', code);
+        console.log('🏪 TopSellerProducts: Store object:', location?.store);
+        console.log('🏪 TopSellerProducts: Extracted store_code:', code);
         return code;
       } catch (error) {
-        console.error('❌ BestsellerProducts: Failed to parse location data:', error);
+        console.error('❌ TopSellerProducts: Failed to parse location data:', error);
       }
     } else {
-      console.warn('⚠️ BestsellerProducts: No confirmedLocation in localStorage');
+      console.warn('⚠️ TopSellerProducts: No confirmedLocation in localStorage');
     }
     return null;
   };
 
   // Initialize and listen for store code changes
   useEffect(() => {
-    console.log('🔄 BestsellerProducts: Store code initialization useEffect fired');
+    console.log('🔄 TopSellerProducts: Store code initialization useEffect fired');
 
     const updateStoreCode = () => {
-      console.log('🔄 BestsellerProducts: Updating store code...');
+      console.log('🔄 TopSellerProducts: Updating store code...');
       const code = getStoreCode();
-      console.log('✅ BestsellerProducts: Setting storeCode state to:', code);
+      console.log('✅ TopSellerProducts: Setting storeCode state to:', code);
       setStoreCode(code);
     };
 
@@ -53,7 +53,7 @@ const BestsellerProducts = () => {
 
     // Listen for storage changes (when store code is updated)
     const handleStorageChange = (e) => {
-      console.log('📡 BestsellerProducts: Storage change event:', e.key);
+      console.log('📡 TopSellerProducts: Storage change event:', e.key);
       if (e.key === 'confirmedLocation' || e.key === null) {
         updateStoreCode();
       }
@@ -63,50 +63,46 @@ const BestsellerProducts = () => {
 
     // Custom event listener for same-tab updates
     const handleLocationUpdate = () => {
-      console.log('📡 BestsellerProducts: locationUpdated event received');
+      console.log('📡 TopSellerProducts: locationUpdated event received');
       updateStoreCode();
     };
     window.addEventListener('locationUpdated', handleLocationUpdate);
 
     return () => {
-      console.log('🧹 BestsellerProducts: Cleaning up event listeners');
+      console.log('🧹 TopSellerProducts: Cleaning up event listeners');
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('locationUpdated', handleLocationUpdate);
     };
   }, []);
 
   useEffect(() => {
-    console.log('🔄 BestsellerProducts: Fetch useEffect fired, storeCode:', storeCode);
+    console.log('🔄 TopSellerProducts: Fetch useEffect fired, storeCode:', storeCode);
 
     // Only fetch if we have a store code
     if (!storeCode) {
-      console.warn('⏳ BestsellerProducts: Waiting for store code to be set... (storeCode is null/undefined)');
+      console.warn('⏳ TopSellerProducts: Waiting for store code to be set... (storeCode is null/undefined)');
       setLoading(false);
       return;
     }
 
-    const fetchBestSellers = async () => {
+    const fetchTopSellers = async () => {
       try {
         setLoading(true);
-        console.log(`🚀 BestsellerProducts: Starting fetch for store code: ${storeCode}`);
-        const response = await getBestSellers({ store_code: storeCode });
-        console.log('📥 BestsellerProducts: API response received:', response);
+        console.log(`🚀 TopSellerProducts: Starting fetch for store code: ${storeCode}`);
+        const response = await getTopSellers({ store_code: storeCode });
+        console.log('📥 TopSellerProducts: API response received:', response);
 
         if (response.success && response.data && response.data.length > 0) {
           // Sort sections by sequence
           const sortedSections = response.data.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
 
-          console.log(`✅ BestsellerProducts: Found ${sortedSections.length} section(s), rendering in sequence order`);
+          console.log(`✅ TopSellerProducts: Found ${sortedSections.length} section(s), rendering in sequence order`);
 
           // Process each section
           const processedSections = sortedSections.map(section => {
-            // Determine banner image
-            const bannerImage = section.banner_urls?.desktop ||
-                               section.banner_urls?.mobile ||
-                               '/images/seasonal_banner.jpg';
-
-            // Extract background color from API (with fallback)
-            const backgroundColor = section.background_color || 
+            // Extract background color from API (use bg_color field)
+            const backgroundColor = section.bg_color || 
+                                   section.background_color || 
                                    section.backgroundColor || 
                                    '#F472B6'; // Default pink color
 
@@ -132,7 +128,6 @@ const BestsellerProducts = () => {
 
             return {
               ...section,
-              bannerImage,
               backgroundColor,
               productsList
             };
@@ -143,14 +138,14 @@ const BestsellerProducts = () => {
           setSections([]);
         }
       } catch (error) {
-        console.error('Error fetching best sellers:', error);
+        console.error('Error fetching top sellers:', error);
         setSections([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBestSellers();
+    fetchTopSellers();
   }, [storeCode]);
 
   // Don't render if no sections
@@ -188,9 +183,6 @@ const BestsellerProducts = () => {
           const rgb = hexToRgb(bgColor);
           const bgColorRgb = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)` : bgColor;
           const bgColorRgb25 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)` : bgColor;
-          const bgColorRgb90 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.9)` : bgColor;
-          const bgColorRgb95 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.95)` : bgColor;
-          const bgColorRgb70 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)` : bgColor;
           const bgColorRgb98 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.98)` : bgColor;
 
           return (
@@ -205,55 +197,12 @@ const BestsellerProducts = () => {
 
                 {/* Content wrapper */}
                 <div className="relative">
-              {/* Promotional Banner at the top - Seamlessly integrated */}
-              <div className="relative w-full">
-                <div 
-                  className="relative w-full h-[200px] sm:h-[240px] lg:h-[280px] xl:h-[320px] overflow-hidden cursor-pointer group" 
-                  style={{ borderRadius: '1rem 1rem 0 0' }}
-                  onClick={() => {
-                    const sectionId = section._id || section.id;
-                    if (sectionId) {
-                      console.log(`🔗 BestsellerProducts: Navigating to section ${sectionId}`);
-                      navigate(`/bestsellers/${sectionId}`);
-                    }
-                  }}
-                >
-                  <img
-                    src={section.bannerImage.startsWith('http') ? section.bannerImage : `${process.env.PUBLIC_URL}${section.bannerImage}`}
-                    alt={section.title || 'Bestseller Products Banner'}
-                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      objectPosition: 'center center',
-                      display: 'block'
-                    }}
-                    onLoad={() => {
-                      console.log(`🖼️ Bestseller Banner ${sectionIndex + 1} image loaded successfully`);
-                    }}
-                    onError={() => {
-                      console.log(`❌ Bestseller Banner ${sectionIndex + 1} image failed to load`);
-                    }}
-                  />
-                  {/* Click indicator */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                      <span className="text-white font-semibold text-sm sm:text-base">View All Products</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Products section - Perfectly merged with banner */}
+              {/* Products section - No banner, directly showing products */}
               <div
                 className="relative w-full pt-0 pb-0"
                 style={{
                   background: `linear-gradient(to bottom, ${bgColor}, ${bgColorRgb98}, ${bgColorRgb98})`,
-                  marginTop: '-1px',
-                  borderRadius: '0 0 1rem 1rem',
+                  borderRadius: '1rem',
                   boxShadow: rgb ? `0 20px 25px -5px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15), 0 10px 10px -5px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)'
                 }}
               >
@@ -333,5 +282,5 @@ const BestsellerProducts = () => {
   );
 };
 
-export default BestsellerProducts;
+export default TopSellerProducts;
 
