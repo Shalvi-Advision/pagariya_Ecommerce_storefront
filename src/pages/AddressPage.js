@@ -49,7 +49,7 @@ const AddressPage = () => {
     }
   }, [confirmedLocation, getCurrentPincode]);
 
-  // Auto-hide success message after 3 seconds
+  
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
