@@ -116,37 +116,35 @@ const SeasonalOfferBanner = () => {
   };
 
   return (
-    <div className="relative py-3 sm:py-4 lg:py-5" style={{ backgroundColor: 'transparent' }}>
-      {/* Container to constrain the background color from API */}
-      <div className="container mx-auto px-2 sm:px-4 lg:px-6">
-        {/* Render each section */}
-        {sections.map((section, sectionIndex) => {
-          const backgroundColor = section.background_color || '#FFFFFF';
-          const rgb = hexToRgb(backgroundColor);
-          const bgColorRgb = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)` : backgroundColor;
-          const bgColorRgb25 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)` : backgroundColor;
-          const bgColorRgb90 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.9)` : backgroundColor;
-          const bgColorRgb70 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)` : backgroundColor;
-          const bgColorRgb98 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.98)` : backgroundColor;
-          
-          // Sort subcategories by position if available
-          const sortedSubcategories = section.subcategories 
-            ? [...section.subcategories].sort((a, b) => (a.position || 0) - (b.position || 0))
-            : [];
+    <div className="relative" style={{ backgroundColor: 'transparent' }}>
+      {/* Render each section */}
+      {sections.map((section, sectionIndex) => {
+        const backgroundColor = section.background_color || '#FFFFFF';
+        const rgb = hexToRgb(backgroundColor);
+        const bgColorRgb = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)` : backgroundColor;
+        const bgColorRgb25 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)` : backgroundColor;
+        const bgColorRgb90 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.9)` : backgroundColor;
+        const bgColorRgb70 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)` : backgroundColor;
+        const bgColorRgb98 = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.98)` : backgroundColor;
+        
+        // Sort subcategories by position if available
+        const sortedSubcategories = section.subcategories 
+          ? [...section.subcategories].sort((a, b) => (a.position || 0) - (b.position || 0))
+          : [];
 
-          const bannerImage = getBannerImage(section);
-          const sectionTitle = section.title || 'Seasonal Categories';
-          const sectionDescription = section.description || null;
+        const bannerImage = getBannerImage(section);
+        const sectionTitle = section.title || 'Seasonal Categories';
+        const sectionDescription = section.description || null;
 
-          return (
-            <div 
-              key={section._id || sectionIndex} 
-              className={`relative overflow-hidden rounded-2xl ${sectionIndex > 0 ? 'mt-6' : ''}`} 
-              style={{ backgroundColor: bgColorRgb }}
-            >
-              {/* Dynamic Background with Animated Gradients */}
-              <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full blur-3xl -translate-y-1/4 animate-pulse pointer-events-none" style={{ backgroundColor: bgColorRgb25 }}></div>
-              <div className="absolute bottom-0 left-1/4 w-96 h-96 rounded-full blur-3xl translate-y-1/4 animate-pulse pointer-events-none" style={{ backgroundColor: bgColorRgb25, animationDelay: '1s' }}></div>
+        return (
+          <div 
+            key={section._id || sectionIndex} 
+            className={`relative overflow-hidden rounded-2xl ${sectionIndex > 0 ? 'mt-4 sm:mt-6' : ''}`} 
+            style={{ backgroundColor: bgColorRgb }}
+          >
+            {/* Dynamic Background with Animated Gradients - Responsive sizes */}
+            <div className="absolute top-0 right-1/4 w-48 h-48 sm:w-64 sm:h-64 lg:w-96 lg:h-96 rounded-full blur-2xl sm:blur-3xl -translate-y-1/4 animate-pulse pointer-events-none" style={{ backgroundColor: bgColorRgb25 }}></div>
+            <div className="absolute bottom-0 left-1/4 w-48 h-48 sm:w-64 sm:h-64 lg:w-96 lg:h-96 rounded-full blur-2xl sm:blur-3xl translate-y-1/4 animate-pulse pointer-events-none" style={{ backgroundColor: bgColorRgb25, animationDelay: '1s' }}></div>
 
               {/* Content wrapper */}
               <div className="relative">
@@ -154,7 +152,7 @@ const SeasonalOfferBanner = () => {
                 {bannerImage && (
                   <div className="relative w-full">
                     <div 
-                      className="relative w-full h-[1600px] sm:h-[180px] lg:h-[240px] xl:h-[320px] overflow-hidden cursor-pointer group" 
+                      className="relative w-full h-[120px] sm:h-[180px] lg:h-[240px] xl:h-[320px] overflow-hidden cursor-pointer group" 
                       style={{ borderRadius: '1rem 1rem 0 0' }}
                       onClick={() => handleSeasonalBannerClick(section)}
                     >
@@ -180,8 +178,8 @@ const SeasonalOfferBanner = () => {
                       />
                       {/* Click indicator */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                          <span className="text-white font-semibold text-sm sm:text-base">View Seasonal Offers</span>
+                        <div className="bg-white/20 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
+                          <span className="text-white font-semibold text-xs sm:text-sm lg:text-base">View Seasonal Offers</span>
                         </div>
                       </div>
                     </div>
@@ -199,8 +197,8 @@ const SeasonalOfferBanner = () => {
                   }}
                 >
                   {/* Section Title */}
-                  <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2">
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
+                  <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pt-3 sm:pt-4 pb-2">
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-1">
                       {sectionTitle}
                     </h2>
                     {sectionDescription && (
@@ -211,25 +209,25 @@ const SeasonalOfferBanner = () => {
                   </div>
 
                   {/* Horizontal Scrollable Categories with Enhanced Spacing */}
-                  <div className="p-3 sm:p-4 lg:p-5">
+                  <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-3 sm:pb-4 lg:pb-5">
                     <div className="relative">
                       {loading ? (
                         // Loading state
-                        <div className="flex gap-3 sm:gap-4 lg:gap-5 overflow-x-auto scrollbar-hide">
+                        <div className="flex gap-2 sm:gap-3 lg:gap-4 xl:gap-5 overflow-x-auto scrollbar-hide">
                           {Array.from({ length: 8 }).map((_, index) => (
-                            <div key={index} className="flex-shrink-0 w-24 sm:w-28 lg:w-32 bg-white rounded-xl overflow-hidden animate-pulse border border-gray-200/50" style={{ 
+                            <div key={index} className="flex-shrink-0 w-20 sm:w-24 lg:w-28 xl:w-32 bg-white rounded-xl overflow-hidden animate-pulse border border-gray-200/50" style={{ 
                               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)'
                             }}>
-                              <div className="w-full h-24 sm:h-28 lg:h-32 bg-gray-200"></div>
-                              <div className="p-2 bg-gray-300">
-                                <div className="h-3 bg-gray-400 rounded"></div>
+                              <div className="w-full h-20 sm:h-24 lg:h-28 xl:h-32 bg-gray-200"></div>
+                              <div className="p-1.5 sm:p-2 bg-gray-300">
+                                <div className="h-2.5 sm:h-3 bg-gray-400 rounded"></div>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : sortedSubcategories.length > 0 ? (
                         <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                          <div className="flex gap-3 sm:gap-4 lg:gap-5" style={{ width: 'max-content' }}>
+                          <div className="flex gap-2 sm:gap-3 lg:gap-4 xl:gap-5" style={{ width: 'max-content' }}>
                             {sortedSubcategories.map((subcategory, index) => {
                               const categoryImage = getCategoryImage(subcategory);
                               const categoryName = getCategoryName(subcategory);
@@ -246,13 +244,13 @@ const SeasonalOfferBanner = () => {
                                   onClick={() => handleCategoryClick(subcategory)}
                                 >
                                   {/* Category Card */}
-                                  <div className="w-24 sm:w-28 lg:w-32 bg-white rounded-xl overflow-hidden group border border-gray-200/50 category-card flex flex-col" style={{ 
+                                  <div className="w-20 sm:w-24 lg:w-28 xl:w-32 bg-white rounded-xl overflow-hidden group border border-gray-200/50 category-card flex flex-col" style={{ 
                                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)',
                                     transition: 'all 0.3s ease',
                                     height: 'auto'
                                   }}>
                                     {/* Category Image */}
-                                    <div className="w-full h-24 sm:h-28 lg:h-32 relative bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
+                                    <div className="w-full h-20 sm:h-24 lg:h-28 xl:h-32 relative bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
                                       {categoryImage ? (
                                         <img
                                           src={categoryImage.startsWith('http') || categoryImage.startsWith('/') ? categoryImage : `${process.env.PUBLIC_URL}${categoryImage}`}
@@ -274,8 +272,8 @@ const SeasonalOfferBanner = () => {
                                       <div 
                                         className={`w-full h-full flex items-center justify-center absolute ${categoryImage ? 'hidden' : 'flex'}`}
                                       >
-                                        <div className="w-16 h-16 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full flex items-center justify-center shadow-md">
-                                          <span className="text-white text-lg font-bold">
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full flex items-center justify-center shadow-md">
+                                          <span className="text-white text-sm sm:text-base lg:text-lg font-bold">
                                             {index + 1}
                                           </span>
                                         </div>
@@ -283,8 +281,8 @@ const SeasonalOfferBanner = () => {
                                     </div>
                                     
                                     {/* Category Name - Fixed height container */}
-                                    <div className="p-2 bg-white flex-shrink-0 h-12 sm:h-14 lg:h-16 flex items-center justify-center">
-                                      <p className="text-gray-800 text-xs sm:text-sm font-semibold text-center leading-tight line-clamp-2 w-full">
+                                    <div className="p-1.5 sm:p-2 bg-white flex-shrink-0 min-h-[2.5rem] sm:min-h-[3rem] lg:min-h-[3.5rem] xl:min-h-[4rem] flex items-center justify-center">
+                                      <p className="text-gray-800 text-[10px] sm:text-xs lg:text-sm font-semibold text-center leading-tight line-clamp-2 w-full px-1">
                                         {categoryName}
                                       </p>
                                     </div>
@@ -303,7 +301,6 @@ const SeasonalOfferBanner = () => {
             </div>
           );
         })}
-      </div>
 
       {/* Hide scrollbar and animations */}
       <style jsx>{`

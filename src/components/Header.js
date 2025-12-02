@@ -310,19 +310,20 @@ const Header = () => {
         borderBottom: `1px solid ${COLORS.gray[200]}`
       }}
     >
-      {/* Top bar */}
-      <div className="container mx-auto px-2 sm:px-4">
-        <div className="flex items-center justify-between py-2 sm:py-3 gap-2 sm:gap-4">
-          {/* Left: Logo + Location */}
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-shrink-0">
-            <Link to="/" className="flex items-center">
+      {/* Mobile Layout */}
+      <div className="lg:hidden">
+        {/* Top Row: Logo, Location, Profile */}
+        <div className="w-full px-1 sm:px-2">
+          <div className="flex items-center gap-1.5 py-2">
+            {/* Logo */}
+            <Link to="/" className="flex items-center flex-shrink-0">
               <img
                 src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg`}
                 alt="Pagariya Mart"
-                className="h-10 sm:h-10 lg:h-14 w-auto object-contain"
+                className="h-10 w-auto object-contain"
                 style={{
                   maxHeight: '50px',
-                  maxWidth: '250px',
+                  maxWidth: '150px',
                   display: 'block'
                 }}
                 onLoad={() => {
@@ -333,405 +334,37 @@ const Header = () => {
                 }}
               />
             </Link>
-            {/* About Us Button */}
-            <Link
-              to="/about"
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors text-sm font-medium"
+
+            {/* Location */}
+            <button
+              onClick={openPincodeModal}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors flex-1 min-w-0"
               style={{
                 borderColor: COLORS.gray[200],
                 color: COLORS.gray[700]
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = COLORS.primary[300];
-                e.currentTarget.style.color = COLORS.primary[600];
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = COLORS.gray[200];
-                e.currentTarget.style.color = COLORS.gray[700];
               }}
-              aria-label="About Us"
             >
-              <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
-              <span>About Us</span>
-            </Link>
-            {/* Mobile About Us Icon */}
-            <Link
-              to="/about"
-              className="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border transition-colors"
-              style={{
-                borderColor: COLORS.gray[200],
-                color: COLORS.gray[700]
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = COLORS.primary[300];
-                e.currentTarget.style.color = COLORS.primary[600];
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = COLORS.gray[200];
-                e.currentTarget.style.color = COLORS.gray[700];
-              }}
-              aria-label="About Us"
-              title="About Us"
-            >
-              <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
-            </Link>
-            {/* Desktop Location Button */}
-            <div className="hidden lg:block">
-              <button 
-                onClick={openPincodeModal}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors"
-                style={{
-                  borderColor: COLORS.gray[200],
-                  color: COLORS.gray[700]
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = COLORS.primary[300];
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = COLORS.gray[200];
-                }}
-              >
-                <MapPinIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
-                <span className="text-sm font-medium">
-                  {isLocationSet ? getLocationDisplayText() : 'Select Location'}
-                </span>
-                <ChevronDownIcon style={{ color: COLORS.gray[500] }} className="w-4 h-4" />
-                {isLocationSet && getStoreDisplayText() && (
-                  <span className="ml-1 text-xs" style={{ color: COLORS.gray[500] }}>
-                    {getStoreDisplayText()}
-                  </span>
+              <MapPinIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-medium truncate min-w-0">
+                {isLocationSet ? (
+                  <>
+                    {getLocationDisplayText()}
+                    {getStoreDisplayText() && ` • ${getStoreDisplayText()}`}
+                  </>
+                ) : (
+                  'Set Location'
                 )}
-              </button>
-            </div>
-          </div>
+              </span>
+            </button>
 
-         
-
-          {/* Search - Responsive with Dropdown */}
-          <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl lg:max-w-4xl w-full mx-2 sm:mx-4 relative">
-            <div className="flex">
-              <div 
-                className="flex items-center gap-2 flex-1 border rounded-l-lg px-2 sm:px-3 bg-white"
-                style={{
-                  borderColor: COLORS.gray[300]
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <MagnifyingGlassIcon style={{ color: COLORS.gray[500] }} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={handleSearchChange}
-                  onFocus={handleSearchFocus}
-                  placeholder="Search for products..."
-                  className="w-full py-2 outline-none text-sm sm:text-base"
-                  style={{
-                    color: COLORS.gray[800]
-                  }}
-                  autoComplete="off"
-                  aria-label="Search products"
-                  aria-autocomplete="list"
-                  aria-controls="search-results"
-                  aria-expanded={showSearchDropdown}
-                />
-                {isSearching && (
-                  <div className="flex-shrink-0">
-                    <div 
-                      className="animate-spin rounded-full h-4 w-4 border-b-2"
-                      style={{ borderColor: COLORS.primary[600] }}
-                    ></div>
-                  </div>
-                )}
-              </div>
-              <button 
-                type="submit" 
-                className="text-white px-3 sm:px-4 py-2 rounded-r-lg font-medium text-xs sm:text-sm transition-colors"
-                style={{
-                  backgroundColor: COLORS.primary[600]
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = COLORS.primary[700];
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = COLORS.primary[600];
-                }}
-                aria-label="Search"
-              >
-                <span className="hidden sm:inline">SEARCH</span>
-                <span className="sm:hidden">🔍</span>
-              </button>
-            </div>
-
-            {/* Search Dropdown */}
-            <SearchDropdown
-              isOpen={showSearchDropdown}
-              products={searchResults}
-              loading={isSearching}
-              searchTerm={search}
-              onClose={closeSearchDropdown}
-              onProductClick={() => setSearch('')}
-            />
-          </form>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-1 sm:gap-2 justify-end min-w-0 flex-shrink-0">
-            {/* Desktop Auth Links */}
-            {isAuthenticated ? (
-              // Authenticated user actions
-              <>
-                <div className="hidden lg:block relative account-dropdown-container">
-                  <button
-                    onClick={handleAccountDropdownToggle}
-                    className="flex items-center gap-2 text-sm font-medium p-2 rounded-lg transition-colors"
-                    style={{
-                      color: COLORS.gray[700]
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = COLORS.primary[700];
-                      e.currentTarget.style.backgroundColor = COLORS.gray[50];
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = COLORS.gray[700];
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <div className="text-right">
-                      <div className="text-xs" style={{ color: COLORS.gray[500] }}>Hello {user?.name || 'User'}</div>
-                      <div className="font-semibold">My Account</div>
-                    </div>
-                    <ChevronDownIcon className={`w-4 h-4 transition-transform ${isAccountDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {/* Account Dropdown Menu */}
-                  {isAccountDropdownOpen && (
-                    <div 
-                      className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg border py-2 z-50"
-                      style={{
-                        backgroundColor: COLORS.white,
-                        borderColor: COLORS.primary[200],
-                        boxShadow: `0 10px 15px ${hexToRgba(COLORS.primary[900], 0.1)}`
-                      }}
-                    >
-                      {/* Account Details Section */}
-                      <div className="px-4 py-2">
-                        <div className="text-xs font-medium mb-2" style={{ color: COLORS.primary[700] }}>Account Details</div>
-                        <button
-                          onClick={() => handleAccountMenuClick('profile')}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
-                          style={{ color: COLORS.gray[700] }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                            e.currentTarget.style.color = COLORS.primary[700];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          Profile
-                        </button>
-                        <button
-                          onClick={() => handleAccountMenuClick('address')}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
-                          style={{ color: COLORS.gray[700] }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                            e.currentTarget.style.color = COLORS.primary[700];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                           Address
-                        </button>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
-
-                      {/* Lists and Orders Section */}
-                      <div className="px-4 py-2">
-                        <button
-                          onClick={() => handleAccountMenuClick('orders')}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
-                          style={{ color: COLORS.gray[700] }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                            e.currentTarget.style.color = COLORS.primary[700];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          Ready List
-                        </button>
-                        <button
-                          onClick={() => handleAccountMenuClick('orders')}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
-                          style={{ color: COLORS.gray[700] }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                            e.currentTarget.style.color = COLORS.primary[700];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          Orders
-                        </button>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
-                      
-                      {/* About Us Section */}
-                      <div className="px-4 py-2">
-                        <Link
-                          to="/about"
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors flex items-center gap-2"
-                          style={{ color: COLORS.gray[700] }}
-                          onClick={() => setIsAccountDropdownOpen(false)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                            e.currentTarget.style.color = COLORS.primary[700];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
-                          About Us
-                        </Link>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
-
-                      {/* Clear Cache Section */}
-                      <div className="px-4 py-2">
-                        <button
-                          onClick={() => {
-                            handleClearCache();
-                            setIsAccountDropdownOpen(false);
-                          }}
-                          disabled={isClearingCache}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors flex items-center gap-2 disabled:cursor-not-allowed"
-                          style={{ 
-                            color: COLORS.gray[700],
-                            opacity: isClearingCache ? 0.5 : 1
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isClearingCache) {
-                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                              e.currentTarget.style.color = COLORS.primary[700];
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          <ArrowPathIcon style={{ color: COLORS.primary[600] }} className={`w-4 h-4 ${isClearingCache ? 'animate-spin' : ''}`} />
-                          {isClearingCache ? 'Clearing Cache...' : 'Clear Cache'}
-                        </button>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
-
-                      {/* Logout Section */}
-                      <div className="px-4 py-2">
-                        <button
-                          onClick={() => handleAccountMenuClick('logout')}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
-                          style={{ color: COLORS.gray[700] }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                            e.currentTarget.style.color = COLORS.primary[700];
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          Logout
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              // Unauthenticated user actions
-              <>
-                <div className="hidden lg:flex items-center gap-2">
-                  <Link 
-                    to="/register" 
-                    className="text-sm font-medium transition-colors"
-                    style={{ color: COLORS.gray[700] }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = COLORS.primary[700];
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = COLORS.gray[700];
-                    }}
-                  >
-                    <span>Register</span>
-                  </Link>
-                  <Link 
-                    to="/login" 
-                    className="text-sm font-medium transition-colors"
-                    style={{ color: COLORS.gray[700] }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = COLORS.primary[700];
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = COLORS.gray[700];
-                    }}
-                  >
-                    <span>Login</span>
-                  </Link>
-                </div>
-              </>
-            )}
-
-            {/* Mobile/Tablet Location Button */}
-            <div className="lg:hidden">
-              <button
-                onClick={openPincodeModal}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors"
-                style={{
-                  borderColor: COLORS.gray[200],
-                  color: COLORS.gray[700]
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = COLORS.primary[300];
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = COLORS.gray[200];
-                }}
-              >
-                <MapPinIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
-                <span className="text-xs font-medium hidden sm:inline">
-                  {isLocationSet ? getLocationDisplayText() : 'Location'}
-                </span>
-                <span className="text-xs font-medium sm:hidden">
-                  {isLocationSet ? 'Set' : 'Loc'}
-                </span>
-              </button>
-            </div>
-
-            {/* Mobile/Tablet User Menu */}
-            <div className="lg:hidden relative user-menu-container">
+            {/* Profile Icon */}
+            <div className="relative user-menu-container flex-shrink-0">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="inline-flex p-2 rounded-full focus:outline-none transition-colors"
@@ -752,7 +385,7 @@ const Header = () => {
                 }}
                 aria-label="User menu"
               >
-                <UserIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5 sm:w-6 sm:h-6" />
+                <UserIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
               </button>
 
               {/* Mobile User Dropdown Menu */}
@@ -939,7 +572,7 @@ const Header = () => {
                       </div>
                     </>
                   ) : (
-                    // Unauthenticated mobile menu
+                    // Unauthenticated mobile menu - Show Login and Register
                     <>
                       <Link
                         to="/login"
@@ -989,124 +622,573 @@ const Header = () => {
                       >
                         Register
                       </Link>
-                      <Link
-                        to="/about"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-2 text-sm focus:outline-none transition-colors flex items-center gap-2"
-                        style={{ color: COLORS.gray[700] }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                          e.currentTarget.style.color = COLORS.primary[700];
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = COLORS.gray[700];
-                        }}
-                        onFocus={(e) => {
-                          e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                          e.currentTarget.style.color = COLORS.primary[700];
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = COLORS.gray[700];
-                        }}
-                      >
-                        <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
-                        About Us
-                      </Link>
-
-                      {/* Divider */}
-                      <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
-
-                      {/* Clear Cache for Unauthenticated Users */}
-                      <div className="px-4 py-2">
-                        <button
-                          onClick={() => {
-                            handleClearCache();
-                            setIsUserMenuOpen(false);
-                          }}
-                          disabled={isClearingCache}
-                          className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors flex items-center gap-2 disabled:cursor-not-allowed"
-                          style={{ 
-                            color: COLORS.gray[700],
-                            opacity: isClearingCache ? 0.5 : 1
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isClearingCache) {
-                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
-                              e.currentTarget.style.color = COLORS.primary[700];
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = COLORS.gray[700];
-                          }}
-                        >
-                          <ArrowPathIcon style={{ color: COLORS.primary[600] }} className={`w-4 h-4 ${isClearingCache ? 'animate-spin' : ''}`} />
-                          {isClearingCache ? 'Clearing Cache...' : 'Clear Cache'}
-                        </button>
-                      </div>
                     </>
                   )}
                 </div>
               )}
             </div>
+          </div>
+        </div>
 
-            {/* Favorites Icon */}
-            <Link
-              to="/favorites"
-              className="relative inline-flex p-2 rounded-full focus:outline-none transition-colors"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = COLORS.gray[100];
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <HeartIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5 sm:w-6 sm:h-6" />
-              {favorites.length > 0 && (
-                <span 
-                  className="absolute -top-1 -right-1 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center"
-                  style={{ backgroundColor: COLORS.primary[600] }}
-                >
-                  {favorites.length}
-                </span>
-              )}
-            </Link>
+        {/* Bottom Row: Search, About Us, Cart */}
+        <div className="border-t" style={{ borderColor: COLORS.gray[200] }}>
+          <div className="container mx-auto px-2 sm:px-4">
+            <div className="flex items-center gap-2 py-2">
+              {/* Search Bar */}
+              <form onSubmit={handleSearchSubmit} className="flex-1 relative">
+                <div className="flex">
+                  <div 
+                    className="flex items-center gap-2 flex-1 border rounded-l-lg px-2 bg-white"
+                    style={{
+                      borderColor: COLORS.gray[300]
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <MagnifyingGlassIcon style={{ color: COLORS.gray[500] }} className="w-4 h-4 flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={handleSearchChange}
+                      onFocus={handleSearchFocus}
+                      placeholder="Search..."
+                      className="w-full py-1.5 outline-none text-sm"
+                      style={{
+                        color: COLORS.gray[800]
+                      }}
+                      autoComplete="off"
+                      aria-label="Search products"
+                      aria-autocomplete="list"
+                      aria-controls="search-results"
+                      aria-expanded={showSearchDropdown}
+                    />
+                    {isSearching && (
+                      <div className="flex-shrink-0">
+                        <div 
+                          className="animate-spin rounded-full h-3 w-3 border-b-2"
+                          style={{ borderColor: COLORS.primary[600] }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="text-white px-2 py-1.5 rounded-r-lg font-medium text-xs transition-colors"
+                    style={{
+                      backgroundColor: COLORS.primary[600]
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = COLORS.primary[700];
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = COLORS.primary[600];
+                    }}
+                    aria-label="Search"
+                  >
+                    🔍
+                  </button>
+                </div>
 
-            {/* Cart Icon */}
-            <button 
-              onClick={openDrawer}
-              className="relative inline-flex p-2 rounded-full focus:outline-none transition-colors"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = COLORS.gray[100];
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <ShoppingCartIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5 sm:w-6 sm:h-6" />
-              {totalItems > 0 && (
-                <span 
-                  className="absolute -top-1 -right-1 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center"
-                  style={{ backgroundColor: COLORS.primary[600] }}
+                {/* Search Dropdown */}
+                <SearchDropdown
+                  isOpen={showSearchDropdown}
+                  products={searchResults}
+                  loading={isSearching}
+                  searchTerm={search}
+                  onClose={closeSearchDropdown}
+                  onProductClick={() => setSearch('')}
+                />
+              </form>
+
+              {/* About Us Icon */}
+              <Link
+                to="/about"
+                className="inline-flex items-center justify-center p-2 rounded-lg border transition-colors flex-shrink-0"
+                style={{
+                  borderColor: COLORS.gray[200],
+                  color: COLORS.gray[700]
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = COLORS.primary[300];
+                  e.currentTarget.style.color = COLORS.primary[600];
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = COLORS.gray[200];
+                  e.currentTarget.style.color = COLORS.gray[700];
+                }}
+                aria-label="About Us"
+                title="About Us"
+              >
+                <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
+              </Link>
+
+              {/* Cart Icon */}
+              <button 
+                onClick={openDrawer}
+                className="relative inline-flex p-2 rounded-lg focus:outline-none transition-colors flex-shrink-0"
+                style={{ color: COLORS.gray[700] }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.gray[100];
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                aria-label="Shopping Cart"
+              >
+                <ShoppingCartIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
+                {totalItems > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center"
+                    style={{ backgroundColor: COLORS.primary[600] }}
+                  >
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:block">
+        {/* Top bar */}
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className="flex items-center justify-between py-2 sm:py-3 gap-2 sm:gap-4">
+            {/* Left: Logo + Location */}
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-shrink-0">
+              <Link to="/" className="flex items-center">
+                <img
+                  src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg`}
+                  alt="Pagariya Mart"
+                  className="h-10 sm:h-10 lg:h-14 w-auto object-contain"
+                  style={{
+                    maxHeight: '50px',
+                    maxWidth: '250px',
+                    display: 'block'
+                  }}
+                  onLoad={() => {
+                    console.log('🖼️ Main Logo loaded successfully');
+                  }}
+                  onError={() => {
+                    console.log('❌ Main Logo failed to load');
+                  }}
+                />
+              </Link>
+              {/* About Us Button */}
+              <Link
+                to="/about"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors text-sm font-medium"
+                style={{
+                  borderColor: COLORS.gray[200],
+                  color: COLORS.gray[700]
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = COLORS.primary[300];
+                  e.currentTarget.style.color = COLORS.primary[600];
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = COLORS.gray[200];
+                  e.currentTarget.style.color = COLORS.gray[700];
+                }}
+                aria-label="About Us"
+              >
+                <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                <span>About Us</span>
+              </Link>
+              {/* Desktop Location Button */}
+              <div>
+                <button 
+                  onClick={openPincodeModal}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors"
+                  style={{
+                    borderColor: COLORS.gray[200],
+                    color: COLORS.gray[700]
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = COLORS.primary[300];
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = COLORS.gray[200];
+                  }}
                 >
-                  {totalItems}
-                </span>
+                  <MapPinIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
+                  <span className="text-sm font-medium">
+                    {isLocationSet ? getLocationDisplayText() : 'Select Location'}
+                  </span>
+                  <ChevronDownIcon style={{ color: COLORS.gray[500] }} className="w-4 h-4" />
+                  {isLocationSet && getStoreDisplayText() && (
+                    <span className="ml-1 text-xs" style={{ color: COLORS.gray[500] }}>
+                      {getStoreDisplayText()}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Search - Responsive with Dropdown */}
+            <form onSubmit={handleSearchSubmit} className="flex-1 max-w-2xl lg:max-w-4xl w-full mx-2 sm:mx-4 relative">
+              <div className="flex">
+                <div 
+                  className="flex items-center gap-2 flex-1 border rounded-l-lg px-2 sm:px-3 bg-white"
+                  style={{
+                    borderColor: COLORS.gray[300]
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <MagnifyingGlassIcon style={{ color: COLORS.gray[500] }} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={handleSearchChange}
+                    onFocus={handleSearchFocus}
+                    placeholder="Search for products..."
+                    className="w-full py-2 outline-none text-sm sm:text-base"
+                    style={{
+                      color: COLORS.gray[800]
+                    }}
+                    autoComplete="off"
+                    aria-label="Search products"
+                    aria-autocomplete="list"
+                    aria-controls="search-results"
+                    aria-expanded={showSearchDropdown}
+                  />
+                  {isSearching && (
+                    <div className="flex-shrink-0">
+                      <div 
+                        className="animate-spin rounded-full h-4 w-4 border-b-2"
+                        style={{ borderColor: COLORS.primary[600] }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+                <button 
+                  type="submit" 
+                  className="text-white px-3 sm:px-4 py-2 rounded-r-lg font-medium text-xs sm:text-sm transition-colors"
+                  style={{
+                    backgroundColor: COLORS.primary[600]
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = COLORS.primary[700];
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = COLORS.primary[600];
+                  }}
+                  aria-label="Search"
+                >
+                  <span className="hidden sm:inline">SEARCH</span>
+                  <span className="sm:hidden">🔍</span>
+                </button>
+              </div>
+
+              {/* Search Dropdown */}
+              <SearchDropdown
+                isOpen={showSearchDropdown}
+                products={searchResults}
+                loading={isSearching}
+                searchTerm={search}
+                onClose={closeSearchDropdown}
+                onProductClick={() => setSearch('')}
+              />
+            </form>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-1 sm:gap-2 justify-end min-w-0 flex-shrink-0">
+              {/* Desktop Auth Links */}
+              {isAuthenticated ? (
+                // Authenticated user actions
+                <>
+                  <div className="relative account-dropdown-container">
+                    <button
+                      onClick={handleAccountDropdownToggle}
+                      className="flex items-center gap-2 text-sm font-medium p-2 rounded-lg transition-colors"
+                      style={{
+                        color: COLORS.gray[700]
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = COLORS.primary[700];
+                        e.currentTarget.style.backgroundColor = COLORS.gray[50];
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = COLORS.gray[700];
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <div className="text-right">
+                        <div className="text-xs" style={{ color: COLORS.gray[500] }}>Hello {user?.name || 'User'}</div>
+                        <div className="font-semibold">My Account</div>
+                      </div>
+                      <ChevronDownIcon className={`w-4 h-4 transition-transform ${isAccountDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Account Dropdown Menu */}
+                    {isAccountDropdownOpen && (
+                      <div 
+                        className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg border py-2 z-50"
+                        style={{
+                          backgroundColor: COLORS.white,
+                          borderColor: COLORS.primary[200],
+                          boxShadow: `0 10px 15px ${hexToRgba(COLORS.primary[900], 0.1)}`
+                        }}
+                      >
+                        {/* Account Details Section */}
+                        <div className="px-4 py-2">
+                          <div className="text-xs font-medium mb-2" style={{ color: COLORS.primary[700] }}>Account Details</div>
+                          <button
+                            onClick={() => handleAccountMenuClick('profile')}
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
+                            style={{ color: COLORS.gray[700] }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                              e.currentTarget.style.color = COLORS.primary[700];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                            Profile
+                          </button>
+                          <button
+                            onClick={() => handleAccountMenuClick('address')}
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
+                            style={{ color: COLORS.gray[700] }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                              e.currentTarget.style.color = COLORS.primary[700];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                             Address
+                          </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
+
+                        {/* Lists and Orders Section */}
+                        <div className="px-4 py-2">
+                          <button
+                            onClick={() => handleAccountMenuClick('orders')}
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
+                            style={{ color: COLORS.gray[700] }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                              e.currentTarget.style.color = COLORS.primary[700];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                            Ready List
+                          </button>
+                          <button
+                            onClick={() => handleAccountMenuClick('orders')}
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
+                            style={{ color: COLORS.gray[700] }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                              e.currentTarget.style.color = COLORS.primary[700];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                            Orders
+                          </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
+                        
+                        {/* About Us Section */}
+                        <div className="px-4 py-2">
+                          <Link
+                            to="/about"
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors flex items-center gap-2"
+                            style={{ color: COLORS.gray[700] }}
+                            onClick={() => setIsAccountDropdownOpen(false)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                              e.currentTarget.style.color = COLORS.primary[700];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                            <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                              About Us
+                          </Link>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
+
+                        {/* Clear Cache Section */}
+                        <div className="px-4 py-2">
+                          <button
+                            onClick={() => {
+                              handleClearCache();
+                              setIsAccountDropdownOpen(false);
+                            }}
+                            disabled={isClearingCache}
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors flex items-center gap-2 disabled:cursor-not-allowed"
+                            style={{ 
+                              color: COLORS.gray[700],
+                              opacity: isClearingCache ? 0.5 : 1
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isClearingCache) {
+                                e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                                e.currentTarget.style.color = COLORS.primary[700];
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                            <ArrowPathIcon style={{ color: COLORS.primary[600] }} className={`w-4 h-4 ${isClearingCache ? 'animate-spin' : ''}`} />
+                              {isClearingCache ? 'Clearing Cache...' : 'Clear Cache'}
+                          </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-t my-2" style={{ borderColor: COLORS.primary[200] }}></div>
+
+                        {/* Logout Section */}
+                        <div className="px-4 py-2">
+                          <button
+                            onClick={() => handleAccountMenuClick('logout')}
+                            className="w-full text-left px-2 py-2 text-sm rounded-md transition-colors"
+                            style={{ color: COLORS.gray[700] }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = COLORS.primary[50];
+                              e.currentTarget.style.color = COLORS.primary[700];
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = COLORS.gray[700];
+                            }}
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                // Unauthenticated user actions
+                <>
+                  <div className="flex items-center gap-2">
+                    <Link 
+                      to="/register" 
+                      className="text-sm font-medium transition-colors"
+                      style={{ color: COLORS.gray[700] }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = COLORS.primary[700];
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = COLORS.gray[700];
+                      }}
+                    >
+                      <span>Register</span>
+                    </Link>
+                    <Link 
+                      to="/login" 
+                      className="text-sm font-medium transition-colors"
+                      style={{ color: COLORS.gray[700] }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = COLORS.primary[700];
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = COLORS.gray[700];
+                      }}
+                    >
+                      <span>Login</span>
+                    </Link>
+                  </div>
+                </>
               )}
-            </button>
+
+              {/* Favorites Icon */}
+              <Link
+                to="/favorites"
+                className="relative inline-flex p-2 rounded-full focus:outline-none transition-colors"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.gray[100];
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <HeartIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5 sm:w-6 sm:h-6" />
+                {favorites.length > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center"
+                    style={{ backgroundColor: COLORS.primary[600] }}
+                  >
+                    {favorites.length}
+                  </span>
+                )}
+              </Link>
+
+              {/* Cart Icon */}
+              <button 
+                onClick={openDrawer}
+                className="relative inline-flex p-2 rounded-full focus:outline-none transition-colors"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.gray[100];
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = `0 0 0 2px ${hexToRgba(COLORS.primary[500], 0.5)}`;
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <ShoppingCartIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5 sm:w-6 sm:h-6" />
+                {totalItems > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center"
+                    style={{ backgroundColor: COLORS.primary[600] }}
+                  >
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

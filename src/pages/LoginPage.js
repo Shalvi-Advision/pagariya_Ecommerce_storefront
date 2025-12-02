@@ -22,6 +22,7 @@ const LoginPage = () => {
     mobileNo: '',
   });
   const [errors, setErrors] = useState({});
+  const [logoError, setLogoError] = useState(false);
 
   const { login, loading, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -235,16 +236,30 @@ const LoginPage = () => {
         <div className="w-full max-w-md mx-auto">
           {/* Mobile Logo (visible only on mobile) */}
           <div className="lg:hidden flex justify-center mb-6">
-            <div 
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl shadow-sm"
-              style={{
-                background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]})`
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold" style={{ color: COLORS.primary[600] }}>Pagariya Mart</span>
+            {logoError ? (
+              <div 
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl shadow-sm"
+                style={{
+                  background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]})`
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold" style={{ color: COLORS.primary[600] }}>Pagariya Mart</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <img
+                src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg?v=2`}
+                alt="Pagariya Mart"
+                className="h-12 w-auto object-contain"
+                style={{
+                  maxHeight: '60px',
+                  maxWidth: '200px',
+                  display: 'block'
+                }}
+                onError={() => setLogoError(true)}
+              />
+            )}
           </div>
 
           {/* Title */}

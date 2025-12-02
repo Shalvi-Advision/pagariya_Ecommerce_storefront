@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getProductDetails } from '../services/api';
 import { useCart } from '../context/CartContext';
+import { useResponsive } from '../hooks/useResponsive';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Loading from '../components/Loading';
@@ -28,6 +29,7 @@ const ProductDetailsPage = () => {
   const [error, setError] = useState(null);
   const [imageLoading, setImageLoading] = useState(true);
   const { addItem } = useCart();
+  const { isMobile } = useResponsive();
 
   // Extract URL parameters
   const dept_id = searchParams.get('dept_id');
@@ -307,10 +309,10 @@ const ProductDetailsPage = () => {
       style={{ backgroundColor: COLORS.white }}
     >
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 lg:gap-8">
           {/* Product Image */}
           <div className="flex justify-center">
-            <Card className="p-3 sm:p-4 lg:p-8 w-full">
+            <Card className={`${isMobile ? 'p-2' : 'p-3 sm:p-4 lg:p-8'} w-full`}>
               <div className="relative">
                 {imageLoading && (
                   <div 
@@ -318,7 +320,7 @@ const ProductDetailsPage = () => {
                     style={{ backgroundColor: COLORS.gray[100] }}
                   >
                     <div 
-                      className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2"
+                      className={`animate-spin rounded-full border-b-2 ${isMobile ? 'h-6 w-6' : 'h-8 w-8 sm:h-12 sm:w-12'}`}
                       style={{ borderColor: COLORS.primary[600] }}
                     ></div>
                   </div>
@@ -327,7 +329,7 @@ const ProductDetailsPage = () => {
                   <img
                     src={product.pcode_img}
                     alt={product.product_name}
-                    className={`w-full h-48 sm:h-64 lg:h-80 xl:h-96 object-contain rounded-lg transition-opacity duration-300 ${
+                    className={`w-full ${isMobile ? 'h-56' : 'h-48 sm:h-64 lg:h-80 xl:h-96'} object-contain rounded-lg transition-opacity duration-300 ${
                       imageLoading ? 'opacity-0' : 'opacity-100'
                     }`}
                     onLoad={() => setImageLoading(false)}
@@ -336,12 +338,12 @@ const ProductDetailsPage = () => {
                   />
                 ) : (
                   <div 
-                    className="w-full h-48 sm:h-64 lg:h-80 xl:h-96 rounded-lg flex items-center justify-center"
+                    className={`w-full ${isMobile ? 'h-56' : 'h-48 sm:h-64 lg:h-80 xl:h-96'} rounded-lg flex items-center justify-center`}
                     style={{ backgroundColor: COLORS.gray[100] }}
                   >
                     <div className="text-center" style={{ color: COLORS.gray[500] }}>
                       <svg 
-                        className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2" 
+                        className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12 sm:w-16 sm:h-16'} mx-auto mb-2`}
                         style={{ color: COLORS.gray[400] }}
                         fill="none" 
                         stroke="currentColor" 
@@ -349,7 +351,7 @@ const ProductDetailsPage = () => {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <p className="text-xs sm:text-sm">No Image Available</p>
+                      <p className={`${isMobile ? 'text-xs' : 'text-xs sm:text-sm'}`}>No Image Available</p>
                     </div>
                   </div>
                 )}
@@ -358,73 +360,43 @@ const ProductDetailsPage = () => {
           </div>
 
           {/* Product Details */}
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <div className={`${isMobile ? 'space-y-2' : 'space-y-3 sm:space-y-4 lg:space-y-6'}`}>
             {/* Product Name and Brand */}
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-4 leading-tight" style={{ color: COLORS.gray[900] }}>
+              <h1 className={`${isMobile ? 'text-lg' : 'text-xl sm:text-2xl lg:text-3xl'} font-bold ${isMobile ? 'mb-1' : 'mb-2 sm:mb-4'} leading-tight`} style={{ color: COLORS.gray[900] }}>
                 {product.product_name}
               </h1>
-              <div className="flex items-center mb-2 sm:mb-3 lg:mb-4">
-                <span className="text-xs sm:text-sm lg:text-base font-medium" style={{ color: COLORS.gray[600] }}>
+              <div className={`flex items-center ${isMobile ? 'mb-1' : 'mb-2 sm:mb-3 lg:mb-4'}`}>
+                <span className={`${isMobile ? 'text-xs' : 'text-xs sm:text-sm lg:text-base'} font-medium`} style={{ color: COLORS.gray[600] }}>
                   Brand: {product.brand_name || 'Generic Brand'}
                 </span>
               </div>
             </div>
 
-            {/* Description */}
+            {/* Product Details */}
             <div>
-              <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2" style={{ color: COLORS.gray[700] }}>Description</h3>
+              <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2" style={{ color: COLORS.gray[700] }}>Product details</h3>
               <p className="text-xs sm:text-sm lg:text-base leading-relaxed" style={{ color: COLORS.gray[600] }}>
                 {product.product_description || 'No description available'}
               </p>
             </div>
 
-            {/* Package Size */}
-            <div>
-              <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2" style={{ color: COLORS.gray[700] }}>Package Size</h3>
-              <span 
-                className="inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium"
-                style={{
-                  backgroundColor: COLORS.primary[100],
-                  color: COLORS.primary[800]
-                }}
-              >
-                {product.package_size} {product.package_unit}
-              </span>
-            </div>
-
-            {/* Stock Status */}
-            <div>
-              <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2" style={{ color: COLORS.gray[700] }}>Availability</h3>
-              <div className="flex items-center space-x-2">
-                <span 
-                  className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: isInStock() ? COLORS.success[100] : COLORS.error[100],
-                    color: isInStock() ? COLORS.success[800] : COLORS.error[800]
-                  }}
-                >
-                  {isInStock() ? `In Stock (${product.store_quantity} available)` : 'Out of Stock'}
-                </span>
-              </div>
-            </div>
-
             {/* Pricing */}
-            <div className="border-t pt-3 sm:pt-4 lg:pt-6" style={{ borderColor: COLORS.gray[200] }}>
-              <div className="flex items-center space-x-2 sm:space-x-4 mb-3 sm:mb-4 lg:mb-6">
+            <div className={`border-t ${isMobile ? 'pt-2' : 'pt-3 sm:pt-4 lg:pt-6'}`} style={{ borderColor: COLORS.gray[200] }}>
+              <div className={`flex items-center ${isMobile ? 'space-x-2 mb-2' : 'space-x-2 sm:space-x-4 mb-3 sm:mb-4 lg:mb-6'}`}>
                 <div className="flex flex-col">
-                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold" style={{ color: COLORS.primary[600] }}>
+                  <span className={`${isMobile ? 'text-lg' : 'text-xl sm:text-2xl lg:text-3xl'} font-bold`} style={{ color: COLORS.primary[600] }}>
                     ₹{formatPrice(product.our_price)}
                   </span>
                   {getDiscountPercentage() > 0 && (
-                    <span className="text-xs sm:text-sm line-through" style={{ color: COLORS.gray[500] }}>
+                    <span className={`${isMobile ? 'text-xs' : 'text-xs sm:text-sm'} line-through`} style={{ color: COLORS.gray[500] }}>
                       MRP: ₹{formatPrice(product.product_mrp)}
                     </span>
                   )}
                 </div>
                 {getDiscountPercentage() > 0 && (
                   <span 
-                    className="px-2 py-1 rounded-full text-xs sm:text-sm font-medium"
+                    className={`px-2 py-1 rounded-full ${isMobile ? 'text-xs' : 'text-xs sm:text-sm'} font-medium`}
                     style={{
                       backgroundColor: COLORS.warning[100],
                       color: COLORS.warning[800]
@@ -436,8 +408,8 @@ const ProductDetailsPage = () => {
               </div>
 
               {/* Quantity Selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-3 sm:mb-4 lg:mb-6">
-                <span className="text-sm sm:text-base font-medium" style={{ color: COLORS.gray[700] }}>Quantity:</span>
+              <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4'} ${isMobile ? 'mb-3' : 'mb-3 sm:mb-4 lg:mb-6'}`}>
+                <span className={`${isMobile ? 'text-sm' : 'text-sm sm:text-base'} font-medium`} style={{ color: COLORS.gray[700] }}>Quantity:</span>
                 <div className="flex items-center space-x-2">
                   <div 
                     className="flex items-center border rounded-lg"
@@ -448,7 +420,7 @@ const ProductDetailsPage = () => {
                   >
                     <button
                       onClick={() => handleQuantityChange(-1)}
-                      className="px-2 sm:px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className={`${isMobile ? 'px-3 py-2' : 'px-2 sm:px-3 py-2'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                       style={{
                         color: quantity <= 1 ? COLORS.gray[400] : COLORS.gray[600]
                       }}
@@ -470,14 +442,14 @@ const ProductDetailsPage = () => {
                       -
                     </button>
                     <span 
-                      className="px-3 sm:px-4 py-2 text-center min-w-10 sm:min-w-12 text-sm sm:text-base"
+                      className={`${isMobile ? 'px-4 py-2 min-w-12' : 'px-3 sm:px-4 py-2 min-w-10 sm:min-w-12'} text-center ${isMobile ? 'text-base' : 'text-sm sm:text-base'}`}
                       style={{ color: COLORS.gray[900] }}
                     >
                       {quantity}
                     </span>
                     <button
                       onClick={() => handleQuantityChange(1)}
-                      className="px-2 sm:px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className={`${isMobile ? 'px-3 py-2' : 'px-2 sm:px-3 py-2'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                       style={{
                         color: quantity >= (product.max_quantity_allowed || 10) ? COLORS.gray[400] : COLORS.gray[600]
                       }}
@@ -499,18 +471,18 @@ const ProductDetailsPage = () => {
                       +
                     </button>
                   </div>
-                  <span className="text-xs sm:text-sm" style={{ color: COLORS.gray[500] }}>
+                  <span className={`${isMobile ? 'text-xs' : 'text-xs sm:text-sm'}`} style={{ color: COLORS.gray[500] }}>
                     Max: {product.max_quantity_allowed || 10}
                   </span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4">
+              <div className={`flex ${isMobile ? 'gap-2' : 'flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4'}`}>
                 <button
                   onClick={handleAddToCart}
                   disabled={!isInStock()}
-                  className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg text-sm sm:text-base font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md text-white hover:shadow-lg transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed"
+                  className={`flex-1 ${isMobile ? 'py-3' : 'py-2.5 sm:py-3'} px-4 ${isMobile ? 'text-sm' : 'sm:px-6 text-sm sm:text-base'} font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md text-white ${isMobile ? '' : 'hover:shadow-lg transform hover:scale-105 active:scale-95'} disabled:cursor-not-allowed`}
                   style={{
                     background: !isInStock() 
                       ? COLORS.gray[400]
@@ -518,57 +490,64 @@ const ProductDetailsPage = () => {
                     opacity: !isInStock() ? 0.5 : 1
                   }}
                   onMouseEnter={(e) => {
-                    if (isInStock()) {
+                    if (isInStock() && !isMobile) {
                       e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (isInStock()) {
+                    if (isInStock() && !isMobile) {
                       e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
                     }
                   }}
                 >
-                  <span className="hidden sm:inline">
-                    {isInStock() 
-                      ? `Add to Cart - ₹${(parseFloat(formatPrice(product.our_price)) * quantity).toFixed(2)}`
-                      : 'Out of Stock'
-                    }
-                  </span>
-                  <span className="sm:hidden">
-                    {isInStock() 
-                      ? `Add - ₹${(parseFloat(formatPrice(product.our_price)) * quantity).toFixed(2)}`
-                      : 'Out of Stock'
-                    }
-                  </span>
+                  {isMobile ? (
+                    'Add to Cart'
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">
+                        {isInStock() 
+                          ? `Add to Cart - ₹${(parseFloat(formatPrice(product.our_price)) * quantity).toFixed(2)}`
+                          : 'Out of Stock'
+                        }
+                      </span>
+                      <span className="sm:hidden">
+                        {isInStock() 
+                          ? `Add - ₹${(parseFloat(formatPrice(product.our_price)) * quantity).toFixed(2)}`
+                          : 'Out of Stock'
+                        }
+                      </span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => navigate('/cart')}
-                  className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg text-sm sm:text-base font-semibold transition-all duration-200 border-2 hover:shadow-md"
+                  className={`flex-1 ${isMobile ? 'py-3' : 'py-2.5 sm:py-3'} px-4 ${isMobile ? 'text-sm' : 'sm:px-6 text-sm sm:text-base'} font-semibold transition-all duration-200 border-2 ${isMobile ? '' : 'hover:shadow-md'}`}
                   style={{
                     backgroundColor: COLORS.white,
-                    borderColor: COLORS.gray[300],
-                    color: COLORS.gray[700]
+                    borderColor: isMobile ? COLORS.primary[600] : COLORS.gray[300],
+                    color: isMobile ? COLORS.primary[600] : COLORS.gray[700]
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = COLORS.gray[50];
-                    e.currentTarget.style.borderColor = COLORS.primary[400];
+                    if (!isMobile) {
+                      e.currentTarget.style.backgroundColor = COLORS.gray[50];
+                      e.currentTarget.style.borderColor = COLORS.primary[400];
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = COLORS.white;
-                    e.currentTarget.style.borderColor = COLORS.gray[300];
+                    if (!isMobile) {
+                      e.currentTarget.style.backgroundColor = COLORS.white;
+                      e.currentTarget.style.borderColor = COLORS.gray[300];
+                    }
                   }}
                 >
-                  <span className="hidden sm:inline">View Cart</span>
-                  <span className="sm:hidden">Cart</span>
+                  {isMobile ? 'Go to Cart' : (
+                    <>
+                      <span className="hidden sm:inline">View Cart</span>
+                      <span className="sm:hidden">Cart</span>
+                    </>
+                  )}
                 </button>
               </div>
-            </div>
-
-            {/* Product Code */}
-            <div className="border-t pt-4" style={{ borderColor: COLORS.gray[200] }}>
-              <p className="text-xs sm:text-sm" style={{ color: COLORS.gray[500] }}>
-                Product Code: {product.p_code}
-              </p>
             </div>
           </div>
         </div>

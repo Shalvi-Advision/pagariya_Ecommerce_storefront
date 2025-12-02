@@ -228,7 +228,7 @@ const FamousCategories = () => {
             <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-purple-400/20 to-violet-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
 
             <div className="relative container mx-auto px-4">
-              <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md border border-white/60 hover:shadow-lg transition-all duration-300">
+              <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md transition-all duration-300">
                 <div className="flex items-center justify-between mb-8">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -252,7 +252,7 @@ const FamousCategories = () => {
 
                 <div className="relative">
                   {section.categoriesList && section.categoriesList.length > 0 ? (
-                    <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       {section.categoriesList.map((category, index) => {
                       // Handle redirect URLs
                       const handleClick = (e) => {
@@ -278,10 +278,10 @@ const FamousCategories = () => {
                           key={category.id || index}
                           {...categoryProps}
                           onClick={handleClick}
-                          className="flex-shrink-0 w-32 h-56 bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-100/50 shadow hover:shadow-md hover:border-purple-300 transition-all duration-300 cursor-pointer group overflow-hidden"
+                          className="flex-shrink-0 w-32 h-56 bg-transparent transition-all duration-300 cursor-pointer group overflow-visible"
                         >
                           <div className="flex flex-col items-center justify-center h-full pt-4 pb-2">
-                            <div className={`w-32 h-32 flex-shrink-0 ${category.color} flex items-center justify-center mb-3 transition-all duration-300 shadow-sm relative overflow-hidden rounded-xl`}>
+                            <div className={`w-32 h-32 flex-shrink-0 ${category.color} flex items-center justify-center mb-3 transition-all duration-300 relative overflow-hidden rounded-xl`}>
                               {category.image_link ? (
                                 <img 
                                   src={category.image_link} 

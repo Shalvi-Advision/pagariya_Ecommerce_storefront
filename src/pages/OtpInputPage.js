@@ -26,6 +26,7 @@ const OtpInputPage = () => {
   const [errors, setErrors] = useState({});
   const [countdown, setCountdown] = useState(0);
   const [otpData, setOtpData] = useState(null);
+  const [logoError, setLogoError] = useState(false);
 
   const {
     getOtp,
@@ -220,20 +221,31 @@ const OtpInputPage = () => {
         <div className="w-full max-w-md mx-auto">
           {/* Mobile Logo (visible only on mobile) */}
           <div className="lg:hidden flex justify-center mb-6">
-            <div 
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl shadow-sm"
-              style={{
-                background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]})`
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold" style={{ color: COLORS.primary[600] }}>D</span>
+            {logoError ? (
+              <div 
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl shadow-sm"
+                style={{
+                  background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]})`
+                }}
+              >
+                <span className="text-2xl font-bold" style={{ color: COLORS.primary[600] }}>Pagariya</span>
                 <div className="flex flex-col items-start">
                   <span className="text-lg font-bold leading-none" style={{ color: COLORS.gray[800] }}>Mart</span>
-                  <span className="text-xs font-medium leading-none" style={{ color: COLORS.error[500] }}>Ready</span>
                 </div>
               </div>
-            </div>
+            ) : (
+              <img
+                src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg?v=2`}
+                alt="Pagariya Mart"
+                className="h-12 w-auto object-contain"
+                style={{
+                  maxHeight: '60px',
+                  maxWidth: '200px',
+                  display: 'block'
+                }}
+                onError={() => setLogoError(true)}
+              />
+            )}
           </div>
 
           {/* Title */}

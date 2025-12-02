@@ -156,7 +156,7 @@ const PopularCategories = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {categories.map((category, index) => {
                   const CategoryComponent = category.link ? Link : 'div';
                   const categoryProps = category.link ? { to: category.link } : {};

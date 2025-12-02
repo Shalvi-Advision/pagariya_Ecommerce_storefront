@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XCircleIcon } from '@heroicons/react/24/outline';
 
@@ -19,6 +19,56 @@ const SearchDropdown = ({
   const displayProducts = products.slice(0, MAX_DISPLAY_PRODUCTS);
   const hasMoreProducts = products.length > MAX_DISPLAY_PRODUCTS;
 
+  // Handle product click - navigate to product details page
+  const handleProductClick = useCallback((product) => {
+    console.log('🖱️ handleProductClick called with product:', product);
+    
+    if (!product) {
+      console.error('❌ No product provided to handleProductClick');
+      return;
+    }
+
+    // Extract product ID - try multiple possible field names
+    const productId = product.p_code || product.pcode || product.id || product._id;
+    
+    if (!productId) {
+      console.error('❌ Product ID not found in product:', product);
+      return;
+    }
+
+    // Extract category IDs - try multiple possible field names and provide defaults
+    const deptId = product.dept_id || product.deptId || product.department_id || '2';
+    const categoryId = product.category_id || product.categoryId || '72';
+    const subCategoryId = product.sub_category_id || product.subCategoryId || product.subcategory_id || '391';
+
+    // Build the product details URL with all required parameters
+    const productUrl = `/product/${productId}?dept_id=${deptId}&category_id=${categoryId}&sub_category_id=${subCategoryId}`;
+    
+    console.log('🔍 Navigating to product:', {
+      productId,
+      deptId,
+      categoryId,
+      subCategoryId,
+      url: productUrl,
+      fullProduct: product
+    });
+
+    try {
+      // Navigate to product details page
+      navigate(productUrl);
+      console.log('✅ Navigation triggered to:', productUrl);
+      
+      // Close the dropdown
+      onClose();
+      
+      // Call the onProductClick callback if provided
+      if (onProductClick) {
+        onProductClick(product);
+      }
+    } catch (error) {
+      console.error('❌ Error navigating to product:', error);
+    }
+  }, [navigate, onClose, onProductClick]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -58,7 +108,7 @@ const SearchDropdown = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, displayProducts, selectedIndex, onClose]);
+  }, [isOpen, displayProducts, selectedIndex, onClose, handleProductClick]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -88,32 +138,34 @@ const SearchDropdown = ({
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        const searchInput = document.querySelector('input[type="text"]');
-        if (searchInput && !searchInput.contains(event.target)) {
-          onClose();
-        }
+      // Don't close if clicking inside the dropdown
+      if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+        return;
       }
+      
+      // Don't close if clicking on the search input
+      const searchInput = document.querySelector('input[type="text"]');
+      if (searchInput && searchInput.contains(event.target)) {
+        return;
+      }
+      
+      // Close the dropdown if clicking outside
+      onClose();
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Use click event instead of mousedown to allow button clicks to process first
+      // Add listener with a slight delay to ensure button clicks are processed first
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('click', handleClickOutside);
+      }, 0);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('click', handleClickOutside);
+      };
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, [isOpen, onClose]);
-
-  const handleProductClick = (product) => {
-    // Use p_code or id for navigation
-    const productId = product.p_code || product.id || product._id;
-    if (productId) {
-      navigate(`/product/${productId}?dept_id=${product.dept_id || '2'}&category_id=${product.category_id || '72'}&sub_category_id=${product.sub_category_id || '391'}`);
-      onClose();
-      if (onProductClick) onProductClick(product);
-    }
-  };
 
   // Format price to Indian Rupee
   const formatPrice = (price) => {
@@ -200,7 +252,11 @@ const SearchDropdown = ({
               return (
                 <button
                   key={`${productId}-${index}`}
-                  onClick={() => handleProductClick(product)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleProductClick(product);
+                  }}
                   className={`w-full flex items-start sm:items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 transition-colors border-b border-gray-100 last:border-b-0 ${
                     isSelected 
                       ? 'bg-primary-50 border-l-4 border-l-primary-600' 
@@ -209,6 +265,7 @@ const SearchDropdown = ({
                   role="option"
                   aria-selected={isSelected}
                   tabIndex={isSelected ? 0 : -1}
+                  type="button"
                 >
                   {/* Product Image */}
                   <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
