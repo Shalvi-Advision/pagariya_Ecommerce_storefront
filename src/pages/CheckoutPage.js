@@ -842,7 +842,7 @@ const CheckoutPage = () => {
           </div>
         </div>
       )}
-      <div className="max-w-4xl mx-auto">
+      <div className={`mx-auto ${currentStep === 3 ? 'max-w-6xl' : 'max-w-4xl'}`}>
         {/* Progress Indicator */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-center overflow-x-auto pb-2">
@@ -869,9 +869,9 @@ const CheckoutPage = () => {
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 ${isMobile ? 'gap-6' : 'lg:grid-cols-5 gap-8'}`}>
+        <div className={`grid grid-cols-1 ${isMobile ? 'gap-6' : currentStep === 3 ? 'lg:grid-cols-7 gap-8' : 'lg:grid-cols-5 gap-8'}`}>
           {/* Main Content */}
-          <div className={`${isMobile ? 'order-2' : 'lg:col-span-3'}`}>
+          <div className={`${isMobile ? 'order-2' : currentStep === 3 ? 'lg:col-span-4' : 'lg:col-span-3'}`}>
             <Card>
               {/* Step 1: Checkout - Delivery Mode & Time Slot */}
               {currentStep === 1 && (
@@ -1507,98 +1507,221 @@ const CheckoutPage = () => {
               {/* Step 3: Review Order */}
               {currentStep === 3 && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-semibold" style={{ color: COLORS.gray[900] }}>Review Your Order</h2>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: COLORS.gray[900] }}>Review Your Order</h2>
+                      <p className="text-sm mt-1" style={{ color: COLORS.gray[600] }}>Please review all details before placing your order</p>
+                    </div>
+                    <div className="hidden sm:flex items-center justify-center w-12 h-12 rounded-full" style={{ backgroundColor: COLORS.primary[100] }}>
+                      <svg className="w-6 h-6" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
 
-                  <div className="space-y-4">
-                    {/* Delivery Method */}
-                    <div className="flex items-start space-x-4 p-4 rounded-lg" style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}>
-                      <div className="flex-shrink-0">
-                        <svg className="w-5 h-5" style={{ color: COLORS.primary[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  {/* Order Items Preview */}
+                  <div className="rounded-xl overflow-hidden" style={{ backgroundColor: COLORS.white, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                    <div className="px-4 sm:px-6 py-4 border-b" style={{ borderColor: COLORS.gray[200], backgroundColor: COLORS.gray[50] }}>
+                      <h3 className="text-base font-semibold flex items-center" style={{ color: COLORS.gray[900] }}>
+                        <svg className="w-5 h-5 mr-2" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
+                        Order Items ({totalItems} {totalItems === 1 ? 'item' : 'items'})
+                      </h3>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-medium" style={{ color: COLORS.gray[900] }}>Delivery Method</h3>
-                        <p className="text-sm" style={{ color: COLORS.gray[600] }}>
+                    <div className="p-4 sm:p-6">
+                      <div className="space-y-3">
+                        {items.slice(0, 3).map((item) => {
+                          const itemPrice = Number(item.price) || 0;
+                          const itemQuantity = Number(item.quantity) || 1;
+                          return (
+                            <div key={item.id} className="flex items-center space-x-4 py-3 border-b last:border-b-0" style={{ borderColor: COLORS.gray[100] }}>
+                              <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden" style={{ backgroundColor: COLORS.gray[100] }}>
+                                {item.image ? (
+                                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <svg className="w-8 h-8" style={{ color: COLORS.gray[400] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium truncate" style={{ color: COLORS.gray[900] }}>{item.title}</h4>
+                                <p className="text-xs mt-1" style={{ color: COLORS.gray[500] }}>Qty: {itemQuantity}</p>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <p className="text-sm font-semibold" style={{ color: COLORS.gray[900] }}>₹{(itemPrice * itemQuantity).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {items.length > 3 && (
+                          <div className="pt-2 text-center">
+                            <p className="text-sm font-medium" style={{ color: COLORS.primary[600] }}>+ {items.length - 3} more {items.length - 3 === 1 ? 'item' : 'items'}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delivery Information */}
+                  <div className="rounded-xl overflow-hidden" style={{ backgroundColor: COLORS.white, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                    <div className="px-4 sm:px-6 py-4 border-b" style={{ borderColor: COLORS.gray[200], backgroundColor: COLORS.gray[50] }}>
+                      <h3 className="text-base font-semibold flex items-center" style={{ color: COLORS.gray[900] }}>
+                        <svg className="w-5 h-5 mr-2" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Delivery Information
+                      </h3>
+                    </div>
+                    <div className="p-4 sm:p-6 space-y-4">
+                      {/* Delivery Method & Address */}
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary[100] }}>
+                          {checkoutData.deliveryMode === 'pickup' ? (
+                            <svg className="w-5 h-5" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-semibold" style={{ color: COLORS.gray[900] }}>
                           {checkoutData.deliveryMode === 'pickup' ? 'Pick Up Point' : 'Home Delivery'}
+                            </h4>
+                            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: COLORS.success[100], color: COLORS.success[800] }}>
+                              Confirmed
+                            </span>
+                          </div>
                           {checkoutData.deliveryMode === 'pickup' && checkoutData.selectedPickupPoint && (
-                            <><br />{checkoutData.selectedPickupPoint.name}<br />{checkoutData.selectedPickupPoint.address}</>
+                            <div className="mt-2">
+                              <p className="text-sm font-medium" style={{ color: COLORS.gray[700] }}>{checkoutData.selectedPickupPoint.name}</p>
+                              <p className="text-sm mt-1" style={{ color: COLORS.gray[600] }}>{checkoutData.selectedPickupPoint.address}</p>
+                            </div>
                           )}
                           {checkoutData.deliveryMode === 'home' && checkoutData.selectedAddress && (
-                            <><br />{checkoutData.selectedAddress.name}<br />{checkoutData.selectedAddress.address}</>
+                            <div className="mt-2">
+                              <p className="text-sm font-medium" style={{ color: COLORS.gray[700] }}>{checkoutData.selectedAddress.name}</p>
+                              <p className="text-sm mt-1" style={{ color: COLORS.gray[600] }}>{checkoutData.selectedAddress.address}</p>
+                            </div>
                           )}
-                        </p>
                       </div>
                     </div>
 
                     {/* Time Slot */}
                     {checkoutData.selectedTimeSlot && (
-                      <div className="flex items-start space-x-4 p-4 rounded-lg" style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}>
-                        <div className="flex-shrink-0">
-                          <svg className="w-5 h-5" style={{ color: COLORS.primary[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <div className="flex items-start space-x-4 pt-4 border-t" style={{ borderColor: COLORS.gray[200] }}>
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.success[100] }}>
+                            <svg className="w-5 h-5" style={{ color: COLORS.success[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <div>
-                          <h3 className="text-sm font-medium" style={{ color: COLORS.gray[900] }}>Delivery Time Slot</h3>
-                          <p className="text-sm" style={{ color: COLORS.gray[600] }}>
-                            {checkoutData.selectedDate}<br />
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold mb-1" style={{ color: COLORS.gray[900] }}>Delivery Time Slot</h4>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium" style={{ backgroundColor: COLORS.primary[50], color: COLORS.primary[700] }}>
+                                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {checkoutData.selectedDate}
+                              </span>
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium" style={{ backgroundColor: COLORS.success[50], color: COLORS.success[700] }}>
+                                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                             {checkoutData.selectedTimeSlot.time}
-                          </p>
+                              </span>
+                            </div>
                         </div>
                       </div>
                     )}
+                    </div>
+                  </div>
 
-                    {/* Shipping Address */}
-                    {checkoutData.selectedAddress && (
-                      <div className="flex items-start space-x-4 p-4 rounded-lg" style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}>
-                        <div className="flex-shrink-0">
-                          <svg className="w-5 h-5" style={{ color: COLORS.primary[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  {/* Payment Information */}
+                  <div className="rounded-xl overflow-hidden" style={{ backgroundColor: COLORS.white, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                    <div className="px-4 sm:px-6 py-4 border-b" style={{ borderColor: COLORS.gray[200], backgroundColor: COLORS.gray[50] }}>
+                      <h3 className="text-base font-semibold flex items-center" style={{ color: COLORS.gray[900] }}>
+                        <svg className="w-5 h-5 mr-2" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                           </svg>
+                        Payment Information
+                      </h3>
                         </div>
-                        <div>
-                          <h3 className="text-sm font-medium" style={{ color: COLORS.gray[900] }}>Shipping Address</h3>
-                          <p className="text-sm" style={{ color: COLORS.gray[600] }}>
-                            {checkoutData.selectedAddress.name}<br />
-                            {checkoutData.selectedAddress.address}
-                          </p>
+                    <div className="p-4 sm:p-6">
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.secondary[100] }}>
+                          {formData.paymentMethod === 'cod' ? (
+                            <svg className="w-5 h-5" style={{ color: COLORS.secondary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          ) : formData.paymentMethod === 'card' ? (
+                            <svg className="w-5 h-5" style={{ color: COLORS.secondary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" style={{ color: COLORS.secondary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          )}
                         </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-semibold" style={{ color: COLORS.gray[900] }}>Payment Method</h4>
+                            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: COLORS.success[100], color: COLORS.success[800] }}>
+                              Ready
+                            </span>
                       </div>
-                    )}
-                    {checkoutData.selectedPickupPoint && (
-                      <div className="flex items-start space-x-4 p-4 rounded-lg" style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}>
-                        <div className="flex-shrink-0">
-                          <svg className="w-5 h-5" style={{ color: COLORS.primary[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          <p className="text-sm mt-2" style={{ color: COLORS.gray[700] }}>
+                            {formData.paymentMethod === 'card' && formData.cardNumber && (
+                              <span className="flex items-center">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                </svg>
+                                Card ending in {formData.cardNumber.slice(-4)}
+                              </span>
+                            )}
+                            {formData.paymentMethod === 'upi' && formData.upiId && (
+                              <span className="flex items-center">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                           </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium" style={{ color: COLORS.gray[900] }}>Pickup Address</h3>
-                          <p className="text-sm" style={{ color: COLORS.gray[600] }}>
-                            {checkoutData.selectedPickupPoint.name}<br />
-                            {checkoutData.selectedPickupPoint.address}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Payment Method */}
-                    <div className="flex items-start space-x-4 p-4 rounded-lg" style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}>
-                      <div className="flex-shrink-0">
-                        <svg className="w-5 h-5" style={{ color: COLORS.primary[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                UPI ID: {formData.upiId}
+                              </span>
+                            )}
+                            {formData.paymentMethod === 'netbanking' && formData.bankName && (
+                              <span className="flex items-center">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium" style={{ color: COLORS.gray[900] }}>Payment Method</h3>
-                        <p className="text-sm" style={{ color: COLORS.gray[600] }}>
-                        {formData.paymentMethod === 'card' && formData.cardNumber && `Card ending in ${formData.cardNumber.slice(-4)}`}
-                        {formData.paymentMethod === 'upi' && formData.upiId && `UPI ID: ${formData.upiId}`}
-                        {formData.paymentMethod === 'netbanking' && formData.bankName && `Net Banking: ${formData.bankName}`}
-                        {formData.paymentMethod === 'paytm' && formData.paytmNumber && `Paytm: ****${formData.paytmNumber.slice(-4)}`}
-                        {formData.paymentMethod === 'cod' && 'Cash on Delivery'}
-                        </p>
+                                Net Banking: {formData.bankName}
+                              </span>
+                            )}
+                            {formData.paymentMethod === 'paytm' && formData.paytmNumber && (
+                              <span className="flex items-center">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                Paytm: ****{formData.paytmNumber.slice(-4)}
+                              </span>
+                            )}
+                            {formData.paymentMethod === 'cod' && (
+                              <span className="flex items-center">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                Cash on Delivery
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1637,59 +1760,132 @@ const CheckoutPage = () => {
           </div>
 
           {/* Order Summary */}
-          <div className={`${isMobile ? 'order-1' : 'lg:col-span-2'}`}>
-            <Card>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Bill Summary</h3>
-              <p className="text-sm text-gray-600 mb-4">{totalItems} products</p>
+          <div className={`${isMobile ? 'order-1' : currentStep === 3 ? 'lg:col-span-3' : 'lg:col-span-2'}`}>
+            <Card className="sticky top-4">
+              {/* Header */}
+              <div className="pb-3 border-b mb-4" style={{ borderColor: COLORS.gray[200] }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-lg font-bold flex items-center" style={{ color: COLORS.gray[900] }}>
+                    <svg className="w-5 h-5 mr-1.5" style={{ color: COLORS.primary[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Bill Summary
+                  </h3>
+                </div>
+                <p className="text-xs flex items-center" style={{ color: COLORS.gray[600] }}>
+                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                </p>
+              </div>
 
-              <div className="space-y-3 mb-6">
+              {/* Order Items List */}
+              <div className="space-y-2 mb-4 max-h-32 overflow-y-auto">
                 {items.map(item => {
                   const itemPrice = Number(item.price) || 0;
                   const itemQuantity = Number(item.quantity) || 1;
                   return (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{item.title} (x{item.quantity})</span>
-                      <span className="text-gray-900">₹{(itemPrice * itemQuantity).toFixed(2)}</span>
+                    <div key={item.id} className="flex items-center space-x-2 py-1.5 border-b last:border-b-0" style={{ borderColor: COLORS.gray[100] }}>
+                      <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden" style={{ backgroundColor: COLORS.gray[100] }}>
+                        {item.image ? (
+                          <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-5 h-5" style={{ color: COLORS.gray[400] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate" style={{ color: COLORS.gray[900] }}>{item.title}</p>
+                        <p className="text-xs" style={{ color: COLORS.gray[500] }}>Qty: {itemQuantity}</p>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <p className="text-xs font-semibold" style={{ color: COLORS.gray[900] }}>₹{(itemPrice * itemQuantity).toFixed(2)}</p>
+                      </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-700">MRP</span>
-                  <span className="text-gray-900">₹{mrpTotal.toFixed(2)}</span>
+              {/* Price Breakdown */}
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center">
+                    <svg className="w-3.5 h-3.5 mr-1.5" style={{ color: COLORS.gray[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    <span className="text-xs" style={{ color: COLORS.gray[700] }}>MRP</span>
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: COLORS.gray[700] }}>₹{mrpTotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-700">Delivery charge</span>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">Special Offer Applied</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 line-through">₹49</span>
-                      <span className="text-gray-900">₹0</span>
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center">
+                    <svg className="w-3.5 h-3.5 mr-1.5" style={{ color: COLORS.gray[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <span className="text-xs" style={{ color: COLORS.gray[700] }}>Delivery</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: COLORS.warning[100], color: COLORS.warning[800] }}>
+                      Free
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs line-through" style={{ color: COLORS.gray[400] }}>₹49</span>
+                      <span className="text-xs font-semibold" style={{ color: COLORS.success[600] }}>₹0</span>
                     </div>
                   </div>
                 </div>
-                <div className="bg-green-50 rounded-lg p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-green-600 font-semibold">Total Savings</span>
+              </div>
+
+              {/* Savings Highlight */}
+              <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: COLORS.success[50], borderWidth: '1px', borderStyle: 'solid', borderColor: COLORS.success[200] }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center mr-1.5" style={{ backgroundColor: COLORS.success[100] }}>
+                      <svg className="w-4 h-4" style={{ color: COLORS.success[700] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium" style={{ color: COLORS.success[800] }}>You're saving</p>
+                      <p className="text-base font-bold" style={{ color: COLORS.success[700] }}>₹{totalSavings.toFixed(2)}</p>
+                    </div>
                   </div>
-                  <span className="text-green-600 font-semibold">₹{totalSavings}</span>
                 </div>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex justify-between text-lg font-bold text-gray-900">
-                    <span>Total Amount to Pay</span>
-                    <span>₹{finalTotal.toFixed(2)}</span>
+              </div>
+
+              {/* Total Amount Section */}
+              <div className="rounded-lg p-4 mb-3" style={{ backgroundColor: COLORS.primary[50], borderWidth: '2px', borderStyle: 'solid', borderColor: COLORS.primary[200] }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-1.5" style={{ color: COLORS.primary[700] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span className="text-sm font-semibold" style={{ color: COLORS.gray[900] }}>Total Amount</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Tax of ₹{taxAmount.toFixed(2)} incl.
+                  <span className="text-xl font-bold" style={{ color: COLORS.primary[700] }}>₹{finalTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center mt-1.5 pt-1.5 border-t" style={{ borderColor: COLORS.primary[200] }}>
+                  <svg className="w-3.5 h-3.5 mr-1" style={{ color: COLORS.gray[500] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-xs" style={{ color: COLORS.gray[600] }}>
+                    Tax ₹{taxAmount.toFixed(2)} incl.
                   </p>
                 </div>
               </div>
 
+              {/* Security Badge */}
+              <div className="flex items-center justify-center pt-3 border-t" style={{ borderColor: COLORS.gray[200] }}>
+                <svg className="w-3.5 h-3.5 mr-1.5" style={{ color: COLORS.success[600] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <p className="text-xs" style={{ color: COLORS.gray[600] }}>Secure payment</p>
+              </div>
             </Card>
           </div>
         </div>
