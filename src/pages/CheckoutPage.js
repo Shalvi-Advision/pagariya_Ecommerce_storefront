@@ -1504,7 +1504,12 @@ const CheckoutPage = () => {
                               <span className="flex items-center">
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
+                                </svg>
+                                Bank: {formData.bankName}
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">Payment Method</h3>
@@ -1767,7 +1772,12 @@ const CheckoutPage = () => {
                       </div>
                     ))}
                   </div>
-            </div>
+                ) : (
+                  <div className="py-12 text-center text-gray-500">
+                    No delivery slots available
+                  </div>
+                )}
+              </div>
 
               {/* Modal Footer */}
               <div className="flex items-center justify-between p-6 border-t border-gray-200">
