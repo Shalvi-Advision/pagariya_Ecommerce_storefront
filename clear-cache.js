@@ -12,9 +12,9 @@ console.log('🧹 PWA Cache Clearer');
 console.log('==================');
 
 // Check if we're in development
-const isDevelopment = process.env.NODE_ENV === 'development' || 
-                     process.argv.includes('--dev') ||
-                     process.argv.includes('--development');
+const isDevelopment = process.env.NODE_ENV === 'development' ||
+  process.argv.includes('--dev') ||
+  process.argv.includes('--development');
 
 if (!isDevelopment) {
   console.log('⚠️  This script is intended for development use only.');

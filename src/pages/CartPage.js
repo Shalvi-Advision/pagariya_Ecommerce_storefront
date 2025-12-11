@@ -18,12 +18,12 @@ import {
 import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 
 const CartPage = () => {
-  const { 
-    items, 
-    totalItems, 
-    totalPrice, 
-    removeItem, 
-    updateQuantity, 
+  const {
+    items,
+    totalItems,
+    totalPrice,
+    removeItem,
+    updateQuantity,
     clearCart,
     loading,
     syncing,
@@ -33,11 +33,17 @@ const CartPage = () => {
     validateCart,
     syncCart,
     isAuthenticated,
-    userMobile
+    userMobile,
+    applyValidationFixes
   } = useCart();
   const { showSuccess, showError, showInfo } = useToast();
   const navigate = useNavigate();
   const [showClearModal, setShowClearModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [validationError, setValidationError] = useState('');
+  const [cartUpdates, setCartUpdates] = useState([]);
+  const [isBackendFixed, setIsBackendFixed] = useState(false);
   const [validating, setValidating] = useState(false);
   const [processingCheckout, setProcessingCheckout] = useState(false);
 
@@ -104,7 +110,7 @@ const CartPage = () => {
       // This is important because quantity updates are debounced, so we need to sync before validation
       if (isAuthenticated) {
         const saveResponse = await cartService.saveCart(items);
-        
+
         if (!saveResponse.success) {
           showError(saveResponse.message || 'Failed to save cart');
           setProcessingCheckout(false);
@@ -112,9 +118,9 @@ const CartPage = () => {
         }
       }
 
-      // Step 2: Validate cart (now with the latest synced data)
-      const validateResponse = await cartService.validateCart();
-      
+      // Step 2: Validate cart (WITH autoFix=true for server-side correction)
+      const validateResponse = await cartService.validateCart(true);
+
       // Check if API call was successful
       if (!validateResponse.success) {
         showError(validateResponse.message || 'Cart validation failed');
@@ -122,30 +128,53 @@ const CartPage = () => {
         return;
       }
 
-      // Check if actual validation passed (validation.valid)
       const validation = validateResponse.validation;
+
+      // Check if Backend Auto-Fixed logic triggered
+      if (validation && validation.fixed) {
+        setCartUpdates(validation.changes || []);
+        setIsBackendFixed(true);
+        setShowUpdateModal(true);
+        setProcessingCheckout(false);
+        return;
+      }
+
+      // Check if actual validation passed (validation.valid)
       if (validation && validation.valid === false) {
-        // Build error message with invalid items details
+
+        // Auto-update cart based on validation items
+        const result = await applyValidationFixes(validation.invalidItems);
+
+        if (result.changes && result.changes.length > 0) {
+          setCartUpdates(result.changes);
+          setShowUpdateModal(true);
+          // showInfo("Cart updated based on current stock and prices. Please review and proceed.");
+          setProcessingCheckout(false);
+          return;
+        }
+
+        // Build error message if auto-fix didn't handle everything or user needs to see it
         let errorMessage = 'Cart validation failed. ';
-        
+
         if (validation.invalidItems && validation.invalidItems.length > 0) {
           const firstInvalidItem = validation.invalidItems[0];
-          errorMessage += firstInvalidItem.reason || 'Some items are unavailable.';
+          errorMessage = firstInvalidItem.reason || firstInvalidItem.message || 'Some items are unavailable.';
           if (validation.invalidItems.length > 1) {
             errorMessage += ` (and ${validation.invalidItems.length - 1} more issue${validation.invalidItems.length - 1 > 1 ? 's' : ''})`;
           }
         } else {
-          errorMessage += 'Please review your cart items.';
+          errorMessage = 'Please review your cart items.';
         }
-        
-        showError(errorMessage);
+
+        setValidationError(errorMessage);
+        setShowErrorModal(true);
         setProcessingCheckout(false);
         return;
       }
 
       // Step 3: Navigate to checkout
       navigate('/checkout');
-      
+
     } catch (error) {
       console.error('Error processing checkout:', error);
       showError(error.message || 'Failed to process checkout');
@@ -160,7 +189,7 @@ const CartPage = () => {
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hour${Math.floor(diffMins / 60) > 1 ? 's' : ''} ago`;
@@ -195,7 +224,7 @@ const CartPage = () => {
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            
+
             {/* Left Section - Cart Items */}
             <div className="lg:col-span-2">
               {/* Header */}
@@ -234,9 +263,23 @@ const CartPage = () => {
                     const itemPrice = Number(item.price) || 0;
                     const itemSavings = calculateSavings(itemPrice);
                     const variant = item.quantity > 1 ? `${item.quantity} units` : '1 unit';
-                    
+
                     return (
-                      <div key={item.id} className="p-3 sm:p-4 lg:p-6">
+                      <div key={item.id} className={`p-3 sm:p-4 lg:p-6 ${validationResult?.validation?.invalidItems?.some(i => i.p_code === item.p_code || i.p_code === item.id) ? 'bg-red-50' : ''}`}>
+                        {/* Validation Error Message */}
+                        {validationResult?.validation?.invalidItems?.find(i => i.p_code === item.p_code || i.p_code === item.id) && (
+                          <div className="mb-3 p-3 bg-red-100 border border-red-200 rounded-lg flex items-start gap-2">
+                            <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-red-800">
+                                {validationResult?.validation?.invalidItems?.find(i => i.p_code === item.p_code || i.p_code === item.id).message}
+                              </p>
+                              <p className="text-xs text-red-600 mt-1">
+                                {validationResult?.validation?.invalidItems?.find(i => i.p_code === item.p_code || i.p_code === item.id).suggestedAction?.message}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         {/* Mobile Layout */}
                         <div className="sm:hidden">
                           <div className="flex gap-3 mb-3">
@@ -380,7 +423,7 @@ const CartPage = () => {
                       <TrashIcon className="w-4 h-4" />
                       <span className="text-xs sm:text-sm font-medium">Remove all</span>
                     </button>
-                    
+
                   </div>
                 </div>
               </div>
@@ -390,7 +433,7 @@ const CartPage = () => {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 sticky top-4 sm:top-8">
                 <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4 sm:mb-6">Price Summary</h2>
-                
+
                 <div className="space-y-3 sm:space-y-4">
                   {/* Cart Total */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-200">
@@ -451,12 +494,14 @@ const CartPage = () => {
                   <h3 className="text-lg font-semibold text-gray-900">Clear Cart</h3>
                   <p className="text-sm text-gray-500">This action cannot be undone</p>
                 </div>
+
+
               </div>
-              
+
               <p className="text-gray-700 mb-6">
                 Are you sure you want to remove all items from your cart? This will permanently delete all {totalItems} item{totalItems !== 1 ? 's' : ''} from your cart.
               </p>
-              
+
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowClearModal(false)}
@@ -471,6 +516,76 @@ const CartPage = () => {
                   Clear Cart
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart Update Summary Modal */}
+      {showUpdateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Cart Updated</h3>
+            <p className="text-sm text-gray-600 mb-4">The following changes were made to your cart based on current availability and prices:</p>
+            <div className="space-y-3 mb-6 max-h-[60vh] overflow-y-auto">
+              {cartUpdates.map((change, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  {change.type === 'remove' && <TrashIcon className="w-5 h-5 text-red-500 mt-0.5" />}
+                  {change.type === 'quantity' && <InformationCircleIcon className="w-5 h-5 text-blue-500 mt-0.5" />}
+                  {change.type === 'price' && <InformationCircleIcon className="w-5 h-5 text-yellow-500 mt-0.5" />}
+
+                  <div className="text-sm">
+                    <p className="font-medium text-gray-900">{change.item}</p>
+                    <p className="text-gray-600">
+                      {change.type === 'remove' && 'Removed from cart (Out of Stock)'}
+                      {change.type === 'quantity' && `Quantity adjusted to ${change.to} (Limited Stock)`}
+                      {change.type === 'price' && `Price updated to ₹${change.to}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setShowUpdateModal(false);
+                if (isBackendFixed) {
+                  window.location.reload();
+                }
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+            >
+              Okay, Review Cart
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cart Validation Error Modal - For errors that cannot be auto-fixed */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4 text-red-600">
+              <ExclamationTriangleIcon className="w-8 h-8" />
+              <h3 className="text-lg font-bold text-gray-900">Cart Issue</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-6 font-medium">{validationError}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowErrorModal(false);
+                  // User acknowledges the error
+                }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                autoFocus
+              >
+                Okay, I'll Fix It
+              </button>
             </div>
           </div>
         </div>

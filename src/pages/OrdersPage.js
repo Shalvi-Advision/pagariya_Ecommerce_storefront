@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrderContext';
@@ -6,28 +6,60 @@ import AccountSidebar from '../components/AccountSidebar';
 
 const OrdersPage = () => {
   const { user } = useAuth();
-  const { orders, getOrdersByUser } = useOrders();
+  const { orders, loading, error, fetchOrders } = useOrders();
   const navigate = useNavigate();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const userOrders = user ? getOrdersByUser(user.id ?? user.mobile_no) : orders;
+  // Fetch orders from API when component mounts
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (user && isInitialLoad) {
+        console.log('📦 Loading orders for user:', user);
+        await fetchOrders(20);
+        setIsInitialLoad(false);
+      }
+    };
+
+    loadOrders();
+  }, [user, isInitialLoad, fetchOrders]);
+
+  // Orders from API are already filtered by authenticated user
+  // Ensure userOrders is always an array
+  const userOrders = Array.isArray(orders) ? orders : [];
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Processing':
+    const statusLower = status?.toLowerCase() || '';
+    switch (statusLower) {
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Shipped':
+      case 'confirmed':
         return 'bg-blue-100 text-blue-800';
-      case 'Delivered':
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'shipped':
+        return 'bg-blue-100 text-blue-800';
+      case 'delivered':
         return 'bg-green-100 text-green-800';
-      case 'Cancelled':
+      case 'cancelled':
         return 'bg-red-100 text-red-800';
+      case 'refunded':
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPaymentMethodDisplay = (method) => {
-    switch (method) {
+    if (!method) return 'N/A';
+
+    // If it's already a formatted name from API, return as is
+    if (method.includes(' ') || method.length > 10) {
+      return method;
+    }
+
+    // Handle short codes
+    const methodLower = method.toLowerCase();
+    switch (methodLower) {
       case 'card':
         return 'Credit/Debit Card';
       case 'upi':
@@ -56,7 +88,17 @@ const OrdersPage = () => {
   };
 
   const getDeliveryAddressDisplay = (order) => {
-    if (order.checkoutData?.deliveryMode === 'pickup' && order.checkoutData?.selectedPickupPoint) {
+    // Handle API response format
+    if (order.deliveryAddress) {
+      const addr = order.deliveryAddress;
+      return {
+        name: addr.full_name || 'N/A',
+        address: `${addr.line_1 || ''}, ${addr.line_2 || ''}, ${addr.city || ''}, ${addr.pincode || ''}`.replace(/,\s*,/g, ',').trim() || 'Address not available',
+        type: 'Home Delivery'
+      };
+    }
+    // Handle legacy checkoutData format
+    else if (order.checkoutData?.deliveryMode === 'pickup' && order.checkoutData?.selectedPickupPoint) {
       return {
         name: order.checkoutData.selectedPickupPoint.name,
         address: order.checkoutData.selectedPickupPoint.address,
@@ -91,18 +133,44 @@ const OrdersPage = () => {
   };
 
   const getDeliveryDateDisplay = (order) => {
-    // Debug: Log the order data to see what's available
-    console.log('Order data for delivery date:', {
-      checkoutData: order.checkoutData,
-      deliveryDate: order.deliveryDate,
-      orderDate: order.orderDate
-    });
-    
-    // If we have a selected time slot and date, show that
+    // Handle API response format with delivery slot
+    if (order.deliverySlot && order.deliverySlot !== 'TBD') {
+      // If we have estimated delivery date, combine with slot
+      if (order.estimatedDeliveryDate) {
+        try {
+          const date = new Date(order.estimatedDeliveryDate);
+          const dateStr = date.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+          return `${dateStr} (${order.deliverySlot})`;
+        } catch (error) {
+          return order.deliverySlot;
+        }
+      }
+      return order.deliverySlot;
+    }
+
+    // If we have a selected time slot and date (legacy), show that
     if (order.checkoutData?.selectedTimeSlot && order.checkoutData?.selectedDate) {
       return getTimeSlotDisplay(order.checkoutData);
     }
-    
+
+    // If we have estimated delivery date
+    if (order.estimatedDeliveryDate) {
+      try {
+        const deliveryDate = new Date(order.estimatedDeliveryDate);
+        return deliveryDate.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      } catch (error) {
+        console.error('Error parsing estimated delivery date:', error);
+      }
+    }
+
     // If we have a delivery date, show that
     if (order.deliveryDate) {
       try {
@@ -116,11 +184,11 @@ const OrdersPage = () => {
         console.error('Error parsing delivery date:', error);
       }
     }
-    
+
     // Fallback to order date + 7 days
-    if (order.orderDate) {
+    if (order.orderDate || order.orderPlacedAt) {
       try {
-        const orderDate = new Date(order.orderDate);
+        const orderDate = new Date(order.orderDate || order.orderPlacedAt);
         const deliveryDate = new Date(orderDate.getTime() + 7 * 24 * 60 * 60 * 1000);
         return deliveryDate.toLocaleDateString('en-IN', {
           day: '2-digit',
@@ -132,7 +200,7 @@ const OrdersPage = () => {
         return 'TBD';
       }
     }
-    
+
     return 'TBD';
   };
 
@@ -147,7 +215,40 @@ const OrdersPage = () => {
           <div className="max-w-4xl">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
 
-            {userOrders.length === 0 ? (
+            {/* Loading State */}
+            {loading && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <span className="text-2xl">📦</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading orders...</h3>
+                  <p className="text-gray-600">Please wait while we fetch your orders</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="bg-red-50 rounded-lg shadow-sm border border-red-200 p-6 mb-6">
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">⚠️</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-red-900 mb-2">Error loading orders</h3>
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <button
+                    onClick={() => fetchOrders(20)}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && userOrders.length === 0 ? (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -163,18 +264,18 @@ const OrdersPage = () => {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : !loading && !error && (
               <div className="space-y-6">
                 {userOrders.map((order) => (
-                  <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                  <div key={order.orderNumber || order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                          Order #{order.id}
+                          Order #{order.orderNumber || order.id}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {order.orderDate ? (
-                            `Placed on ${new Date(order.orderDate).toLocaleDateString('en-IN', {
+                          {order.orderPlacedAt || order.orderDate ? (
+                            `Placed on ${new Date(order.orderPlacedAt || order.orderDate).toLocaleDateString('en-IN', {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric'
@@ -185,8 +286,8 @@ const OrdersPage = () => {
                         </p>
                       </div>
                       <div className="mt-2 sm:mt-0">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status || 'Pending')}`}>
-                          {order.status || 'Pending'}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.orderStatus || order.status || 'Pending')}`}>
+                          {order.orderStatus || order.status || 'Pending'}
                         </span>
                       </div>
                     </div>
@@ -233,7 +334,7 @@ const OrdersPage = () => {
                               Payment Method
                             </h4>
                             <p className="text-sm text-gray-600">
-                              {getPaymentMethodDisplay(order.paymentMethod || 'N/A')}
+                              {getPaymentMethodDisplay(order.paymentMode || order.paymentMethod || 'N/A')}
                             </p>
                           </div>
 
@@ -275,7 +376,26 @@ const OrdersPage = () => {
                       <div className="border-t border-gray-200 pt-4">
                         <h4 className="font-medium text-gray-900 mb-3">Order Items</h4>
                         <div className="space-y-2">
-                          {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                          {order.orderItems && Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
+                            order.orderItems.map((item, index) => (
+                              <div key={index} className="flex justify-between items-center py-2">
+                                <div className="flex items-center">
+                                  <img
+                                    src={item.image || item.product_image || '/images/logo.jpg'}
+                                    alt={item.title || item.product_name || 'Product'}
+                                    className="w-12 h-12 object-cover rounded mr-3"
+                                  />
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{item.title || item.product_name || 'Product'}</p>
+                                    <p className="text-xs text-gray-600">Quantity: {item.quantity || 0}</p>
+                                  </div>
+                                </div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  ₹{((item.price || item.unit_price || 0) * (item.quantity || 0)).toFixed(2)}
+                                </p>
+                              </div>
+                            ))
+                          ) : order.items && Array.isArray(order.items) && order.items.length > 0 ? (
                             order.items.map((item, index) => (
                               <div key={index} className="flex justify-between items-center py-2">
                                 <div className="flex items-center">
@@ -303,7 +423,7 @@ const OrdersPage = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-lg font-semibold text-gray-900">Total</span>
                             <span className="text-lg font-semibold text-gray-900">
-                              ₹{(order.totalAmount || 0).toFixed(2)}
+                              ₹{(order.orderSummary?.totalAmount || order.totalAmount || 0).toFixed(2)}
                             </span>
                           </div>
                         </div>

@@ -16,15 +16,16 @@ const cartActions = {
   SET_SYNCING: 'SET_SYNCING',
   SET_SYNC_ERROR: 'SET_SYNC_ERROR',
   SET_LAST_SYNCED: 'SET_LAST_SYNCED',
-  SET_VALIDATION_RESULT: 'SET_VALIDATION_RESULT'
+  SET_VALIDATION_RESULT: 'SET_VALIDATION_RESULT',
+  UPDATE_ITEM: 'UPDATE_ITEM'
 };
 
 // Cart Reducer
 const cartReducer = (state, action) => {
   switch (action.type) {
     case cartActions.ADD_ITEM: {
-      const existingItem = state.items.find(item => 
-        item.id === action.payload.id || 
+      const existingItem = state.items.find(item =>
+        item.id === action.payload.id ||
         item.p_code === action.payload.p_code ||
         item.p_code === action.payload.id
       );
@@ -33,9 +34,9 @@ const cartReducer = (state, action) => {
         return {
           ...state,
           items: state.items.map(item =>
-            (item.id === action.payload.id || 
-             item.p_code === action.payload.p_code ||
-             item.p_code === action.payload.id)
+            (item.id === action.payload.id ||
+              item.p_code === action.payload.p_code ||
+              item.p_code === action.payload.id)
               ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
@@ -51,8 +52,8 @@ const cartReducer = (state, action) => {
     case cartActions.REMOVE_ITEM:
       return {
         ...state,
-        items: state.items.filter(item => 
-          item.id !== action.payload && 
+        items: state.items.filter(item =>
+          item.id !== action.payload &&
           item.p_code !== action.payload
         ),
       };
@@ -61,9 +62,19 @@ const cartReducer = (state, action) => {
       return {
         ...state,
         items: state.items.map(item =>
-          (item.id === action.payload.id || 
-           item.p_code === action.payload.id)
+          (item.id === action.payload.id ||
+            item.p_code === action.payload.id)
             ? { ...item, quantity: Math.max(1, action.payload.quantity) }
+            : item
+        ),
+      };
+
+    case cartActions.UPDATE_ITEM:
+      return {
+        ...state,
+        items: state.items.map(item =>
+          (item.id === action.payload.id || item.p_code === action.payload.id)
+            ? { ...item, ...action.payload.updates }
             : item
         ),
       };
@@ -232,7 +243,7 @@ export const CartProvider = ({ children }) => {
 
     try {
       const response = await retryWithBackoff(() => cartService.getCart());
-      
+
       if (response.success) {
         dispatch({
           type: cartActions.LOAD_CART,
@@ -247,7 +258,7 @@ export const CartProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching cart:', error);
       dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
-      
+
       // Fallback to localStorage
       loadGuestCart();
     }
@@ -280,7 +291,7 @@ export const CartProvider = ({ children }) => {
 
     try {
       const response = await retryWithBackoff(() => cartService.saveCart(state.items));
-      
+
       if (response.success) {
         dispatch({ type: cartActions.SET_LAST_SYNCED, payload: new Date().toISOString() });
       } else {
@@ -316,7 +327,7 @@ export const CartProvider = ({ children }) => {
 
     try {
       const response = await cartService.mergeGuestCart(guestItems);
-      
+
       if (response.success) {
         dispatch({
           type: cartActions.LOAD_CART,
@@ -334,6 +345,101 @@ export const CartProvider = ({ children }) => {
       throw error;
     }
   }, []);
+
+  // Apply fixes from validation result (Auto-update cart)
+  const applyValidationFixes = useCallback(async (invalidItems) => {
+    console.log('🔧 Auto-fixing cart items:', invalidItems);
+    if (!invalidItems || invalidItems.length === 0) return { changes: [] };
+
+    const changes = [];
+    const itemsToRemove = [];
+
+    for (const error of invalidItems) {
+      const itemId = error.p_code || error.id;
+      let currentItem;
+
+      if (itemId) {
+        // Try finding by ID first
+        currentItem = state.items.find(i => String(i.id) === String(itemId) || String(i.p_code) === String(itemId));
+      }
+
+      // Fallback to index if ID matching failed or ID wasn't provided
+      if (!currentItem && error.index !== undefined && state.items[error.index]) {
+        currentItem = state.items[error.index];
+        console.log(`📍 Found item by index [${error.index}]:`, currentItem.title);
+      }
+
+      if (!currentItem) {
+        console.warn(`⚠️ Could not find item locally for fix:`, error);
+        continue;
+      }
+
+      const availableQty = error.available ?? error.stock ?? error.available_stock ?? error.available_quantity ?? error.max_quantity ?? error.valid_quantity; // Check all potential fields
+
+      // Case 1: Out of stock or explicitly 'remove'
+      if ((availableQty !== undefined && Number(availableQty) === 0) ||
+        error.stock === 0 ||
+        error.suggestedAction?.type === 'remove' ||
+        error.action === 'remove' ||
+        error.actionType === 'out_of_stock' ||
+        error.message?.toLowerCase().includes('out of stock')) {
+
+        itemsToRemove.push(currentItem.id || currentItem.p_code);
+        changes.push({
+          type: 'remove',
+          item: currentItem.title,
+          reason: 'Out of stock'
+        });
+      }
+      // Case 2: Quantity Adjustment
+      else if (
+        (error.action === 'update_quantity' || error.actionType === 'insufficient_stock' || (availableQty !== undefined && Number(availableQty) < currentItem.quantity)) &&
+        (availableQty !== undefined && Number(availableQty) > 0)
+      ) {
+        const newQty = Number(availableQty);
+        dispatch({
+          type: cartActions.UPDATE_QUANTITY,
+          payload: { id: currentItem.id || currentItem.p_code, quantity: newQty }
+        });
+        changes.push({
+          type: 'quantity',
+          item: currentItem.title,
+          from: currentItem.quantity,
+          to: newQty
+        });
+      }
+      // Case 3: Price Change
+      else if (error.suggestedAction?.type === 'update_price' || error.new_price) {
+        const newPrice = error.new_price || error.price;
+        if (newPrice && Number(newPrice) !== Number(currentItem.price)) {
+          dispatch({
+            type: cartActions.UPDATE_ITEM,
+            payload: { id: currentItem.id || currentItem.p_code, updates: { price: newPrice, unit_price: newPrice, our_price: newPrice } }
+          });
+          changes.push({
+            type: 'price',
+            item: currentItem.title,
+            from: currentItem.price,
+            to: newPrice
+          });
+        }
+      }
+    }
+
+    // Process removals
+    for (const id of itemsToRemove) {
+      dispatch({ type: cartActions.REMOVE_ITEM, payload: id });
+    }
+
+    if (changes.length > 0) {
+      // Sync updated cart to backend immediately
+      if (debouncedSyncRef.current) {
+        debouncedSyncRef.current();
+      }
+    }
+
+    return { changes };
+  }, [state.items]);
 
   // Cart actions
   const addItem = useCallback(async (product, quantity = 1) => {
@@ -361,12 +467,12 @@ export const CartProvider = ({ children }) => {
     };
 
     // Check if item already exists in cart
-    const existingItem = state.items.find(item => 
-      item.id === cartItem.id || 
+    const existingItem = state.items.find(item =>
+      item.id === cartItem.id ||
       item.p_code === cartItem.p_code ||
       item.p_code === cartItem.id
     );
-    
+
     if (existingItem) {
       // If item exists, update its quantity
       dispatch({
@@ -395,7 +501,7 @@ export const CartProvider = ({ children }) => {
 
   const removeItem = useCallback((itemId) => {
     dispatch({ type: cartActions.REMOVE_ITEM, payload: itemId });
-    
+
     // Debounced sync to API
     if (isUserAuthenticated() && debouncedSyncRef.current) {
       debouncedSyncRef.current();
@@ -407,7 +513,7 @@ export const CartProvider = ({ children }) => {
       type: cartActions.UPDATE_QUANTITY,
       payload: { id: itemId, quantity },
     });
-    
+
     // Debounced sync to API
     if (isUserAuthenticated() && debouncedSyncRef.current) {
       debouncedSyncRef.current();
@@ -416,7 +522,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = useCallback(async () => {
     dispatch({ type: cartActions.CLEAR_CART });
-    
+
     // Clear on API if authenticated
     if (isUserAuthenticated()) {
       try {
@@ -457,11 +563,11 @@ export const CartProvider = ({ children }) => {
     syncError: state.syncError,
     lastSynced: state.lastSynced,
     validationResult: state.validationResult,
-    
+
     // Computed values
     totalItems,
     totalPrice,
-    
+
     // Actions
     addItem,
     removeItem,
@@ -472,8 +578,10 @@ export const CartProvider = ({ children }) => {
     fetchCart,
     syncCart,
     validateCart,
+    validateCart,
     mergeGuestCart,
-    
+    applyValidationFixes,
+
     // Utility
     isAuthenticated: isUserAuthenticated(),
     userMobile: getUserMobile()

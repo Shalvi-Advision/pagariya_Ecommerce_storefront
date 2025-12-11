@@ -27,7 +27,7 @@ const getStoreCode = () => {
 export const getDeliverySlots = async () => {
   try {
     const storeCode = getStoreCode();
-    
+
     // Validate that store code exists in localStorage
     if (!storeCode) {
       const error = new Error('Store code not found. Please select a location first.');
@@ -35,7 +35,7 @@ export const getDeliverySlots = async () => {
       console.error('❌ Store code validation failed:', error);
       throw error;
     }
-    
+
     const projectCode = APP_CONSTANTS.PROJECT_CODE;
 
     const url = `${API_BASE_URL}/delivery-slots/get-delivery-slots`;
@@ -67,9 +67,9 @@ export const getDeliverySlots = async () => {
     }
 
     const data = await response.json();
-    
+
     console.log('✅ Delivery slots API response data:', data);
-    
+
     return data;
   } catch (error) {
     console.error('❌ Error fetching delivery slots:', error);
@@ -100,11 +100,11 @@ export const transformDeliverySlotFromAPI = (apiSlot) => {
  */
 export const formatTime = (timeString) => {
   if (!timeString) return '';
-  
+
   const [hours, minutes] = timeString.split(':');
   const hour = parseInt(hours, 10);
   const minute = minutes || '00';
-  
+
   if (hour === 0) {
     return `12:${minute} AM`;
   } else if (hour < 12) {
@@ -135,37 +135,37 @@ export const generateTimeSlotsFromAPI = (apiSlots) => {
   for (let i = 1; i <= 2; i++) {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
-    
+
     const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
     const day = targetDate.getDate();
     const month = targetDate.toLocaleDateString('en-US', { month: 'long' });
     const year = targetDate.getFullYear();
-    
+
     const dateString = `${dayName} ${day}-${month}-${year}`;
-    
+
     // Use the first active slot from API
     const activeSlot = apiSlots.find(slot => slot.isActive) || apiSlots[0];
-    
+
     let slotsForDate = [];
-    
+
     if (activeSlot) {
       // Generate slots based on API slot time range
       const fromTime = activeSlot.slotFrom;
       const toTime = activeSlot.slotTo;
-      
+
       // Generate time slots in 2-3 hour intervals
-      slotsForDate = generateSlotsForTimeRange(fromTime, toTime, slotId);
+      slotsForDate = generateSlotsForTimeRange(fromTime, toTime, slotId, activeSlot.iddelivery_slot);
       slotId += slotsForDate.length;
     } else {
       // Use default slots if no active slot
       slotsForDate = [
-        { id: slotId++, time: '09:00 AM - 12:00 PM', available: true },
-        { id: slotId++, time: '12:00 PM - 03:00 PM', available: true },
-        { id: slotId++, time: '03:00 PM - 06:00 PM', available: true },
-        { id: slotId++, time: '06:00 PM - 09:00 PM', available: true }
+        { id: slotId++, time: '09:00 AM - 12:00 PM', available: true, deliverySlotId: null },
+        { id: slotId++, time: '12:00 PM - 03:00 PM', available: true, deliverySlotId: null },
+        { id: slotId++, time: '03:00 PM - 06:00 PM', available: true, deliverySlotId: null },
+        { id: slotId++, time: '06:00 PM - 09:00 PM', available: true, deliverySlotId: null }
       ];
     }
-    
+
     timeSlots.push({
       date: dateString,
       slots: slotsForDate
@@ -187,14 +187,14 @@ export const generateDefaultTimeSlots = () => {
   for (let i = 1; i <= 2; i++) {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
-    
+
     const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
     const day = targetDate.getDate();
     const month = targetDate.toLocaleDateString('en-US', { month: 'long' });
     const year = targetDate.getFullYear();
-    
+
     const dateString = `${dayName} ${day}-${month}-${year}`;
-    
+
     const availableSlots = [
       { time: '07:00 AM - 10:00 AM', available: true },
       { time: '10:00 AM - 12:30 PM', available: true },
@@ -226,54 +226,55 @@ export const generateDefaultTimeSlots = () => {
  * @param {number} startSlotId - Starting slot ID
  * @returns {Array} - Array of time slots
  */
-const generateSlotsForTimeRange = (fromTime, toTime, startSlotId) => {
+const generateSlotsForTimeRange = (fromTime, toTime, startSlotId, deliverySlotId = null) => {
   const slots = [];
   let currentSlotId = startSlotId;
-  
+
   // Parse from and to times
   const [fromHour, fromMin] = fromTime.split(':').map(Number);
   const [toHour, toMin] = toTime.split(':').map(Number);
-  
+
   let currentHour = fromHour;
   let currentMin = fromMin;
-  
+
   // Generate slots in 2-3 hour intervals
   while (currentHour < toHour || (currentHour === toHour && currentMin < toMin)) {
     let nextHour = currentHour + 2;
     let nextMin = currentMin + 30;
-    
+
     if (nextMin >= 60) {
       nextHour += 1;
       nextMin -= 60;
     }
-    
+
     // Make sure we don't exceed the end time
     if (nextHour > toHour || (nextHour === toHour && nextMin > toMin)) {
       nextHour = toHour;
       nextMin = toMin;
     }
-    
+
     // Format times
     const startTime = format12HourTime(currentHour, currentMin);
     const endTime = format12HourTime(nextHour, nextMin);
-    
+
     if (nextHour <= toHour) {
       slots.push({
         id: currentSlotId++,
         time: `${startTime} - ${endTime}`,
-        available: true
+        available: true,
+        deliverySlotId: deliverySlotId
       });
     }
-    
+
     currentHour = nextHour;
     currentMin = nextMin;
-    
+
     // Break if we've reached the end
     if (currentHour === toHour && currentMin >= toMin) {
       break;
     }
   }
-  
+
   return slots;
 };
 

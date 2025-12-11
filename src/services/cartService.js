@@ -52,13 +52,13 @@ class CartService {
     // Parse package_size if it's a string like "250 GM"
     let packageSize = cartItem.package_size;
     let packageUnit = cartItem.package_unit || 'GM';
-    
+
     if (cartItem.packageSize && typeof cartItem.packageSize === 'string') {
       const parts = cartItem.packageSize.trim().split(/\s+/);
       packageSize = parseFloat(parts[0]) || 1;
       packageUnit = parts[1] || packageUnit;
     }
-    
+
     return {
       p_code: cartItem.p_code || cartItem.id,
       product_name: cartItem.title || cartItem.product_name,
@@ -127,7 +127,7 @@ class CartService {
       }
 
       const storeCode = this.getStoreCode();
-      
+
       // Validate that store code exists in localStorage
       if (!storeCode) {
         const error = new Error('Store code not found. Please select a location first.');
@@ -170,9 +170,9 @@ class CartService {
   }
 
   // Validate cart items
-  async validateCart() {
+  async validateCart(autoFix = false) {
     try {
-      console.log('🛒 CartService: Validating cart');
+      console.log('🛒 CartService: Validating cart', { autoFix });
 
       if (!this.isAuthenticated()) {
         console.log('🛒 CartService: User not authenticated, skipping validation');
@@ -180,7 +180,7 @@ class CartService {
       }
 
       const storeCode = this.getStoreCode();
-      
+
       // Validate that store code exists in localStorage
       if (!storeCode) {
         const error = new Error('Store code not found. Please select a location first.');
@@ -191,7 +191,8 @@ class CartService {
 
       const requestBody = {
         store_code: storeCode,
-        project_code: this.projectCode
+        project_code: this.projectCode,
+        autoFix
       };
 
       console.log('🛒 CartService: Validation request body', requestBody);
@@ -204,7 +205,7 @@ class CartService {
         return {
           success: true,
           message: response.message || 'Cart validation successful',
-          validation: response.validation
+          validation: response.validation || response // Handle both structures if needed
         };
       } else {
         throw new Error(response.message || 'Cart validation failed');
@@ -226,7 +227,7 @@ class CartService {
       }
 
       const storeCode = this.getStoreCode();
-      
+
       // Validate that store code exists in localStorage
       if (!storeCode) {
         const error = new Error('Store code not found. Please select a location first.');
@@ -275,7 +276,7 @@ class CartService {
       }
 
       const storeCode = this.getStoreCode();
-      
+
       // Validate that store code exists in localStorage
       if (!storeCode) {
         const error = new Error('Store code not found. Please select a location first.');
@@ -324,7 +325,7 @@ class CartService {
       }
 
       const storeCode = this.getStoreCode();
-      
+
       // Validate that store code exists in localStorage
       if (!storeCode) {
         const error = new Error('Store code not found. Please select a location first.');
@@ -335,7 +336,7 @@ class CartService {
 
       // Transform cart item to API format
       const apiItem = this.transformToApiFormat(item);
-      
+
       // Create request body matching the new API structure
       const requestBody = {
         store_code: storeCode,
@@ -417,10 +418,10 @@ class CartService {
 
       // Merge items intelligently
       const mergedItems = [...backendItems];
-      
+
       guestCartItems.forEach(guestItem => {
         const existingItem = mergedItems.find(item => item.p_code === guestItem.p_code || item.id === guestItem.p_code);
-        
+
         if (existingItem) {
           // Update quantity
           existingItem.quantity = (existingItem.quantity || 0) + (guestItem.quantity || 0);
@@ -435,7 +436,7 @@ class CartService {
 
       // Save merged cart
       const saveResponse = await this.saveCart(mergedItems);
-      
+
       return {
         success: true,
         message: 'Guest cart merged successfully',

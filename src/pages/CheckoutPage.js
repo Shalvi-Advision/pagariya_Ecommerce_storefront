@@ -13,6 +13,9 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import OrderSuccessModal from '../components/OrderSuccessModal';
+import { apiPost } from '../services/api';
+import cartService from '../services/cartService';
+import { PROJECT_CODE } from '../constants';
 
 // Indian States constant
 const INDIAN_STATES = [
@@ -40,7 +43,7 @@ const CheckoutPage = () => {
   // State for dynamic time slots
   const [timeSlots, setTimeSlots] = useState(generateDefaultTimeSlots());
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  
+
   // State for dynamic pickup stores
   const [pickupStores, setPickupStores] = useState([]);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
@@ -69,7 +72,7 @@ const CheckoutPage = () => {
       // Get current store code from localStorage
       const locationData = localStorage.getItem('confirmedLocation');
       let currentStoreCode = null;
-      
+
       if (locationData) {
         try {
           const location = JSON.parse(locationData);
@@ -78,26 +81,26 @@ const CheckoutPage = () => {
           console.error('Error parsing location data:', error);
         }
       }
-      
+
       console.log('🏪 Fetching pickup stores for pincode:', pincode);
       console.log('🏪 Current store code from localStorage:', currentStoreCode);
-      
+
       const response = await getPincodeStores(pincode);
       console.log('🏪 API Response:', response);
-      
+
       if (response.success && response.data && response.data.length > 0) {
         console.log('🏪 Total stores from API:', response.data.length);
-        
+
         // Transform API data to UI format first
         const formattedStores = response.data.map(store => formatStoreData(store));
-        
+
         console.log('🏪 Formatted stores:', formattedStores);
-        
+
         // Filter to only show the currently selected store (from localStorage)
         const filteredStores = formattedStores.filter(store => {
           const matchesCurrentStore = currentStoreCode && store.storeCode === currentStoreCode;
           const isEnabled = store.isEnabled === true;
-          
+
           console.log(`🏪 Store ${store.storeName}:`, {
             storeCode: store.storeCode,
             currentStoreCode: currentStoreCode,
@@ -105,13 +108,13 @@ const CheckoutPage = () => {
             isEnabled: isEnabled,
             willShow: matchesCurrentStore && isEnabled
           });
-          
+
           return matchesCurrentStore && isEnabled;
         });
-        
+
         console.log('✅ Filtered stores (matching current store code):', filteredStores);
         console.log('✅ Number of stores after filtering:', filteredStores.length);
-        
+
         // Map filtered stores to pickup point format
         const pickupEnabledStores = filteredStores.map(store => ({
           id: store._id,
@@ -127,11 +130,11 @@ const CheckoutPage = () => {
           minOrderAmount: store.minOrderAmount,
           storeMessage: store.storeMessage
         }));
-        
+
         console.log('✅ Final pickup stores to display:', pickupEnabledStores);
-        
+
         setPickupStores(pickupEnabledStores);
-        
+
         if (pickupEnabledStores.length === 0 && currentStoreCode) {
           setStoresError('The selected store does not support pickup. Please choose home delivery.');
         }
@@ -210,7 +213,7 @@ const CheckoutPage = () => {
         setIsLoadingAddresses(true);
         setAddressesError(null);
         const response = await getAddresses();
-        
+
         if (response.success && response.data) {
           // Transform API data to UI format
           const transformedAddresses = response.data.map(transformAddressFromAPI);
@@ -236,9 +239,9 @@ const CheckoutPage = () => {
       try {
         setIsLoadingSlots(true);
         const response = await getDeliverySlots();
-        
+
         console.log('📅 Delivery Slots API Response:', response);
-        
+
         if (response.success && response.data && response.data.length > 0) {
           console.log('✅ Found delivery slots from API:', response.data);
           // Transform API data to UI format
@@ -271,7 +274,7 @@ const CheckoutPage = () => {
       try {
         setIsLoadingPaymentModes(true);
         const modes = await getEnabledPaymentModes();
-        
+
         // Set the first enabled payment mode as default
         if (modes.length > 0) {
           const defaultMode = mapPaymentModeToUI(modes[0].name);
@@ -282,7 +285,7 @@ const CheckoutPage = () => {
             }));
           }
         }
-        
+
         setEnabledPaymentModes(modes);
       } catch (error) {
         console.error('❌ Failed to load payment modes:', error);
@@ -451,42 +454,75 @@ const CheckoutPage = () => {
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
 
+    // Guard against Pickup Mode (Not supported by backend yet)
+    if (checkoutData.deliveryMode === 'pickup') {
+      alert("Store Pickup is currently not supported. Please select Home Delivery.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 1: Validate Cart one last time
+      console.log('🔄 Verifying cart before placement...');
+      const valResponse = await cartService.validateCart();
 
-      // Create order object
-      const order = {
-        userId: user?.id ?? user?.mobile_no ?? 'guest',
-        items: items,
-        checkoutData: checkoutData, // Include all checkout details
-        paymentMethod: formData.paymentMethod,
-        paymentDetails: getPaymentDetails(),
-        subtotal: totalPrice,
-        shippingCost: shippingCost,
-        taxAmount: taxAmount,
-        totalAmount: finalTotal,
-        orderDate: new Date().toISOString(),
-        status: 'Processing',
-        deliveryDate: checkoutData.selectedDate ? new Date(checkoutData.selectedDate).toISOString() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now if no date selected
+      if (!valResponse.success || (valResponse.validation && !valResponse.validation.valid)) {
+        console.warn('❌ Cart validation failed:', valResponse);
+        let msg = "Some items in your cart are no longer available.";
+        if (valResponse.validation?.invalidItems?.length > 0) {
+          msg += ` (${valResponse.validation.invalidItems[0].message})`;
+        }
+        alert(msg + "\nPlease review your cart.");
+        // Optionally navigate back to cart
+        navigate('/cart');
+        return;
+      }
+
+      // Step 2: Prepare Order Data
+      const locationData = localStorage.getItem('confirmedLocation');
+      const storeCode = locationData ? (JSON.parse(locationData)?.store?.storeCode || JSON.parse(locationData)?.store?.store_code) : null;
+
+      if (!storeCode) {
+        throw new Error("Store code missing. Please select a store.");
+      }
+
+      const selectedPaymentModeObj = enabledPaymentModes.find(mode =>
+        mapPaymentModeToUI(mode.name) === formData.paymentMethod
+      );
+
+      const paymentModeId = selectedPaymentModeObj ? selectedPaymentModeObj.idpayment_mode : (formData.paymentMethod === 'cod' ? 1 : 2);
+
+      const orderPayload = {
+        store_code: storeCode,
+        project_code: PROJECT_CODE,
+        cart_validated: true,
+        delivery_slot_id: checkoutData.selectedTimeSlot?.deliverySlotId || checkoutData.selectedTimeSlot?.id,
+        delivery_date: checkoutData.selectedDate,
+        address_id: checkoutData.selectedAddress?.id,
+        payment_mode_id: paymentModeId,
+        order_notes: '',
+        payment_details: getPaymentDetails()
       };
 
-      // Add order to context
-      const savedOrder = addOrder(order);
+      console.log('📦 Placing Order:', orderPayload);
 
-      // Clear cart
-      clearUserCart();
-      
-      // Set order number and show success modal
-      setOrderNumber(savedOrder.id);
-      setShowOrderSuccessModal(true);
-      
-      // Also set success message (for backup/fallback)
-      setSuccessMessage(`Order #${savedOrder.id} placed successfully! Check your orders for details.`);
+      // Step 3: Place Order using apiPost (more compatible with existing error handling)
+      const response = await apiPost('/orders/place-order', orderPayload);
+
+      if (response.success) {
+        const savedOrder = response.order;
+        clearUserCart();
+        setOrderNumber(savedOrder.order_number);
+        setShowOrderSuccessModal(true);
+        setSuccessMessage(`Order #${savedOrder.order_number} placed successfully!`);
+      } else {
+        throw new Error(response.message || 'Failed to place order');
+      }
+
     } catch (error) {
       console.error('Checkout error:', error);
+      alert(`Order Failed: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -573,9 +609,8 @@ const CheckoutPage = () => {
             {steps.map((step, index) => (
               <React.Fragment key={step.id}>
                 <div className={`flex items-center flex-shrink-0 ${currentStep >= step.id ? 'text-primary-600' : 'text-gray-400'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 text-sm ${
-                    currentStep >= step.id ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 text-sm ${currentStep >= step.id ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'
+                    }`}>
                     {step.id}
                   </div>
                   <div className={`ml-2 ${isMobile ? 'hidden' : 'hidden sm:block'}`}>
@@ -584,9 +619,8 @@ const CheckoutPage = () => {
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-8 sm:w-12 h-0.5 mx-2 sm:mx-4 flex-shrink-0 ${
-                    currentStep > step.id ? 'bg-primary-600' : 'bg-gray-300'
-                  }`} />
+                  <div className={`w-8 sm:w-12 h-0.5 mx-2 sm:mx-4 flex-shrink-0 ${currentStep > step.id ? 'bg-primary-600' : 'bg-gray-300'
+                    }`} />
                 )}
               </React.Fragment>
             ))}
@@ -622,11 +656,10 @@ const CheckoutPage = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Pick Up Point Option */}
-                      <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                        checkoutData.deliveryMode === 'pickup'
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
+                      <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${checkoutData.deliveryMode === 'pickup'
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}>
                         <input
                           type="radio"
                           name="deliveryMode"
@@ -647,11 +680,10 @@ const CheckoutPage = () => {
                       </label>
 
                       {/* Home Delivery Option */}
-                      <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                        checkoutData.deliveryMode === 'home'
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
+                      <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${checkoutData.deliveryMode === 'home'
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}>
                         <input
                           type="radio"
                           name="deliveryMode"
@@ -701,7 +733,7 @@ const CheckoutPage = () => {
                           </button>
                         </div>
                       </div>
-                      
+
                       {isLoadingStores ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
@@ -723,55 +755,54 @@ const CheckoutPage = () => {
                       ) : (
                         <div className="space-y-3">
                           {pickupStores.map((point) => (
-                          <label key={point.id} className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                            checkoutData.selectedPickupPoint?.id === point.id
+                            <label key={point.id} className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${checkoutData.selectedPickupPoint?.id === point.id
                               ? 'border-green-500 bg-green-50'
                               : 'border-gray-200 hover:border-gray-300'
-                          } ${!point.isAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                            <input
-                              type="radio"
-                              name="pickupPoint"
-                              value={point.id}
-                              checked={checkoutData.selectedPickupPoint?.id === point.id}
-                              onChange={() => handlePickupPointSelect(point)}
-                              disabled={!point.isAvailable}
-                              className="text-green-600 focus:ring-green-500 mt-1"
-                            />
-                            <div className="ml-3 flex-1">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center">
-                                    <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <p className="font-medium text-gray-900">{point.name}</p>
-                                  </div>
-                                  <p className="text-sm text-gray-600 mt-1">{point.address}</p>
-                                  <div className="flex items-center mt-2 space-x-4 flex-wrap">
-                                    <span className="text-sm text-gray-500">Distance: {point.distance}</span>
-                                    <span className="text-sm text-gray-500">Timings: {point.timings}</span>
-                                    {point.contactNumber && (
-                                      <span className="text-sm text-gray-500">Contact: {point.contactNumber}</span>
+                              } ${!point.isAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="radio"
+                                name="pickupPoint"
+                                value={point.id}
+                                checked={checkoutData.selectedPickupPoint?.id === point.id}
+                                onChange={() => handlePickupPointSelect(point)}
+                                disabled={!point.isAvailable}
+                                className="text-green-600 focus:ring-green-500 mt-1"
+                              />
+                              <div className="ml-3 flex-1">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center">
+                                      <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
+                                      <p className="font-medium text-gray-900">{point.name}</p>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{point.address}</p>
+                                    <div className="flex items-center mt-2 space-x-4 flex-wrap">
+                                      <span className="text-sm text-gray-500">Distance: {point.distance}</span>
+                                      <span className="text-sm text-gray-500">Timings: {point.timings}</span>
+                                      {point.contactNumber && (
+                                        <span className="text-sm text-gray-500">Contact: {point.contactNumber}</span>
+                                      )}
+                                      {point.minOrderAmount && (
+                                        <span className="text-sm text-gray-500">Min Order: ₹{point.minOrderAmount}</span>
+                                      )}
+                                    </div>
+                                    {point.storeMessage && (
+                                      <p className="text-xs text-blue-600 mt-1 italic">{point.storeMessage}</p>
                                     )}
-                                    {point.minOrderAmount && (
-                                      <span className="text-sm text-gray-500">Min Order: ₹{point.minOrderAmount}</span>
-                                    )}
                                   </div>
-                                  {point.storeMessage && (
-                                    <p className="text-xs text-blue-600 mt-1 italic">{point.storeMessage}</p>
+                                  {!point.isAvailable && (
+                                    <span className="text-xs text-red-600 font-medium">Unavailable</span>
                                   )}
                                 </div>
-                                {!point.isAvailable && (
-                                  <span className="text-xs text-red-600 font-medium">Unavailable</span>
-                                )}
                               </div>
-                            </div>
-                          </label>
-                        ))}
+                            </label>
+                          ))}
                         </div>
                       )}
-                      <Button 
+                      <Button
                         onClick={handleConfirmLocation}
                         disabled={!checkoutData.selectedPickupPoint}
                         className="w-full"
@@ -786,14 +817,14 @@ const CheckoutPage = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900">Saved addresses</h3>
-                        <button 
+                        <button
                           onClick={() => navigate('/address')}
                           className="text-green-600 hover:text-green-700 text-sm font-medium"
                         >
                           + Add New Address
                         </button>
                       </div>
-                      
+
                       {isLoadingAddresses ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
@@ -829,13 +860,12 @@ const CheckoutPage = () => {
                       ) : (
                         <div className="space-y-3">
                           {savedAddresses.map((address) => (
-                            <label 
+                            <label
                               key={address.id || address.mongoId}
-                              className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                                checkoutData.selectedAddress?.id === address.id
-                                  ? 'border-green-500 bg-green-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
+                              className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${checkoutData.selectedAddress?.id === address.id
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                                }`}
                             >
                               <input
                                 type="radio"
@@ -878,7 +908,7 @@ const CheckoutPage = () => {
                                       <p className="text-sm text-gray-500 mt-1">Email: {address.email}</p>
                                     )}
                                   </div>
-                                  <button 
+                                  <button
                                     onClick={(e) => {
                                       e.preventDefault();
                                       navigate('/address');
@@ -896,8 +926,8 @@ const CheckoutPage = () => {
                           ))}
                         </div>
                       )}
-                      
-                      <Button 
+
+                      <Button
                         onClick={handleConfirmLocation}
                         disabled={!checkoutData.selectedAddress || savedAddresses.length === 0}
                         className="w-full bg-green-600 hover:bg-green-700"
@@ -910,22 +940,20 @@ const CheckoutPage = () => {
                   {/* Step 2: Select a time slot (disabled until location is confirmed) */}
                   <div className="space-y-4">
                     <div className="flex items-center">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3 ${
-                        checkoutData.selectedPickupPoint || checkoutData.selectedAddress
-                          ? 'bg-green-500'
-                          : 'bg-gray-400'
-                      }`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3 ${checkoutData.selectedPickupPoint || checkoutData.selectedAddress
+                        ? 'bg-green-500'
+                        : 'bg-gray-400'
+                        }`}>
                         2
                       </div>
-                      <h3 className={`text-lg font-semibold ${
-                        checkoutData.selectedPickupPoint || checkoutData.selectedAddress
-                          ? 'text-gray-900'
-                          : 'text-gray-400'
-                      }`}>
+                      <h3 className={`text-lg font-semibold ${checkoutData.selectedPickupPoint || checkoutData.selectedAddress
+                        ? 'text-gray-900'
+                        : 'text-gray-400'
+                        }`}>
                         Select a time slot
                       </h3>
                     </div>
-                    
+
                     {checkoutData.selectedPickupPoint || checkoutData.selectedAddress ? (
                       <div className="space-y-4">
                         <div className="flex items-center text-green-600">
@@ -936,14 +964,14 @@ const CheckoutPage = () => {
                             Your selected {checkoutData.deliveryMode === 'pickup' ? 'pickup point' : 'home delivery address'} is confirmed
                           </span>
                         </div>
-                        
+
                         <div className="space-y-3">
                           <div className="flex items-center p-4 border border-gray-200 rounded-lg">
                             <div className="text-2xl mr-3">🚚</div>
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">Shipment 1: {totalItems} items</p>
                             </div>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedShipment(1);
                                 setShowTimeSlotModal(true);
@@ -957,7 +985,7 @@ const CheckoutPage = () => {
                             </button>
                           </div>
                         </div>
-                        
+
                         <p className="text-sm text-gray-600">
                           Why am I seeing multiple shipments? <span className="text-green-600 underline cursor-pointer">Know More</span>
                         </p>
@@ -994,13 +1022,12 @@ const CheckoutPage = () => {
                         {enabledPaymentModes.map((mode) => {
                           const details = getPaymentMethodDetails(mode.name);
                           return (
-                            <label 
-                              key={mode.id} 
-                              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                                formData.paymentMethod === details.value
-                                  ? 'border-primary-500 bg-primary-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
+                            <label
+                              key={mode.id}
+                              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === details.value
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                                }`}
                             >
                               <input
                                 type="radio"
@@ -1213,11 +1240,11 @@ const CheckoutPage = () => {
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">Payment Method</h3>
                         <p className="text-sm text-gray-600">
-                        {formData.paymentMethod === 'card' && formData.cardNumber && `Card ending in ${formData.cardNumber.slice(-4)}`}
-                        {formData.paymentMethod === 'upi' && formData.upiId && `UPI ID: ${formData.upiId}`}
-                        {formData.paymentMethod === 'netbanking' && formData.bankName && `Net Banking: ${formData.bankName}`}
-                        {formData.paymentMethod === 'paytm' && formData.paytmNumber && `Paytm: ****${formData.paytmNumber.slice(-4)}`}
-                        {formData.paymentMethod === 'cod' && 'Cash on Delivery'}
+                          {formData.paymentMethod === 'card' && formData.cardNumber && `Card ending in ${formData.cardNumber.slice(-4)}`}
+                          {formData.paymentMethod === 'upi' && formData.upiId && `UPI ID: ${formData.upiId}`}
+                          {formData.paymentMethod === 'netbanking' && formData.bankName && `Net Banking: ${formData.bankName}`}
+                          {formData.paymentMethod === 'paytm' && formData.paytmNumber && `Paytm: ****${formData.paytmNumber.slice(-4)}`}
+                          {formData.paymentMethod === 'cod' && 'Cash on Delivery'}
                         </p>
                       </div>
                     </div>
@@ -1354,19 +1381,16 @@ const CheckoutPage = () => {
                           key={slot.id}
                           onClick={() => handleTimeSlotSelect(dateSlot.date, slot)}
                           disabled={!slot.available}
-                          className={`p-3 text-left border rounded-lg transition-colors ${
-                            slot.available
-                              ? 'border-gray-200 hover:border-green-500 hover:bg-green-50'
-                              : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-50'
-                          } ${
-                            checkoutData.selectedTimeSlot?.id === slot.id
+                          className={`p-3 text-left border rounded-lg transition-colors ${slot.available
+                            ? 'border-gray-200 hover:border-green-500 hover:bg-green-50'
+                            : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-50'
+                            } ${checkoutData.selectedTimeSlot?.id === slot.id
                               ? 'border-green-500 bg-green-50'
                               : ''
-                          }`}
+                            }`}
                         >
-                          <span className={`text-sm font-medium ${
-                            slot.available ? 'text-gray-900' : 'text-gray-400'
-                          }`}>
+                          <span className={`text-sm font-medium ${slot.available ? 'text-gray-900' : 'text-gray-400'
+                            }`}>
                             {slot.time}
                           </span>
                         </button>
@@ -1398,9 +1422,9 @@ const CheckoutPage = () => {
       )}
 
       {/* Order Success Modal */}
-      <OrderSuccessModal 
-        isVisible={showOrderSuccessModal} 
-        onClose={() => setShowOrderSuccessModal(false)} 
+      <OrderSuccessModal
+        isVisible={showOrderSuccessModal}
+        onClose={() => setShowOrderSuccessModal(false)}
         orderNumber={orderNumber}
       />
 
