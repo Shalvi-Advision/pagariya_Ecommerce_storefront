@@ -35,7 +35,7 @@ const useRazorpay = () => {
       // Load Razorpay script
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        throw new Error('Failed to load Razorpay SDK');
+        throw new Error('Razorpay SDK failed to load. Please check your internet connection or disable Ad Blockers.');
       }
 
       // Create order on backend
@@ -97,9 +97,41 @@ const useRazorpay = () => {
       };
 
       // Open Razorpay checkout
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK not loaded. Please check your internet connection.');
+      }
+
+      try {
+        const rzp = new window.Razorpay(options);
+
+        // Add event listener for payment failure if supported
+        if (rzp.on) {
+          rzp.on('payment.failed', function (response) {
+            console.error('⚠️ Razorpay Payment Failed Event:', response.error);
+            // We don't trigger onFailure here because the modal might still be open 
+            // or the user might retry. The 'handler' or 'modal.ondismiss' usually manages flow.
+            // However, capturing it is good for debugging.
+          });
+        }
+
+        rzp.open();
+      } catch (rzpError) {
+        console.error('❌ Failed to open Razorpay:', rzpError);
+        // Check if error suggests blocking
+        const isLikelyBlocked = rzpError.message && (
+          rzpError.message.toLowerCase().includes('blocked') ||
+          rzpError.message.toLowerCase().includes('network')
+        );
+
+        throw new Error(
+          isLikelyBlocked
+            ? 'Payment gateway unavailable. Please disable AdBlocker or Privacy extensions and try again.'
+            : 'Failed to initialize payment gateway.'
+        );
+      }
+
     } catch (err) {
+      console.error('❌ useRazorpay processPayment error:', err);
       setLoading(false);
       setError(err.message);
       onFailure && onFailure(err);
