@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MapPinIcon, 
-  ClockIcon, 
-  PhoneIcon, 
-  XMarkIcon,
-  PencilIcon,
-  CheckCircleIcon
+import {
+  MapPinIcon,
+  ClockIcon,
+  PhoneIcon,
+  CheckCircleIcon,
+  SparklesIcon,
+  TruckIcon,
+  CurrencyRupeeIcon,
+  TagIcon
 } from '@heroicons/react/24/outline';
-import { formatStoreData } from '../api/pincodeService';
+import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
+import { COLORS } from '../constants/theme';
 
 const StoreDetailsModal = ({
   isOpen,
@@ -22,7 +25,6 @@ const StoreDetailsModal = ({
   useEffect(() => {
     if (isOpen && selectedStore) {
       console.log('🏪 StoreDetailsModal received selectedStore:', selectedStore);
-      // Use the selected store data directly (already formatted)
       setStoreDetails(selectedStore);
     }
   }, [isOpen, selectedStore]);
@@ -46,181 +48,386 @@ const StoreDetailsModal = ({
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(4px)'
+      }}
       onClick={(e) => {
-        // Prevent closing when clicking backdrop if required
         if (e.target === e.currentTarget && !isRequired) {
           handleClose();
         }
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Modal Header - Fixed */}
-        <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Confirm Location
-            </h3>
-            {isRequired && (
-              <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded">
-                Required
-              </span>
-            )}
+      <div
+        className="rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-slideUp"
+        style={{
+          backgroundColor: COLORS.white,
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)'
+        }}
+      >
+        {/* Gradient Header */}
+        <div
+          className="px-6 py-6 flex-shrink-0 relative overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${COLORS.primary[500]} 0%, ${COLORS.primary[700]} 100%)`,
+          }}
+        >
+          {/* Decorative circles */}
+          <div
+            className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20"
+            style={{ backgroundColor: COLORS.white }}
+          ></div>
+          <div
+            className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full opacity-10"
+            style={{ backgroundColor: COLORS.white }}
+          ></div>
+
+          <div className="relative z-10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <CheckCircleSolid
+                className="w-8 h-8 animate-bounce"
+                style={{ color: COLORS.white }}
+              />
+              <h3
+                className="text-2xl font-bold"
+                style={{ color: COLORS.white }}
+              >
+                Perfect Match!
+              </h3>
+            </div>
+            <p
+              className="text-center text-sm"
+              style={{ color: 'rgba(255, 255, 255, 0.9)' }}
+            >
+              We deliver to your location
+            </p>
           </div>
         </div>
 
-        {/* Scrollable Content Area */}
+        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Location Display */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MapPinIcon className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="font-semibold text-gray-900">
-                    {selectedPincode?.pincode}, {selectedPincode?.area}
+          {/* Location Card */}
+          <div className="px-6 py-4">
+            <div
+              className="rounded-xl p-4 border"
+              style={{
+                backgroundColor: COLORS.primary[50],
+                borderColor: COLORS.primary[200]
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="p-2 rounded-lg flex-shrink-0"
+                  style={{ backgroundColor: COLORS.primary[100] }}
+                >
+                  <MapPinIcon
+                    className="w-5 h-5"
+                    style={{ color: COLORS.primary[600] }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="font-semibold text-sm mb-1"
+                    style={{ color: COLORS.gray[900] }}
+                  >
+                    {selectedPincode?.pincode} - {selectedPincode?.area}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p
+                    className="text-xs"
+                    style={{ color: COLORS.gray[600] }}
+                  >
                     {selectedPincode?.fullAddress}
                   </p>
                 </div>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                <PencilIcon className="w-4 h-4 text-gray-500" />
-              </button>
             </div>
           </div>
 
-          {/* Serviceability Confirmation Card */}
-          <div className="px-6 py-4">
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              {/* Illustration */}
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-teal-100 rounded-lg flex items-center justify-center">
-                  {/* Shopping basket illustration */}
-                  <div className="relative">
-                    <div className="w-12 h-8 bg-teal-500 rounded-t-lg"></div>
-                    <div className="w-12 h-2 bg-teal-600 rounded-b-lg"></div>
-                    {/* Grocery items in basket */}
-                    <div className="absolute -top-1 left-1 w-2 h-2 bg-yellow-300 rounded"></div>
-                    <div className="absolute -top-1 left-3 w-2 h-2 bg-green-300 rounded"></div>
-                    <div className="absolute -top-1 left-5 w-2 h-2 bg-blue-300 rounded"></div>
-                    <div className="absolute -top-1 left-7 w-2 h-2 bg-red-300 rounded"></div>
-                    {/* Pagariya text */}
-                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-teal-600">
-                      Pagariya
+          {/* Success Message */}
+          <div className="px-6 py-2">
+            <div
+              className="rounded-xl p-6 text-center relative overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, ${COLORS.success[50]} 0%, ${COLORS.primary[50]} 100%)`,
+              }}
+            >
+              {/* Animated sparkles */}
+              <SparklesIcon
+                className="w-16 h-16 mx-auto mb-3 animate-pulse"
+                style={{ color: COLORS.primary[500] }}
+              />
+              <h4
+                className="text-lg font-bold mb-2"
+                style={{ color: COLORS.gray[900] }}
+              >
+                Great! We're Available Here
+              </h4>
+              <p
+                className="text-sm"
+                style={{ color: COLORS.gray[600] }}
+              >
+                Explore our wide range of products delivered straight to your doorstep!
+              </p>
+            </div>
+          </div>
+
+          {/* Store Details */}
+          {storeDetails && (
+            <div className="px-6 py-4">
+              <h5
+                className="font-bold text-sm mb-3 flex items-center gap-2"
+                style={{ color: COLORS.gray[900] }}
+              >
+                <div
+                  className="w-1 h-4 rounded-full"
+                  style={{ backgroundColor: COLORS.primary[500] }}
+                ></div>
+                Your Selected Store
+              </h5>
+
+              <div className="space-y-3">
+                {/* Store Name */}
+                <div
+                  className="rounded-lg p-3 border"
+                  style={{
+                    backgroundColor: COLORS.white,
+                    borderColor: COLORS.gray[200]
+                  }}
+                >
+                  <p
+                    className="text-xs mb-1"
+                    style={{ color: COLORS.gray[500] }}
+                  >
+                    Store Name
+                  </p>
+                  <p
+                    className="font-semibold"
+                    style={{ color: COLORS.gray[900] }}
+                  >
+                    {storeDetails.storeName || storeDetails.store_name || 'N/A'}
+                  </p>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Store Timings */}
+                  {(storeDetails.storeOpenTime || storeDetails.store_open_time) && (
+                    <div
+                      className="rounded-lg p-3 border"
+                      style={{
+                        backgroundColor: COLORS.white,
+                        borderColor: COLORS.gray[200]
+                      }}
+                    >
+                      <ClockIcon
+                        className="w-4 h-4 mb-2"
+                        style={{ color: COLORS.primary[500] }}
+                      />
+                      <p
+                        className="text-xs mb-1"
+                        style={{ color: COLORS.gray[500] }}
+                      >
+                        Store Hours
+                      </p>
+                      <p
+                        className="text-xs font-medium"
+                        style={{ color: COLORS.gray[900] }}
+                      >
+                        {storeDetails.storeOpenTime || storeDetails.store_open_time}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Delivery Time */}
+                  {(storeDetails.storeDeliveryTime || storeDetails.delivery_time) && (
+                    <div
+                      className="rounded-lg p-3 border"
+                      style={{
+                        backgroundColor: COLORS.white,
+                        borderColor: COLORS.gray[200]
+                      }}
+                    >
+                      <TruckIcon
+                        className="w-4 h-4 mb-2"
+                        style={{ color: COLORS.primary[500] }}
+                      />
+                      <p
+                        className="text-xs mb-1"
+                        style={{ color: COLORS.gray[500] }}
+                      >
+                        Delivery
+                      </p>
+                      <p
+                        className="text-xs font-medium"
+                        style={{ color: COLORS.gray[900] }}
+                      >
+                        {storeDetails.storeDeliveryTime || storeDetails.delivery_time}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Min Order */}
+                  {(storeDetails.minOrderAmount || storeDetails.min_order_amount) && (
+                    <div
+                      className="rounded-lg p-3 border"
+                      style={{
+                        backgroundColor: COLORS.white,
+                        borderColor: COLORS.gray[200]
+                      }}
+                    >
+                      <CurrencyRupeeIcon
+                        className="w-4 h-4 mb-2"
+                        style={{ color: COLORS.primary[500] }}
+                      />
+                      <p
+                        className="text-xs mb-1"
+                        style={{ color: COLORS.gray[500] }}
+                      >
+                        Min. Order
+                      </p>
+                      <p
+                        className="text-xs font-medium"
+                        style={{ color: COLORS.gray[900] }}
+                      >
+                        ₹{storeDetails.minOrderAmount || storeDetails.min_order_amount}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Contact */}
+                  {(storeDetails.contactNumber || storeDetails.contact?.phone) && (
+                    <div
+                      className="rounded-lg p-3 border"
+                      style={{
+                        backgroundColor: COLORS.white,
+                        borderColor: COLORS.gray[200]
+                      }}
+                    >
+                      <PhoneIcon
+                        className="w-4 h-4 mb-2"
+                        style={{ color: COLORS.primary[500] }}
+                      />
+                      <p
+                        className="text-xs mb-1"
+                        style={{ color: COLORS.gray[500] }}
+                      >
+                        Contact
+                      </p>
+                      <p
+                        className="text-xs font-medium"
+                        style={{ color: COLORS.gray[900] }}
+                      >
+                        {storeDetails.contactNumber || storeDetails.contact?.phone}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Offers */}
+                {(storeDetails.storeOfferName || storeDetails.offer) && (
+                  <div
+                    className="rounded-lg p-3 border"
+                    style={{
+                      backgroundColor: COLORS.warning[50],
+                      borderColor: COLORS.warning[200]
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <TagIcon
+                        className="w-4 h-4"
+                        style={{ color: COLORS.warning[600] }}
+                      />
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: COLORS.warning[800] }}
+                      >
+                        {storeDetails.storeOfferName || storeDetails.offer}
+                      </p>
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              {/* Main Message */}
-              <div className="text-center">
-                <h4 className="font-semibold text-gray-900 mb-1">
-                  Great, We are available here!
-                </h4>
-                <p className="text-sm text-gray-500">
-                  Explore our wide range of products delivered straight to your home!
-                </p>
-              </div>
-            </div>
-          </div>
+                )}
 
-        {/* Store Details */}
-        {storeDetails ? (
-          <div className="px-6 py-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h5 className="font-semibold text-gray-900 mb-3">Selected Store Details</h5>
-
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium text-gray-700">Store:</span>
-                  <span className="ml-2 text-gray-600">
-                    {storeDetails.storeName || storeDetails.store_name || 'N/A'}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="font-medium text-gray-700">Address:</span>
-                  <span className="ml-2 text-gray-600">
+                {/* Address */}
+                <div
+                  className="rounded-lg p-3 border"
+                  style={{
+                    backgroundColor: COLORS.gray[50],
+                    borderColor: COLORS.gray[200]
+                  }}
+                >
+                  <p
+                    className="text-xs mb-1"
+                    style={{ color: COLORS.gray[500] }}
+                  >
+                    Store Address
+                  </p>
+                  <p
+                    className="text-xs"
+                    style={{ color: COLORS.gray[700] }}
+                  >
                     {storeDetails.storeAddress || storeDetails.address || 'N/A'}
-                  </span>
+                  </p>
                 </div>
-
-                {(storeDetails.storeOpenTime || storeDetails.store_open_time) && (
-                  <div className="flex items-center gap-2">
-                    <ClockIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-600">
-                      {storeDetails.storeOpenTime || storeDetails.store_open_time}
-                    </span>
-                  </div>
-                )}
-
-                {(storeDetails.storeDeliveryTime || storeDetails.delivery_time) && (
-                  <div className="flex items-center gap-2">
-                    <MapPinIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-600">
-                      Delivery: {storeDetails.storeDeliveryTime || storeDetails.delivery_time}
-                    </span>
-                  </div>
-                )}
-
-                {(storeDetails.minOrderAmount || storeDetails.min_order_amount) && (
-                  <div>
-                    <span className="font-medium text-gray-700">Min. Order:</span>
-                    <span className="ml-2 text-gray-600">
-                      ₹{storeDetails.minOrderAmount || storeDetails.min_order_amount}
-                    </span>
-                  </div>
-                )}
-
-                {(storeDetails.storeOfferName || storeDetails.offer) && (
-                  <div>
-                    <span className="font-medium text-gray-700">Offers:</span>
-                    <span className="ml-2 text-green-600 font-medium">
-                      {storeDetails.storeOfferName || storeDetails.offer}
-                    </span>
-                  </div>
-                )}
-
-                {(storeDetails.contactNumber || storeDetails.contact?.phone) && (
-                  <div className="flex items-center gap-2">
-                    <PhoneIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-600">
-                      {storeDetails.contactNumber || storeDetails.contact?.phone}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="px-6 py-4">
-            <div className="bg-red-50 rounded-lg p-4">
-              <h5 className="font-semibold text-red-900 mb-3">Debug Information</h5>
-              <div className="text-sm text-red-700">
-                <p>No store details available</p>
-                <p>selectedStore: {JSON.stringify(selectedStore)}</p>
-                <p>storeDetails: {JSON.stringify(storeDetails)}</p>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
         </div>
 
         {/* Action Button - Fixed at Bottom */}
-        <div className="px-6 py-4 border-t border-gray-200 flex-shrink-0">
+        <div
+          className="px-6 py-4 flex-shrink-0 border-t"
+          style={{
+            borderColor: COLORS.gray[100],
+            backgroundColor: COLORS.gray[50]
+          }}
+        >
           <button
             onClick={handleConfirm}
             disabled={!storeDetails}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full font-bold py-4 px-4 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+            style={{
+              backgroundColor: storeDetails ? COLORS.primary[600] : COLORS.gray[300],
+              color: COLORS.white,
+              cursor: storeDetails ? 'pointer' : 'not-allowed'
+            }}
+            onMouseEnter={(e) => {
+              if (storeDetails) {
+                e.currentTarget.style.backgroundColor = COLORS.primary[700];
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 10px 20px rgba(38, 185, 133, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (storeDetails) {
+                e.currentTarget.style.backgroundColor = COLORS.primary[600];
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+              }
+            }}
           >
-            <CheckCircleIcon className="w-5 h-5" />
-            CONFIRM LOCATION
+            <CheckCircleIcon className="w-6 h-6" />
+            CONFIRM & START SHOPPING
           </button>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

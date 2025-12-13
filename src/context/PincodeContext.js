@@ -114,7 +114,7 @@ export const PincodeProvider = ({ children }) => {
     try {
       const { getPincodeStores, formatStoreData } = await import('../api/pincodeService');
       const response = await getPincodeStores(pincode);
-      
+
       console.log('📦 API Response for stores:', response);
 
       if (response.success && response.data) {
@@ -171,7 +171,7 @@ export const PincodeProvider = ({ children }) => {
     try {
       const { checkPincodeServiceability } = await import('../api/pincodeService');
       const response = await checkPincodeServiceability(pincode.pincode);
-      
+
       console.log('🔍 Serviceability check response:', response);
 
       if (response.success && response.available) {
@@ -224,6 +224,10 @@ export const PincodeProvider = ({ children }) => {
     setSelectedStore(locationData.store);
     setIsStoreDetailsModalOpen(false);
     setIsLocationRequired(false); // Allow app access
+
+    // Explicitly close all modals after confirmation
+    setIsPincodeModalOpen(false);
+    setIsStoreModalOpen(false);
   };
 
   // Close store details modal
@@ -251,7 +255,7 @@ export const PincodeProvider = ({ children }) => {
   // Get display text for header
   const getLocationDisplayText = () => {
     if (!confirmedLocation) return 'Select Location';
-    
+
     const { pincode } = confirmedLocation;
     return pincode.pincode;
   };
