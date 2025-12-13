@@ -297,6 +297,22 @@ export const transformOrderFromAPI = (apiOrder) => {
   const deliveryInfo = apiOrder.delivery_info || {};
   const paymentInfo = apiOrder.payment_info || {};
 
+  // Transform order items to ensure images are properly included
+  const transformedItems = (apiOrder.order_items || []).map(item => ({
+    ...item,
+    // Ensure product_image is available with fallback chain
+    product_image: item.product_image || item.pcode_img || item.image || item.product_img || '/images/logo.jpg',
+    // Also provide image alias for compatibility
+    image: item.product_image || item.pcode_img || item.image || item.product_img || '/images/logo.jpg',
+    // Ensure other fields are available
+    product_name: item.product_name || item.name || item.title || 'Product',
+    product_brand: item.product_brand || item.brand_name || item.brand || '',
+    quantity: item.quantity || 0,
+    unit_price: item.unit_price || item.price || 0,
+    total_price: item.total_price || (item.unit_price || item.price || 0) * (item.quantity || 0),
+    uom: item.uom || item.package_unit || ''
+  }));
+
   return {
     orderNumber: apiOrder.order_number,
     orderStatus: apiOrder.order_status,
@@ -329,10 +345,10 @@ export const transformOrderFromAPI = (apiOrder) => {
       totalQuantity: apiOrder.order_summary?.total_quantity || 0
     },
 
-    // Items - handle both camelCase and snake_case formats
+    // Items - use transformed items with proper image handling
     itemsCount: apiOrder.items_count || apiOrder.order_summary?.total_items || 0,
-    order_items: apiOrder.order_items || [],  // Keep snake_case for consistency with API
-    orderItems: apiOrder.order_items || [],   // Also provide camelCase alias
+    order_items: transformedItems,  // Keep snake_case for consistency with API
+    orderItems: transformedItems,   // Also provide camelCase alias
     orderNotes: apiOrder.order_notes || '',
 
     // Keep original data for reference
