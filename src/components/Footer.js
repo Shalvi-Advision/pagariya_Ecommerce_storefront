@@ -42,14 +42,14 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-xs sm:text-sm transition-colors block py-0.5 sm:py-1">
+                <Link to="/orders" className="text-gray-400 hover:text-white text-xs sm:text-sm transition-colors block py-0.5 sm:py-1">
                   Track Order
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
 
-          
+
         </div>
 
         <div className="border-t border-gray-800 mt-4 sm:mt-6 lg:mt-8 pt-4 sm:pt-6 lg:pt-8 text-center">

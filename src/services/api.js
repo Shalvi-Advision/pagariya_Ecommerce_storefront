@@ -567,5 +567,17 @@ export const getProductDetails = async (p_code, dept_id, category_id, sub_catego
   }
 };
 
+
+export const getStoresByPincode = async (pincode) => {
+  try {
+    const response = await api.post('/stores/by-pincode', {
+      pincode
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 export { processProductData };
 export default api;
