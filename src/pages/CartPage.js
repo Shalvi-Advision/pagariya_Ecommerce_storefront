@@ -507,51 +507,68 @@ const CartPage = () => {
                 </div>
 
                 {/* Minimum Order Warning */}
-                {confirmedLocation?.store?.min_order_amount > 0 && totalPrice < confirmedLocation.store.min_order_amount && (
-                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
-                    <p className="font-medium flex items-center gap-2">
-                      <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
-                      Minimum order amount is ₹{confirmedLocation.store.min_order_amount}
-                    </p>
-                    <p className="mt-1 text-xs text-orange-700 pl-7">
-                      Add items worth ₹{confirmedLocation.store.min_order_amount - totalPrice} more to proceed
-                    </p>
-                  </div>
-                )}
+                {(() => {
+                  const minOrderAmount = parseFloat(confirmedLocation?.store?.min_order_amount || 0);
+                  const currentTotal = parseFloat(totalPrice || 0);
+                  const isBelowMinOrder = minOrderAmount > 0 && currentTotal < minOrderAmount;
+
+                  if (isBelowMinOrder) {
+                    return (
+                      <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                        <p className="font-medium flex items-center gap-2">
+                          <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
+                          Minimum order amount is ₹{minOrderAmount}
+                        </p>
+                        <p className="mt-1 text-xs text-orange-700 pl-7">
+                          Add items worth ₹{minOrderAmount - currentTotal} more to proceed
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Checkout Button */}
-                <button
-                  onClick={handleProceedToCheckout}
-                  disabled={processingCheckout || (confirmedLocation?.store?.min_order_amount > 0 && totalPrice < confirmedLocation.store.min_order_amount)}
-                  className="w-full mt-4 sm:mt-6 text-white font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg transition-colors text-sm sm:text-base flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
-                  style={{
-                    backgroundColor: (processingCheckout || (confirmedLocation?.store?.min_order_amount > 0 && totalPrice < confirmedLocation.store.min_order_amount))
-                      ? COLORS.gray[400]
-                      : COLORS.primary[600]
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!processingCheckout && !(confirmedLocation?.store?.min_order_amount > 0 && totalPrice < confirmedLocation.store.min_order_amount)) {
-                      e.target.style.backgroundColor = COLORS.primary[700];
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!processingCheckout && !(confirmedLocation?.store?.min_order_amount > 0 && totalPrice < confirmedLocation.store.min_order_amount)) {
-                      e.target.style.backgroundColor = COLORS.primary[600];
-                    }
-                  }}
-                >
-                  {processingCheckout ? (
-                    <>
-                      <ArrowPathIcon className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline">PROCEED TO CHECKOUT</span>
-                      <span className="sm:hidden">CHECKOUT</span>
-                    </>
-                  )}
-                </button>
+                {(() => {
+                  const minOrderAmount = parseFloat(confirmedLocation?.store?.min_order_amount || 0);
+                  const currentTotal = parseFloat(totalPrice || 0);
+                  const isBelowMinOrder = minOrderAmount > 0 && currentTotal < minOrderAmount;
+
+                  return (
+                    <button
+                      onClick={handleProceedToCheckout}
+                      disabled={processingCheckout || isBelowMinOrder}
+                      className="w-full mt-4 sm:mt-6 text-white font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg transition-colors text-sm sm:text-base flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+                      style={{
+                        backgroundColor: (processingCheckout || isBelowMinOrder)
+                          ? COLORS.gray[400]
+                          : COLORS.primary[600]
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!processingCheckout && !isBelowMinOrder) {
+                          e.target.style.backgroundColor = COLORS.primary[700];
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!processingCheckout && !isBelowMinOrder) {
+                          e.target.style.backgroundColor = COLORS.primary[600];
+                        }
+                      }}
+                    >
+                      {processingCheckout ? (
+                        <>
+                          <ArrowPathIcon className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline">PROCEED TO CHECKOUT</span>
+                          <span className="sm:hidden">CHECKOUT</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           </div>

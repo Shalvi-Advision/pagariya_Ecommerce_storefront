@@ -159,17 +159,27 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
         {/* Footer */}
         <div className="border-t border-gray-200 p-3 sm:p-4 flex-shrink-0">
-          {items.length > 0 && confirmedLocation?.store?.min_order_amount > 0 && totalPrice < confirmedLocation.store.min_order_amount && (
-            <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
-              <p className="flex items-center gap-1 font-medium">
-                <InformationCircleIcon className="w-4 h-4" />
-                Min order: ₹{confirmedLocation.store.min_order_amount}
-              </p>
-              <p className="pl-5 text-orange-700">
-                Add ₹{confirmedLocation.store.min_order_amount - totalPrice} more
-              </p>
-            </div>
-          )}
+          {(() => {
+            const minOrderAmount = parseFloat(confirmedLocation?.store?.min_order_amount || 0);
+            const currentTotal = parseFloat(totalPrice || 0);
+            const isBelowMinOrder = items.length > 0 && minOrderAmount > 0 && currentTotal < minOrderAmount;
+
+            if (isBelowMinOrder) {
+              return (
+                <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
+                  <p className="flex items-center gap-1 font-medium">
+                    <InformationCircleIcon className="w-4 h-4" />
+                    Min order: ₹{minOrderAmount}
+                  </p>
+                  <p className="pl-5 text-orange-700">
+                    Add ₹{minOrderAmount - currentTotal} more
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {items.length > 0 ? (
             <Link
               to="/cart"
