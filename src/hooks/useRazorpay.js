@@ -53,7 +53,7 @@ const useRazorpay = () => {
 
       // Configure Razorpay checkout options
       const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+        key: 'rzp_test_RgWaBOoRN7gWiU',
         amount: orderResponse.amount, // Amount in paise
         currency: orderResponse.currency,
         name: process.env.REACT_APP_COMPANY_NAME || 'Patel Mart',
