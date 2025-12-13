@@ -3,6 +3,7 @@ import axios from 'axios';
 import { APP_CONSTANTS } from '../constants';
 import { optimizedFetch, generateCacheKey, cacheResponse, getCachedResponse } from '../utils/apiOptimizer';
 import { throttle } from '../utils/asyncUtils';
+import { TokenStorage } from './secureStorage';
 
 // OTP Authentication Configuration
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
@@ -82,49 +83,21 @@ api.interceptors.response.use(
   }
 );
 
-// Token storage utilities
-export const getStoredToken = () => {
-  // Try localStorage first (web)
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return localStorage.getItem('auth_token');
-  }
+// Token storage utilities with 30-day expiration
 
-  // For PWA/mobile, we'll use IndexedDB as fallback
-  // This is a simplified version - in production you'd want more robust IndexedDB handling
-  return null;
+export const getStoredToken = () => {
+  return TokenStorage.getToken();
 };
 
 export const setStoredToken = async (token) => {
-  // Store in localStorage for web
-  if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.setItem('auth_token', token);
-  }
+  TokenStorage.setToken(token);
 
-  // For PWA compatibility, you could also store in IndexedDB
-  // This ensures offline persistence
-  if (typeof window !== 'undefined' && window.indexedDB) {
-    try {
-      const db = await openAuthDB();
-      const transaction = db.transaction(['tokens'], 'readwrite');
-      const store = transaction.objectStore('tokens');
-      await store.put({ id: 'auth_token', value: token, timestamp: Date.now() });
-      db.close();
-    } catch (error) {
-      console.warn('IndexedDB storage failed:', error);
-    }
-  }
+  // For PWA compatibility with IndexedDB (handled internally by TokenStorage)
+  // The TokenStorage.setToken already handles IndexedDB storage
 };
 
 export const clearStoredToken = () => {
-  // Clear from localStorage
-  if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.removeItem('auth_token');
-  }
-
-  // Clear from IndexedDB
-  if (typeof window !== 'undefined' && window.indexedDB) {
-    clearIndexedDBToken();
-  }
+  TokenStorage.clearToken();
 };
 
 // IndexedDB utilities for PWA token persistence
@@ -178,25 +151,25 @@ const getThrottledApiCall = (endpoint) => {
 const apiPostInternal = async (endpoint, data) => {
   try {
     // Enhanced logging for debugging
-    console.log('🌐 apiPost called:', { 
-      endpoint, 
+    console.log('🌐 apiPost called:', {
+      endpoint,
       data,
       API_BASE_URL,
       fullURL: `${API_BASE_URL}${endpoint}`
     });
-    
+
     const response = await api.post(endpoint, data);
-    
+
     console.log('✅ apiPost response status:', response.status);
     console.log('✅ apiPost response data:', response.data);
-    
+
     return response.data;
   } catch (error) {
     console.error('❌ apiPost error:', error.message);
     console.error('❌ Error response status:', error.response?.status);
     console.error('❌ Error response data:', error.response?.data);
     console.error('❌ Error request config:', error.config);
-    
+
     // Provide more specific error messages
     if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
       throw new Error('Network error - unable to reach server. Please check your internet connection.');
@@ -224,24 +197,24 @@ export const apiPost = async (endpoint, data, useCache = false) => {
     '/products/getpcodeproducts',
     '/products/get_active_products_list'
   ];
-  
+
   // If it's a cacheable endpoint and we want to use cache
   if (useCache && cacheable.includes(endpoint)) {
     const cacheKey = generateCacheKey(`${API_BASE_URL}${endpoint}`, data, 'POST');
     const cachedData = getCachedResponse(cacheKey);
-    
+
     if (cachedData) {
       return cachedData;
     }
-    
+
     // If not in cache, make the request
     const response = await getThrottledApiCall(endpoint)(data);
-    
+
     // Cache the response
     cacheResponse(cacheKey, response);
     return response;
   }
-  
+
   // For non-cacheable endpoints or when not using cache
   return getThrottledApiCall(endpoint)(data);
 };
@@ -264,16 +237,16 @@ export const apiGet = async (endpoint, params = {}, useCache = true) => {
   try {
     // Use optimizedFetch with caching for GET requests
     const url = `${API_BASE_URL}${endpoint}`;
-    const queryString = Object.keys(params).length > 0 
-      ? '?' + new URLSearchParams(params).toString() 
+    const queryString = Object.keys(params).length > 0
+      ? '?' + new URLSearchParams(params).toString()
       : '';
-    
+
     const result = await optimizedFetch(
       `${url}${queryString}`,
       { method: 'GET' },
       useCache
     );
-    
+
     return result;
   } catch (error) {
     console.error(`❌ apiGet error for ${endpoint}:`, error.message);
@@ -284,7 +257,7 @@ export const apiGet = async (endpoint, params = {}, useCache = true) => {
 export const apiPut = async (endpoint, data) => {
   try {
     const response = await api.put(endpoint, data);
-    
+
     // Clear any cached GET requests that might be affected by this PUT
     const cacheKey = endpoint.split('/');
     if (cacheKey.length > 1) {
@@ -294,7 +267,7 @@ export const apiPut = async (endpoint, data) => {
         .filter(key => key.includes(`/${resourceType}/`))
         .forEach(key => apiCache.delete(key));
     }
-    
+
     return response.data;
   } catch (error) {
     console.error(`❌ apiPut error for ${endpoint}:`, error.message);
@@ -305,7 +278,7 @@ export const apiPut = async (endpoint, data) => {
 export const apiDelete = async (endpoint) => {
   try {
     const response = await api.delete(endpoint);
-    
+
     // Clear any cached GET requests that might be affected by this DELETE
     const cacheKey = endpoint.split('/');
     if (cacheKey.length > 1) {
@@ -315,7 +288,7 @@ export const apiDelete = async (endpoint) => {
         .filter(key => key.includes(`/${resourceType}/`))
         .forEach(key => apiCache.delete(key));
     }
-    
+
     return response.data;
   } catch (error) {
     console.error(`❌ apiDelete error for ${endpoint}:`, error.message);
@@ -515,17 +488,17 @@ export const getProductDetails = async (p_code, dept_id, category_id, sub_catego
   try {
     // Generate cache key based on parameters
     const cacheKey = `product:${p_code}:${dept_id}:${category_id}:${sub_category_id}:${store_code}`;
-    
+
     // Check if we have a cached version
     const cachedProduct = productDetailsCache.get(cacheKey);
     if (cachedProduct && (Date.now() - cachedProduct.timestamp < PRODUCT_CACHE_EXPIRY)) {
       // Return cached version if not expired
       return cachedProduct.data;
     }
-    
+
     // Enhanced logging for debugging
-    console.log('🔍 getProductDetails called with:', { 
-      p_code, 
+    console.log('🔍 getProductDetails called with:', {
+      p_code,
       dept_id,
       category_id,
       sub_category_id,
@@ -533,7 +506,7 @@ export const getProductDetails = async (p_code, dept_id, category_id, sub_catego
       API_BASE_URL,
       endpoint: '/products/get-product-by-pcode'
     });
-    
+
     // Validate parameters
     if (!p_code) {
       throw new Error('Product code (p_code) is required');
@@ -550,7 +523,7 @@ export const getProductDetails = async (p_code, dept_id, category_id, sub_catego
     if (!store_code) {
       throw new Error('Store code is required');
     }
-    
+
     const url = `${API_BASE_URL}/products/get-product-by-pcode`;
     const requestBody = {
       store_code,
@@ -559,49 +532,49 @@ export const getProductDetails = async (p_code, dept_id, category_id, sub_catego
       sub_category_id,
       pcode: p_code
     };
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch product: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     console.log('📦 getProductDetails response:', data);
-    
+
     // Check if the response indicates an error
     if (data && data.success === false) {
       throw new Error(data.message || 'Product not found');
     }
-    
+
     // Check if response has data
     if (!data || !data.data) {
       throw new Error('Product data not found in response');
     }
-    
+
     // Process the product data to convert MongoDB types
     const processedData = processProductData(data.data);
-    
+
     // Create the final response
     const finalResponse = {
       ...data,
       data: processedData
     };
-    
+
     // Cache the processed response
     productDetailsCache.set(cacheKey, {
       data: finalResponse,
       timestamp: Date.now()
     });
-    
+
     return finalResponse;
   } catch (error) {
     console.error(`❌ getProductDetails error for ${p_code}:`, error.message);
-    
+
     // Provide more detailed logging only in development
     if (process.env.NODE_ENV === 'development') {
       console.error('❌ Error details:', {
@@ -610,12 +583,12 @@ export const getProductDetails = async (p_code, dept_id, category_id, sub_catego
         data: error.response?.data
       });
     }
-    
+
     // If it's already an Error object, re-throw it
     if (error instanceof Error) {
       throw error;
     }
-    
+
     // Handle different types of errors
     if (error.response) {
       // Server responded with error status
