@@ -143,27 +143,22 @@ export const generateTimeSlotsFromAPI = (apiSlots) => {
 
     const dateString = `${dayName} ${day}-${month}-${year}`;
 
-    // Use the first active slot from API
-    const activeSlot = apiSlots.find(slot => slot.isActive) || apiSlots[0];
+    // Use all active slots from API directly
+    const activeSlots = apiSlots.filter(slot => slot.isActive);
 
     let slotsForDate = [];
 
-    if (activeSlot) {
-      // Generate slots based on API slot time range
-      const fromTime = activeSlot.slotFrom;
-      const toTime = activeSlot.slotTo;
-
-      // Generate time slots in 2-3 hour intervals
-      slotsForDate = generateSlotsForTimeRange(fromTime, toTime, slotId, activeSlot.iddelivery_slot);
-      slotId += slotsForDate.length;
+    if (activeSlots.length > 0) {
+      // Map API slots directly to UI format
+      slotsForDate = activeSlots.map(slot => ({
+        id: slotId++,
+        time: `${formatTime(slot.slotFrom)} - ${formatTime(slot.slotTo)}`,
+        available: true,
+        deliverySlotId: slot.iddelivery_slot
+      }));
     } else {
-      // Use default slots if no active slot
-      slotsForDate = [
-        { id: slotId++, time: '09:00 AM - 12:00 PM', available: true, deliverySlotId: null },
-        { id: slotId++, time: '12:00 PM - 03:00 PM', available: true, deliverySlotId: null },
-        { id: slotId++, time: '03:00 PM - 06:00 PM', available: true, deliverySlotId: null },
-        { id: slotId++, time: '06:00 PM - 09:00 PM', available: true, deliverySlotId: null }
-      ];
+      // No active slots found
+      slotsForDate = [];
     }
 
     timeSlots.push({
