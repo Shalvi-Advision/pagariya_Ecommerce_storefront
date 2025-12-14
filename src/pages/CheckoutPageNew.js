@@ -48,6 +48,7 @@ const CheckoutPageNew = () => {
     const [loading, setLoading] = useState(false);
     const [selectedDateTab, setSelectedDateTab] = useState(0);
     const [orderNotes, setOrderNotes] = useState('');
+    const [showOrderDetails, setShowOrderDetails] = useState(false);
 
     // Checkout data
     const [checkoutData, setCheckoutData] = useState(() => ({
@@ -495,7 +496,7 @@ const CheckoutPageNew = () => {
                 {/* Step 4: Payment */}
                 {currentStep === 4 && (
                     <>
-                        <span className="view-order-link" onClick={() => setCurrentStep(1)}>
+                        <span className="view-order-link" onClick={() => setShowOrderDetails(true)}>
                             View Order details &gt;
                         </span>
 
@@ -609,6 +610,81 @@ const CheckoutPageNew = () => {
                 onClose={() => setShowOrderSuccessModal(false)}
                 orderNumber={orderNumber}
             />
+
+            {/* Order Details Bottom Sheet */}
+            {showOrderDetails && (
+                <div className="order-details-overlay" onClick={() => setShowOrderDetails(false)}>
+                    <div className="order-details-sheet" onClick={(e) => e.stopPropagation()}>
+                        <div className="handle" />
+                        <div className="sheet-header">
+                            <h3><span className="icon">📋</span> Order Summary</h3>
+                            <button className="close-btn" onClick={() => setShowOrderDetails(false)}>×</button>
+                        </div>
+                        <div className="sheet-content">
+                            {/* Product Items */}
+                            {items.map((item) => {
+                                const itemPrice = Number(item.price) || 0;
+                                const itemQty = Number(item.quantity) || 1;
+                                return (
+                                    <div key={item.id} className="order-item">
+                                        <div className="item-image">
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.title} />
+                                            ) : (
+                                                <div className="placeholder">📦</div>
+                                            )}
+                                        </div>
+                                        <div className="item-details">
+                                            <h4>{item.title}</h4>
+                                            <p className="variant">{item.variant || item.size || ''}</p>
+                                        </div>
+                                        <div className="item-pricing">
+                                            <p className="price">₹{(itemPrice * itemQty).toFixed(2)}</p>
+                                            <p className="qty">Qty: {itemQty}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/* Summary */}
+                            <div className="sheet-summary">
+                                <div className="summary-row">
+                                    <span className="label">Subtotal</span>
+                                    <span className="value">₹{totalPrice.toFixed(2)}</span>
+                                </div>
+                                <div className="summary-row">
+                                    <span className="label">📦 Distance</span>
+                                    <span className="value">16.6 km</span>
+                                </div>
+                                <div className="summary-row">
+                                    <span className="label">🚚 Delivery Fee</span>
+                                    <span className="value free">FREE</span>
+                                </div>
+                                <div className="summary-row">
+                                    <span className="label">💰 Savings</span>
+                                    <span className="value green">₹{totalSavings.toFixed(2)}</span>
+                                </div>
+                                <div className="summary-row total">
+                                    <span className="label">Total</span>
+                                    <span className="value">₹{totalPrice.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {/* Badges */}
+                            <div className="sheet-badges">
+                                <div className="sheet-badge success">
+                                    <span className="badge-icon">✓</span>
+                                    Free delivery for this order!
+                                </div>
+                                <div className="sheet-badge savings">
+                                    <span className="badge-icon">💰</span>
+                                    You saved ₹{totalSavings.toFixed(2)} on this order!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
