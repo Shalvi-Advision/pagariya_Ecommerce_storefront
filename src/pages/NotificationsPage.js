@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, CheckCheck, Trash2 } from 'lucide-react';
+import { ArrowLeftIcon, BellIcon, CheckIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { getUserNotifications, markNotificationRead, markAllNotificationsRead } from '../api/notificationApi';
 import { useToast } from '../context/ToastContext';
 import ApiErrorBoundary from '../components/ApiErrorBoundary';
@@ -15,7 +15,7 @@ const NotificationItem = ({ notification, onRead }) => {
         >
             <div className="flex gap-3">
                 <div className={`p-2 rounded-full h-fit flex-shrink-0 ${!isRead ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
-                    <Bell size={20} />
+                    <BellIcon className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-start mb-1">
@@ -115,7 +115,7 @@ const NotificationsPage = () => {
                         onClick={() => navigate(-1)}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                        <ArrowLeft size={20} className="text-gray-600" />
+                        <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
                     </button>
                     <h1 className="text-lg font-semibold text-gray-900">Notifications</h1>
                 </div>
@@ -125,7 +125,7 @@ const NotificationsPage = () => {
                         onClick={handleMarkAllRead}
                         className="text-orange-600 text-sm font-medium hover:text-orange-700 flex items-center gap-1"
                     >
-                        <CheckCheck size={16} /> Mark all read
+                        <CheckIcon className="w-4 h-4" /> Mark all read
                     </button>
                 )}
             </div>
@@ -143,7 +143,7 @@ const NotificationsPage = () => {
                 ) : notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[70vh] px-4 text-center">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <Bell size={32} className="text-gray-400" />
+                            <BellIcon className="w-8 h-8 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
                         <p className="text-gray-500 max-w-xs">

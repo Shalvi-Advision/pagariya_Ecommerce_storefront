@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { BASE_URL } from '../constants';
+import { API_BASE_URL } from '../constants';
 
-const API_URL = `${BASE_URL}/api/notifications`;
+const API_URL = `${API_BASE_URL}/notifications`;
 
 // Get headers directly from function to ensure latest token is used
 const getHeaders = () => {
