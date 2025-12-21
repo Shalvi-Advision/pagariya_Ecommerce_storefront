@@ -258,16 +258,30 @@ function App() {
 
         // Get FCM token
         const token = await getFcmToken();
+
+        // Debug: Print token prominently
+        console.log('='.repeat(80));
+        console.log('🔔 FCM TOKEN DEBUG');
+        console.log('='.repeat(80));
         if (token) {
+          console.log('✅ FCM Token Generated Successfully!');
+          console.log('📱 Token:', token);
+          console.log('📏 Token Length:', token.length);
+          console.log('='.repeat(80));
+
           // Save token to backend
           try {
             const { saveFcmToken } = await import('./api/fcmApi');
             await saveFcmToken(token);
-            console.log('FCM: Token saved to backend successfully');
+            console.log('✅ FCM: Token saved to backend successfully');
           } catch (saveError) {
-            console.error('FCM: Failed to save token to backend', saveError);
+            console.error('❌ FCM: Failed to save token to backend', saveError);
             // Don't throw - token is still usable for this session
           }
+        } else {
+          console.log('❌ FCM Token NOT Generated');
+          console.log('⚠️  Check errors above for the reason');
+          console.log('='.repeat(80));
         }
 
         // Subscribe to foreground messages

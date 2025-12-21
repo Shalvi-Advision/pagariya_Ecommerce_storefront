@@ -24,14 +24,21 @@ export const requestNotificationPermission = async () => {
  */
 export const getFcmToken = async () => {
     try {
-        // Check if we're on localhost or HTTPS (required for push notifications)
+        // Check if we're in a secure context (HTTPS or localhost)
         const isSecureContext = window.isSecureContext;
+        const currentUrl = window.location.href;
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isHttps = window.location.protocol === 'https:';
 
-        if (!isSecureContext && !isLocalhost) {
+        console.log('🔍 FCM Debug Info:');
+        console.log('  Current URL:', currentUrl);
+        console.log('  Is Secure Context:', isSecureContext);
+        console.log('  Is HTTPS:', isHttps);
+        console.log('  Is Localhost:', isLocalhost);
+
+        if (!isSecureContext) {
             console.warn('⚠️ FCM: Push notifications require HTTPS or localhost.');
-            console.warn('Current location:', window.location.href);
-            console.warn('Please access the app via http://localhost:3000');
+            console.warn('Current location:', currentUrl);
             return null;
         }
 
@@ -39,9 +46,12 @@ export const getFcmToken = async () => {
         const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
 
         if (!registration) {
-            console.error('FCM service worker not registered');
+            console.error('❌ FCM service worker not registered at /firebase-messaging-sw.js');
+            console.error('Available service workers:', await navigator.serviceWorker.getRegistrations());
             return null;
         }
+
+        console.log('✅ FCM service worker found:', registration.scope);
 
         const token = await getToken(messaging, {
             vapidKey: FIREBASE_VAPID_KEY,
@@ -53,29 +63,40 @@ export const getFcmToken = async () => {
             console.log('FCM token:', token);
             return token;
         } else {
-            console.warn('No FCM token available. Request permission first.');
+            console.warn('⚠️ No FCM token available. Permission may have been denied.');
             return null;
         }
     } catch (err) {
+        console.error('❌ FCM: Error getting token');
+        console.error('Error details:', err);
+        console.error('Error code:', err.code);
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+
         // Handle specific error types with helpful messages
         if (err.code === 'messaging/failed-service-worker-registration') {
-            console.error('❌ FCM: Service worker registration failed:', err);
+            console.error('💡 The FCM service worker failed to register.');
+            console.error('   Check that /firebase-messaging-sw.js exists and is valid.');
         } else if (err.name === 'AbortError' || err.message?.includes('push service')) {
-            console.warn('⚠️ FCM: Unable to register for push notifications.');
-            console.warn('This error typically occurs when:');
-            console.warn('  1. Accessing via IP address (e.g., 192.168.x.x) instead of localhost');
-            console.warn('  2. Browser restrictions on push notifications');
-            console.warn('  3. Service worker registration issues');
-            console.warn('');
-            console.warn('Current URL:', window.location.href);
-            console.warn('');
-            console.warn('✅ Solution: Access the app via http://localhost:3000');
-            console.warn('Push notifications will work once you use localhost URL');
+            console.error('💡 Push service registration failed.');
+            console.error('   This can happen due to:');
+            console.error('   1. Browser blocking push notifications');
+            console.error('   2. Invalid VAPID key');
+            console.error('   3. Firebase configuration mismatch');
+            console.error('   4. Service worker scope issues');
+            console.error('');
+            console.error('🔧 Troubleshooting steps:');
+            console.error('   1. Check browser console for service worker errors');
+            console.error('   2. Verify VAPID key matches Firebase Console');
+            console.error('   3. Clear browser cache and reload');
+            console.error('   4. Check if notifications are blocked in browser settings');
         } else if (err.code === 'messaging/permission-blocked') {
-            console.error('❌ FCM: Notification permission was blocked by user');
+            console.error('💡 Notification permission was blocked by user.');
+            console.error('   User needs to enable notifications in browser settings.');
         } else {
-            console.error('❌ FCM: Error getting token:', err);
+            console.error('💡 Unknown FCM error. Check error details above.');
         }
+
         return null;
     }
 };
