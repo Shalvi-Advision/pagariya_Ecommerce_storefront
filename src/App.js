@@ -67,6 +67,7 @@ const ToastContainerWrapper = () => {
 
 function AppContent() {
   const { isAuthenticated, token: authToken } = useAuth();
+  const { showInfo } = useToast();
   const fcmTokenRef = useRef(null);
   const fcmTokenSavedRef = useRef(false);
   const { successMessage, clearSuccessMessage, user } = useAuth();
@@ -134,7 +135,8 @@ function AppContent() {
         // Subscribe to foreground messages
         subscribeForegroundMessages((payload) => {
           if (payload.notification) {
-            // Trigger toast notification here
+            const { title, body } = payload.notification;
+            showInfo(title ? `${title}: ${body}` : body || 'New notification');
           }
         });
       } catch (error) {
