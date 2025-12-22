@@ -3,8 +3,8 @@
 // This file handles push notifications when the PWA is closed or in background
 
 // Import Firebase scripts (using compat version for service worker compatibility)
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 // Firebase configuration
 // NOTE: Service workers cannot use ES6 imports, so values are hardcoded here

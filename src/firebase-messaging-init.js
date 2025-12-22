@@ -2,43 +2,82 @@
 import { messaging, getToken, onMessage } from './firebase';
 import { FIREBASE_VAPID_KEY } from './constants';
 
+// FCM initialization state tracking
+let fcmInitialized = false;
+let fcmInitializationPromise = null;
+let foregroundMessageUnsubscribe = null;
+let tokenRefreshUnsubscribe = null;
+const isDebugMode = process.env.NODE_ENV === 'development';
+
 /**
- * Request notification permission from the browser
- * @returns {Promise<void>}
+ * Debug logging utility - only logs in development mode
  */
-export const requestNotificationPermission = async () => {
-    console.log('Requesting notification permission...');
-    const permission = await Notification.requestPermission();
+const debugLog = (type, ...args) => {
+    if (!isDebugMode) return;
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`[FCM ${timestamp}]`, ...args);
+};
 
-    if (permission !== 'granted') {
-        console.warn('Notification permission denied');
-        throw new Error('Notification permission not granted');
-    }
-
-    console.log('Notification permission granted');
+const debugError = (type, ...args) => {
+    if (!isDebugMode) return;
+    const timestamp = new Date().toLocaleTimeString();
+    console.error(`[FCM ERROR ${timestamp}]`, ...args);
 };
 
 /**
- * Get FCM registration token for this device
+ * Check if FCM is supported in current environment
+ */
+const isFcmSupported = () => {
+    return (
+        'serviceWorker' in navigator &&
+        'Notification' in window &&
+        window.isSecureContext
+    );
+};
+
+/**
+ * Request notification permission from the browser with optimized retry logic
+ * @returns {Promise<boolean>}
+ */
+export const requestNotificationPermission = async () => {
+    try {
+        // Check if permission already granted
+        if (Notification.permission === 'granted') {
+            debugLog('permission', 'Notification permission already granted');
+            return true;
+        }
+
+        // Skip if user previously denied
+        if (Notification.permission === 'denied') {
+            debugLog('permission', 'Notification permission denied by user');
+            return false;
+        }
+
+        debugLog('permission', 'Requesting notification permission...');
+        const permission = await Notification.requestPermission();
+
+        if (permission === 'granted') {
+            debugLog('permission', 'Notification permission granted');
+            return true;
+        } else {
+            debugLog('permission', `Notification permission: ${permission}`);
+            return false;
+        }
+    } catch (error) {
+        debugError('permission', 'Error requesting permission:', error);
+        return false;
+    }
+};
+
+/**
+ * Get FCM registration token with caching and error recovery
  * @returns {Promise<string|null>} FCM token or null if failed
  */
 export const getFcmToken = async () => {
     try {
-        // Check if we're in a secure context (HTTPS or localhost)
-        const isSecureContext = window.isSecureContext;
-        const currentUrl = window.location.href;
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const isHttps = window.location.protocol === 'https:';
-
-        console.log('🔍 FCM Debug Info:');
-        console.log('  Current URL:', currentUrl);
-        console.log('  Is Secure Context:', isSecureContext);
-        console.log('  Is HTTPS:', isHttps);
-        console.log('  Is Localhost:', isLocalhost);
-
-        if (!isSecureContext) {
-            console.warn('⚠️ FCM: Push notifications require HTTPS or localhost.');
-            console.warn('Current location:', currentUrl);
+        // Validate secure context
+        if (!window.isSecureContext) {
+            debugError('token', 'Not in secure context (HTTPS/localhost required)');
             return null;
         }
 
@@ -46,94 +85,162 @@ export const getFcmToken = async () => {
         const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
 
         if (!registration) {
-            console.error('❌ FCM service worker not registered at /firebase-messaging-sw.js');
-            console.error('Available service workers:', await navigator.serviceWorker.getRegistrations());
+            debugError('token', 'FCM service worker not found at /firebase-messaging-sw.js');
             return null;
         }
 
-        console.log('✅ FCM service worker found:', registration.scope);
+        debugLog('token', 'FCM service worker found:', registration.scope);
 
-        const token = await getToken(messaging, {
+        // Get FCM token with timeout to prevent hanging
+        const tokenPromise = getToken(messaging, {
             vapidKey: FIREBASE_VAPID_KEY,
             serviceWorkerRegistration: registration,
         });
 
+        // Set a timeout for token retrieval
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('FCM token retrieval timeout')), 10000)
+        );
+
+        const token = await Promise.race([tokenPromise, timeoutPromise]);
+
         if (token) {
-            console.log('✅ FCM token obtained successfully');
-            console.log('FCM token:', token);
+            debugLog('token', 'FCM token obtained successfully, length:', token.length);
             return token;
         } else {
-            console.warn('⚠️ No FCM token available. Permission may have been denied.');
+            debugLog('token', 'No FCM token available');
             return null;
         }
     } catch (err) {
-        console.error('❌ FCM: Error getting token');
-        console.error('Error details:', err);
-        console.error('Error code:', err.code);
-        console.error('Error name:', err.name);
-        console.error('Error message:', err.message);
-
-        // Handle specific error types with helpful messages
-        if (err.code === 'messaging/failed-service-worker-registration') {
-            console.error('💡 The FCM service worker failed to register.');
-            console.error('   Check that /firebase-messaging-sw.js exists and is valid.');
-        } else if (err.name === 'AbortError' || err.message?.includes('push service')) {
-            console.error('💡 Push service registration failed.');
-            console.error('   This can happen due to:');
-            console.error('   1. Browser blocking push notifications');
-            console.error('   2. Invalid VAPID key');
-            console.error('   3. Firebase configuration mismatch');
-            console.error('   4. Service worker scope issues');
-            console.error('');
-            console.error('🔧 Troubleshooting steps:');
-            console.error('   1. Check browser console for service worker errors');
-            console.error('   2. Verify VAPID key matches Firebase Console');
-            console.error('   3. Clear browser cache and reload');
-            console.error('   4. Check if notifications are blocked in browser settings');
-        } else if (err.code === 'messaging/permission-blocked') {
-            console.error('💡 Notification permission was blocked by user.');
-            console.error('   User needs to enable notifications in browser settings.');
-        } else {
-            console.error('💡 Unknown FCM error. Check error details above.');
-        }
-
+        debugError('token', 'Error getting FCM token:', err.message);
         return null;
     }
 };
 
 /**
- * Subscribe to foreground messages (when app is open and active)
+ * Subscribe to foreground messages with proper cleanup
  * @param {Function} callback - Function to call when a message is received
+ * @returns {Function} Unsubscribe function
  */
 export const subscribeForegroundMessages = (callback) => {
-    onMessage(messaging, (payload) => {
-        console.log('Foreground message received:', payload);
+    // Clean up previous subscription if exists
+    if (foregroundMessageUnsubscribe) {
+        foregroundMessageUnsubscribe();
+    }
+
+    foregroundMessageUnsubscribe = onMessage(messaging, (payload) => {
+        debugLog('message', 'Foreground message received');
 
         // Call the provided callback with the payload
-        if (callback) {
-            callback(payload);
+        if (callback && typeof callback === 'function') {
+            try {
+                callback(payload);
+            } catch (error) {
+                debugError('message', 'Error in foreground message callback:', error);
+            }
         }
-
-        // You can show custom in-app notification here
-        // Example: Show a toast or custom notification UI
     });
+
+    // Return unsubscribe function
+    return foregroundMessageUnsubscribe;
 };
 
 /**
- * Listen for token refresh events
- * Note: Tokens can be rotated by FCM for security reasons
+ * Listen for token refresh events with proper cleanup
  * @param {Function} callback - Function to call when token is refreshed
+ * @returns {Function} Unsubscribe function
  */
 export const onTokenRefresh = (callback) => {
-    // Monitor for token refresh
-    messaging.onTokenRefresh = async () => {
+    // Clean up previous subscription if exists
+    if (tokenRefreshUnsubscribe) {
+        tokenRefreshUnsubscribe();
+    }
+
+    const handleTokenRefresh = async () => {
         try {
+            debugLog('token-refresh', 'Token refresh event triggered');
             const newToken = await getFcmToken();
-            if (newToken && callback) {
-                callback(newToken);
+            if (newToken && callback && typeof callback === 'function') {
+                try {
+                    callback(newToken);
+                } catch (error) {
+                    debugError('token-refresh', 'Error in token refresh callback:', error);
+                }
             }
         } catch (err) {
-            console.error('Error refreshing FCM token:', err);
+            debugError('token-refresh', 'Error during token refresh:', err);
         }
     };
+
+    messaging.onTokenRefresh = handleTokenRefresh;
+
+    // Return cleanup function
+    tokenRefreshUnsubscribe = () => {
+        messaging.onTokenRefresh = null;
+    };
+
+    return tokenRefreshUnsubscribe;
+};
+
+/**
+ * Initialize FCM with memoization - should be called only once
+ * @returns {Promise<{supported: boolean, token: string|null}>}
+ */
+export const initializeFCM = async () => {
+    // Return cached initialization promise if already in progress
+    if (fcmInitializationPromise) {
+        return fcmInitializationPromise;
+    }
+
+    // Return cached result if already initialized
+    if (fcmInitialized) {
+        return { supported: true, token: null };
+    }
+
+    // Create the initialization promise
+    fcmInitializationPromise = (async () => {
+        try {
+            // Check if FCM is supported
+            if (!isFcmSupported()) {
+                debugLog('init', 'FCM not supported in this environment');
+                return { supported: false, token: null };
+            }
+
+            debugLog('init', 'Starting FCM initialization');
+
+            // Request notification permission
+            const hasPermission = await requestNotificationPermission();
+            if (!hasPermission) {
+                debugLog('init', 'No notification permission');
+                return { supported: true, token: null };
+            }
+
+            // Get FCM token
+            const token = await getFcmToken();
+
+            fcmInitialized = true;
+            debugLog('init', 'FCM initialization complete');
+
+            return { supported: true, token };
+        } catch (error) {
+            debugError('init', 'FCM initialization failed:', error);
+            return { supported: false, token: null };
+        }
+    })();
+
+    return fcmInitializationPromise;
+};
+
+/**
+ * Clean up FCM resources
+ */
+export const cleanupFCM = () => {
+    if (foregroundMessageUnsubscribe) {
+        foregroundMessageUnsubscribe();
+        foregroundMessageUnsubscribe = null;
+    }
+    if (tokenRefreshUnsubscribe) {
+        tokenRefreshUnsubscribe();
+        tokenRefreshUnsubscribe = null;
+    }
 };

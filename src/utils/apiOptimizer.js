@@ -1,17 +1,62 @@
 /**
  * API Optimizer Utility
- * 
+ *
  * This utility provides caching, rate limiting, request deduplication, and retry logic
  * to optimize API usage and prevent "Too many requests" errors.
  */
 
-// Cache storage for responses
+// Cache storage for responses with size limit
 const responseCache = new Map();
 const inFlightRequests = new Map();
-const requestTimestamps = [];
+const MAX_CACHE_SIZE = 100; // Maximum number of cached responses
 const MAX_REQUESTS_PER_WINDOW = 50; // Maximum requests per time window
 const TIME_WINDOW_MS = 10000; // Time window in milliseconds (10 seconds)
 const CACHE_TTL = 5 * 60 * 1000; // Cache TTL: 5 minutes
+
+// Use a circular buffer for timestamps to avoid O(n) shift operations
+class CircularBuffer {
+  constructor(size) {
+    this.buffer = new Array(size);
+    this.size = size;
+    this.index = 0;
+    this.count = 0;
+  }
+
+  push(value) {
+    this.buffer[this.index] = value;
+    this.index = (this.index + 1) % this.size;
+    if (this.count < this.size) {
+      this.count++;
+    }
+  }
+
+  getValidCount(now, windowMs) {
+    let validCount = 0;
+    for (let i = 0; i < this.count; i++) {
+      if (this.buffer[i] >= now - windowMs) {
+        validCount++;
+      }
+    }
+    return validCount;
+  }
+
+  clear() {
+    this.buffer = new Array(this.size);
+    this.index = 0;
+    this.count = 0;
+  }
+}
+
+const requestTimestamps = new CircularBuffer(MAX_REQUESTS_PER_WINDOW * 2); // Buffer double the size
+
+// Debug logging utility - only logs in development mode
+const isDebugMode = process.env.NODE_ENV === 'development';
+const debugLog = (message) => {
+  if (isDebugMode) console.log(`[API] ${message}`);
+};
+const debugWarn = (message) => {
+  if (isDebugMode) console.warn(`[API] ${message}`);
+};
 
 /**
  * Generates a cache key from request details
@@ -21,8 +66,12 @@ const CACHE_TTL = 5 * 60 * 1000; // Cache TTL: 5 minutes
  * @returns {string} - Cache key
  */
 export const generateCacheKey = (url, params = {}, method = 'GET') => {
-  const normalizedParams = typeof params === 'string' ? params : JSON.stringify(params || {});
-  return `${method}:${url}:${normalizedParams}`;
+  // Optimized cache key generation - avoid JSON.stringify when possible
+  let paramsStr = '';
+  if (params && Object.keys(params).length > 0) {
+    paramsStr = typeof params === 'string' ? params : JSON.stringify(params);
+  }
+  return paramsStr ? `${method}:${url}:${paramsStr}` : `${method}:${url}`;
 };
 
 /**
@@ -31,14 +80,9 @@ export const generateCacheKey = (url, params = {}, method = 'GET') => {
  */
 export const isRateLimited = () => {
   const now = Date.now();
-  
-  // Remove timestamps outside the current time window
-  while (requestTimestamps.length > 0 && requestTimestamps[0] < now - TIME_WINDOW_MS) {
-    requestTimestamps.shift();
-  }
-  
-  // If we have too many requests in the current window, rate limit
-  return requestTimestamps.length >= MAX_REQUESTS_PER_WINDOW;
+  // Count valid requests within the current time window
+  const validCount = requestTimestamps.getValidCount(now, TIME_WINDOW_MS);
+  return validCount >= MAX_REQUESTS_PER_WINDOW;
 };
 
 /**
@@ -70,11 +114,18 @@ export const getCachedResponse = (cacheKey) => {
 };
 
 /**
- * Caches a response
+ * Caches a response with size limit enforcement
  * @param {string} cacheKey - The cache key
  * @param {Object} data - Response data
  */
 export const cacheResponse = (cacheKey, data) => {
+  // If cache is at max size and key is not already in cache, remove oldest entry
+  if (responseCache.size >= MAX_CACHE_SIZE && !responseCache.has(cacheKey)) {
+    // Remove the oldest entry (first one)
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
+  }
+
   responseCache.set(cacheKey, {
     data,
     timestamp: Date.now()
@@ -98,11 +149,14 @@ export const clearCache = (cacheKey) => {
  */
 export const clearExpiredCache = () => {
   const now = Date.now();
+  let deletedCount = 0;
   for (const [key, value] of responseCache.entries()) {
     if (now - value.timestamp > CACHE_TTL) {
       responseCache.delete(key);
+      deletedCount++;
     }
   }
+  return deletedCount;
 };
 
 /**
@@ -136,37 +190,45 @@ export const optimizedFetch = async (
   if (useCache && method === 'GET') {
     const cachedResponse = getCachedResponse(cacheKey);
     if (cachedResponse) {
-      console.log('🔄 Serving from cache:', url);
+      debugLog(`Serving from cache: ${url}`);
       return cachedResponse;
     }
   }
 
   // Check for in-flight requests to the same endpoint to avoid duplicates
   if (inFlightRequests.has(cacheKey)) {
-    console.log('🔄 Reusing in-flight request:', url);
+    debugLog(`Reusing in-flight request: ${url}`);
     return inFlightRequests.get(cacheKey);
   }
   
   // Check rate limiting
   if (isRateLimited()) {
-    console.warn('⚠️ Rate limited request:', url);
-    const waitTime = TIME_WINDOW_MS - (Date.now() - requestTimestamps[0]);
-    
+    // Find the oldest timestamp within the window
+    const now = Date.now();
+    let oldestTimestamp = now;
+    for (let i = 0; i < requestTimestamps.count; i++) {
+      const timestamp = requestTimestamps.buffer[i];
+      if (timestamp >= now - TIME_WINDOW_MS && timestamp < oldestTimestamp) {
+        oldestTimestamp = timestamp;
+      }
+    }
+
+    const waitTime = Math.max(0, TIME_WINDOW_MS - (now - oldestTimestamp) + 100);
+
     // Return promise that resolves after rate limit window passes
-    const rateLimitPromise = new Promise(resolve => {
+    const rateLimitPromise = new Promise((resolve, reject) => {
       setTimeout(async () => {
-        // Retry after waiting
         try {
           const response = await optimizedFetch(url, options, useCache, maxRetries, retryDelay);
           resolve(response);
         } catch (error) {
-          throw error;
+          reject(error);
         }
-      }, waitTime + 100); // Add a small buffer
+      }, waitTime);
     });
-    
+
     inFlightRequests.set(cacheKey, rateLimitPromise);
-    
+
     try {
       const response = await rateLimitPromise;
       inFlightRequests.delete(cacheKey);
@@ -190,9 +252,9 @@ export const optimizedFetch = async (
         // If rate limited by server
         if (response.status === 429) {
           const retryAfter = parseInt(response.headers.get('Retry-After') || '5', 10);
-          
+
           if (retries > 0) {
-            console.warn(`⚠️ Rate limited by server. Retrying after ${retryAfter} seconds.`);
+            debugWarn(`Rate limited by server. Retrying after ${retryAfter} seconds.`);
             await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
             return executeFetch(retries - 1);
           } else {
@@ -215,7 +277,7 @@ export const optimizedFetch = async (
     } catch (error) {
       // Network errors or JSON parsing errors
       if (retries > 0 && !error.message.includes('Rate limit exceeded')) {
-        console.warn(`⚠️ Request failed. Retrying... (${retries} retries left)`);
+        debugWarn(`Request failed. Retrying... (${retries} retries left)`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return executeFetch(retries - 1);
       }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from './AuthContextOptimized';
 import { getMyOrders, getOrderDetails, transformOrderFromAPI } from '../api/ordersApi';
 
 // Order Context

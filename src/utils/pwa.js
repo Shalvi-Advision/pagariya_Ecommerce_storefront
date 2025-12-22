@@ -1,11 +1,24 @@
 // PWA utility functions
 import { Workbox } from 'workbox-window';
 
+const isDebugMode = process.env.NODE_ENV === 'development';
+
 class PWAUtils {
   constructor() {
     this.workbox = null;
     this.isOnline = navigator.onLine;
+    this.registrationPromise = null;
     this.setupEventListeners();
+  }
+
+  debugLog(message, data = null) {
+    if (!isDebugMode) return;
+    console.log(`[PWA] ${message}`, data || '');
+  }
+
+  debugError(message, error = null) {
+    if (!isDebugMode) return;
+    console.error(`[PWA] ${message}`, error || '');
   }
 
   setupEventListeners() {
@@ -26,37 +39,50 @@ class PWAUtils {
     });
   }
 
-  // Register service worker
+  // Register service worker - memoized to prevent double registration
   async registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
+    // Return cached promise if already registering
+    if (this.registrationPromise) {
+      return this.registrationPromise;
+    }
+
+    if (!('serviceWorker' in navigator)) {
+      this.debugLog('Service Worker not supported');
+      return null;
+    }
+
+    // Create the registration promise
+    this.registrationPromise = (async () => {
       try {
         // Register the service worker
         const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registered successfully:', registration);
+        this.debugLog('Service Worker registered successfully');
 
-        // Initialize Workbox
-        this.workbox = new Workbox('/sw.js');
-        await this.workbox.register();
+        // Initialize Workbox (only once)
+        if (!this.workbox) {
+          this.workbox = new Workbox('/sw.js');
 
-        // Listen for service worker updates
-        this.workbox.addEventListener('waiting', () => {
-          this.showUpdateNotification();
-        });
+          // Listen for service worker updates
+          this.workbox.addEventListener('waiting', () => {
+            this.showUpdateNotification();
+          });
 
-        // Listen for service worker controlling
-        this.workbox.addEventListener('controlling', () => {
-          window.location.reload();
-        });
+          // Listen for service worker controlling
+          this.workbox.addEventListener('controlling', () => {
+            this.debugLog('Service Worker controlling, reloading page');
+            window.location.reload();
+          });
+        }
 
         return registration;
       } catch (error) {
-        console.error('Service Worker registration failed:', error);
+        this.debugError('Service Worker registration failed', error);
+        this.registrationPromise = null; // Reset on error
         return null;
       }
-    } else {
-      console.log('Service Worker not supported');
-      return null;
-    }
+    })();
+
+    return this.registrationPromise;
   }
 
   // Show update notification
@@ -111,17 +137,17 @@ class PWAUtils {
       // Save cart data, user preferences, etc.
       const cartData = localStorage.getItem('cart');
       const userData = localStorage.getItem('user');
-      
+
       // You can implement additional offline storage here
-      console.log('PWA: Saving pending data before app closes');
+      this.debugLog('Saving pending data before app closes');
     } catch (error) {
-      console.error('PWA: Error saving pending data', error);
+      this.debugError('Error saving pending data', error);
     }
   }
 
   // Get app version
   async getAppVersion() {
-    if (this.workbox) {
+    if (this.workbox && navigator.serviceWorker.controller) {
       return new Promise((resolve) => {
         const messageChannel = new MessageChannel();
         messageChannel.port1.onmessage = (event) => {
@@ -141,9 +167,9 @@ class PWAUtils {
     if (this.workbox) {
       try {
         await this.workbox.update();
-        console.log('PWA: Checked for updates');
+        this.debugLog('Checked for updates');
       } catch (error) {
-        console.error('PWA: Error checking for updates', error);
+        this.debugError('Error checking for updates', error);
       }
     }
   }
@@ -155,10 +181,10 @@ class PWAUtils {
       await Promise.all(
         cacheNames.map(cacheName => caches.delete(cacheName))
       );
-      console.log('PWA: All caches cleared');
+      this.debugLog('All caches cleared');
       return true;
     } catch (error) {
-      console.error('PWA: Error clearing caches', error);
+      this.debugError('Error clearing caches', error);
       return false;
     }
   }
@@ -171,17 +197,17 @@ class PWAUtils {
         await Promise.all(
           registrations.map(registration => registration.unregister())
         );
-        
+
         // Clear all caches
         await this.clearAllCaches();
-        
+
         // Reload the page
         window.location.reload();
         return true;
       }
       return false;
     } catch (error) {
-      console.error('PWA: Error forcing update', error);
+      this.debugError('Error forcing update', error);
       return false;
     }
   }
@@ -206,8 +232,9 @@ class PWAUtils {
           badge: '/favicon.svg',
           ...options
         });
+        this.debugLog('Push notification sent');
       } catch (error) {
-        console.error('PWA: Error sending push notification', error);
+        this.debugError('Error sending push notification', error);
       }
     }
   }

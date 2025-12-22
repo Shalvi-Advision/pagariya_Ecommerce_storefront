@@ -9,7 +9,7 @@ import {
     BanknotesIcon
 } from '@heroicons/react/24/outline';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextOptimized';
 import { useOrders } from '../context/OrderContext';
 import { usePincode } from '../context/PincodeContext';
 import { useToast } from '../context/ToastContext';

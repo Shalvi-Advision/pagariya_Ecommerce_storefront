@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, useMemo } from 'react';
 import cartService from '../services/cartService';
 import { debounce, retryWithBackoff, isUserAuthenticated, getUserMobile, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
 
@@ -565,15 +565,23 @@ export const CartProvider = ({ children }) => {
     dispatch({ type: cartActions.LOAD_CART, payload: { items: dummyItems } });
   }, []);
 
-  // Computed values
-  const totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
-  const totalPrice = state.items.reduce((total, item) => {
-    const price = Number(item.price) || 0;
-    const quantity = Number(item.quantity) || 0;
-    return total + (price * quantity);
-  }, 0);
+  // Computed values with useMemo to prevent unnecessary recalculations
+  const totalItems = useMemo(() =>
+    state.items.reduce((total, item) => total + item.quantity, 0),
+    [state.items]
+  );
 
-  const value = {
+  const totalPrice = useMemo(() =>
+    state.items.reduce((total, item) => {
+      const price = Number(item.price) || 0;
+      const quantity = Number(item.quantity) || 0;
+      return total + (price * quantity);
+    }, 0),
+    [state.items]
+  );
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     // State
     items: state.items,
     loading: state.loading,
@@ -596,14 +604,33 @@ export const CartProvider = ({ children }) => {
     fetchCart,
     syncCart,
     validateCart,
-    validateCart,
     mergeGuestCart,
     applyValidationFixes,
 
     // Utility
     isAuthenticated: isUserAuthenticated(),
     userMobile: getUserMobile()
-  };
+  }), [
+    state.items,
+    state.loading,
+    state.syncing,
+    state.syncError,
+    state.lastSynced,
+    state.validationResult,
+    totalItems,
+    totalPrice,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    clearUserCart,
+    resetToDummyData,
+    fetchCart,
+    syncCart,
+    validateCart,
+    mergeGuestCart,
+    applyValidationFixes
+  ]);
 
   return (
     <CartContext.Provider value={value}>

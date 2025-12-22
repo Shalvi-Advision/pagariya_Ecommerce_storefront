@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ApiErrorBoundary from './components/ApiErrorBoundary';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContextOptimized';
 import { CartProvider } from './context/CartContext';
 import { CartDrawerProvider, useCartDrawer } from './context/CartDrawerContext';
 import { OrderProvider } from './context/OrderContext';
@@ -67,6 +67,7 @@ const ToastContainerWrapper = () => {
 
 function AppContent() {
   const { isAuthenticated, token: authToken } = useAuth();
+  const { showInfo } = useToast();
   const fcmTokenRef = useRef(null);
   const fcmTokenSavedRef = useRef(false);
   const { successMessage, clearSuccessMessage, user } = useAuth();
@@ -108,80 +109,38 @@ function AppContent() {
   useEffect(() => {
     const initializeFCM = async () => {
       try {
-        // Check if browser supports service workers and notifications
-        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
-          console.warn('FCM: Service workers or notifications not supported');
-          return;
-        }
-
-        // Import FCM helpers
+        // Import and use optimized FCM initialization
         const {
-          requestNotificationPermission,
-          getFcmToken,
+          initializeFCM: optimizedInit,
           subscribeForegroundMessages,
         } = await import('./firebase-messaging-init');
 
-        // Register FCM service worker
-        const fcmRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-          scope: '/',
-        });
-        console.log('FCM: Service worker registered successfully');
+        // Run optimized FCM initialization (memoized internally)
+        const result = await optimizedInit();
 
-        // Wait for service worker to be ready
-        await navigator.serviceWorker.ready;
-
-        // Request notification permission
-        await requestNotificationPermission();
-
-        // Get FCM token
-        const token = await getFcmToken();
-
-        // Store token in ref for later use
-        fcmTokenRef.current = token;
-
-        // Debug: Print token prominently
-        console.log('='.repeat(80));
-        console.log('🔔 FCM TOKEN DEBUG');
-        console.log('='.repeat(80));
-        if (token) {
-          console.log('✅ FCM Token Generated Successfully!');
-          console.log('📱 Token:', token);
-          console.log('📏 Token Length:', token.length);
-          console.log('='.repeat(80));
+        if (result.token) {
+          fcmTokenRef.current = result.token;
 
           // Try to save token to backend (will fail if not authenticated)
           try {
             const { saveFcmToken } = await import('./api/fcmApi');
-            // Pass authToken explicitly to avoid race condition with localStorage
-            await saveFcmToken(token, authToken);
+            await saveFcmToken(result.token, authToken);
             fcmTokenSavedRef.current = true;
-            console.log('✅ FCM: Token saved to backend successfully');
           } catch (saveError) {
-            console.log('ℹ️ FCM: Could not save token yet (user not logged in). Will retry after login.');
             fcmTokenSavedRef.current = false;
-            // Don't throw - token is still usable and will be saved after login
+            // Token will be saved after login
           }
-        } else {
-          console.log('❌ FCM Token NOT Generated');
-          console.log('⚠️  Check errors above for the reason');
-          console.log('='.repeat(80));
         }
 
         // Subscribe to foreground messages
         subscribeForegroundMessages((payload) => {
-          console.log('FCM: Foreground message received:', payload);
-
-          // Show custom in-app notification (you can customize this)
           if (payload.notification) {
-            // You can trigger a toast notification here
-            console.log('Notification:', payload.notification.title, payload.notification.body);
+            const { title, body } = payload.notification;
+            showInfo(title ? `${title}: ${body}` : body || 'New notification');
           }
         });
-
-        console.log('FCM: Initialization complete');
       } catch (error) {
-        console.error('FCM: Initialization failed', error);
-        // Don't throw - FCM is not critical for app functionality
+        // FCM is not critical for app functionality
       }
     };
 
@@ -346,9 +305,8 @@ function App() {
     const registerPWA = async () => {
       try {
         await pwaUtils.registerServiceWorker();
-        console.log('PWA: Service worker registered successfully');
       } catch (error) {
-        console.error('PWA: Failed to register service worker', error);
+        // Silently fail - PWA is not critical for functionality
       }
     };
 
@@ -358,13 +316,14 @@ function App() {
     const { clearExpiredCache } = require('./utils/apiOptimizer');
     clearExpiredCache();
 
-    // Check for updates periodically
+    // Check for updates periodically (every 5 minutes instead of every minute)
+    // and clean expired cache periodically (separate from update check)
     const updateInterval = setInterval(() => {
       pwaUtils.checkForUpdates();
+    }, 5 * 60 * 1000); // Check every 5 minutes (reduced from 1 minute)
 
-      // Also periodically clean expired cache
-      clearExpiredCache();
-    }, 60000); // Check every minute
+    // Note: Cache cleanup is handled by apiOptimizer's internal interval
+    // No need to call it here - it's automatically cleaned up every 5 minutes
 
     return () => {
       clearInterval(updateInterval);
