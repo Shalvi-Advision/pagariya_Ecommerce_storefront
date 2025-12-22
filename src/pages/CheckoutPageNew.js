@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+    ClipboardDocumentListIcon, 
+    MapPinIcon, 
+    TruckIcon, 
+    CurrencyDollarIcon,
+    CheckCircleIcon,
+    BanknotesIcon
+} from '@heroicons/react/24/outline';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContextOptimized';
 import { useOrders } from '../context/OrderContext';
@@ -19,7 +27,7 @@ import { PROJECT_CODE } from '../constants';
 
 const CheckoutPageNew = () => {
     const { items, totalItems, totalPrice, clearCart, clearUserCart } = useCart();
-    const { isAuthenticated, user, setSuccessMessage } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const { addOrder } = useOrders();
     const { getCurrentPincode, confirmedLocation } = usePincode();
     const { showError, showSuccess } = useToast();
@@ -48,6 +56,12 @@ const CheckoutPageNew = () => {
     const [selectedDateTab, setSelectedDateTab] = useState(0);
     const [orderNotes, setOrderNotes] = useState('');
     const [showOrderDetails, setShowOrderDetails] = useState(false);
+    
+    // Session timeout state
+    const [sessionStartTime, setSessionStartTime] = useState(null);
+    const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
+    const [isSessionExpired, setIsSessionExpired] = useState(false);
+    const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
     // Checkout data
     const [checkoutData, setCheckoutData] = useState(() => ({
@@ -185,6 +199,68 @@ const CheckoutPageNew = () => {
         }
     }, [isAuthenticated, items, navigate]);
 
+    // Session timeout initialization and persistence
+    useEffect(() => {
+        const SESSION_STORAGE_KEY = 'checkout_session_start';
+        const SESSION_DURATION = 600; // 10 minutes in seconds
+
+        // Check for existing session in sessionStorage
+        const storedStartTime = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        const now = Date.now();
+
+        if (storedStartTime) {
+            const elapsed = Math.floor((now - parseInt(storedStartTime)) / 1000);
+            const remaining = SESSION_DURATION - elapsed;
+
+            if (remaining > 0) {
+                // Continue existing session
+                setSessionStartTime(parseInt(storedStartTime));
+                setTimeRemaining(remaining);
+            } else {
+                // Session expired, start new one
+                sessionStorage.setItem(SESSION_STORAGE_KEY, now.toString());
+                setSessionStartTime(now);
+                setTimeRemaining(SESSION_DURATION);
+            }
+        } else {
+            // Start new session
+            sessionStorage.setItem(SESSION_STORAGE_KEY, now.toString());
+            setSessionStartTime(now);
+            setTimeRemaining(SESSION_DURATION);
+        }
+
+        // Cleanup function
+        return () => {
+            // Clear session storage when component unmounts (unless order was placed)
+            // We'll handle clearing on successful order placement separately
+        };
+    }, []);
+
+    // Session timeout timer
+    useEffect(() => {
+        if (!sessionStartTime || isSessionExpired) return;
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const elapsed = Math.floor((now - sessionStartTime) / 1000);
+            const remaining = 600 - elapsed; // 10 minutes = 600 seconds
+
+            if (remaining <= 0) {
+                // Session expired
+                setTimeRemaining(0);
+                setIsSessionExpired(true);
+                setShowTimeoutModal(true);
+                clearInterval(interval);
+                // Clear session storage
+                sessionStorage.removeItem('checkout_session_start');
+            } else {
+                setTimeRemaining(remaining);
+            }
+        }, 1000); // Update every second
+
+        return () => clearInterval(interval);
+    }, [sessionStartTime, isSessionExpired]);
+
     // Calculate totals
     const totalSavings = items.reduce((total, item) => {
         return total + (Math.round((Number(item.price) || 0) * 0.2) * (Number(item.quantity) || 1));
@@ -242,6 +318,11 @@ const CheckoutPageNew = () => {
     };
 
     const handleContinue = () => {
+        if (isSessionExpired) {
+            showError('Your checkout session has expired. Please try again.');
+            setShowTimeoutModal(true);
+            return;
+        }
         if (currentStep === 1) {
             if (checkoutData.deliveryMode) setCurrentStep(2);
         } else if (currentStep === 2) {
@@ -258,6 +339,11 @@ const CheckoutPageNew = () => {
     };
 
     const handlePlaceOrder = async () => {
+        if (isSessionExpired) {
+            showError('Your checkout session has expired. Please try again.');
+            setShowTimeoutModal(true);
+            return;
+        }
         if (checkoutData.paymentMethod === 'card') {
             await handleRazorpayPayment();
         } else {
@@ -326,12 +412,17 @@ const CheckoutPageNew = () => {
             };
 
             const response = await apiPost('/orders/place-order', orderPayload);
+            
             if (response.success) {
-                clearUserCart();
-                setOrderNumber(response.order.order_number);
+                // Get order number from response (handle different possible structures)
+                const orderNum = response.order?.order_number || response.order_number || response.orderNumber || response.data?.order_number;
+                
+                // Clear session storage immediately
+                sessionStorage.removeItem('checkout_session_start');
+                
+                // Set order number and show modal
+                setOrderNumber(orderNum);
                 setShowOrderSuccessModal(true);
-                setSuccessMessage(`Order #${response.order.order_number} placed!`);
-                showSuccess('Order placed successfully!');
             } else {
                 throw new Error(response.message || 'Failed to place order');
             }
@@ -342,7 +433,15 @@ const CheckoutPageNew = () => {
         }
     };
 
+    // Format time remaining as MM:SS
+    const formatTimeRemaining = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
     const canContinue = () => {
+        if (isSessionExpired) return false;
         if (currentStep === 1) return !!checkoutData.deliveryMode;
         if (currentStep === 2) {
             return checkoutData.deliveryMode === 'home' ? !!checkoutData.selectedAddress : !!checkoutData.selectedPickupPoint;
@@ -351,183 +450,32 @@ const CheckoutPageNew = () => {
         return true;
     };
 
-    if (!isAuthenticated || items.length === 0) return null;
+    // Allow rendering if modal is showing, even if cart is empty (cart gets cleared after order)
+    if (!isAuthenticated || (items.length === 0 && !showOrderSuccessModal)) return null;
 
     const stepTitles = ['Checkout', 'Delivery Address', 'Delivery Time', 'Payment'];
 
-    // Modern Design System - Colors & Spacing
+    // Colors for dynamic styling (gradients, etc.)
     const colors = {
         primary: '#10b981',
         primaryDark: '#059669',
         primaryLight: '#d1fae5',
-        secondary: '#6366f1',
-        background: '#f9fafb',
         surface: '#ffffff',
-        text: {
-            primary: '#111827',
-            secondary: '#6b7280',
-            tertiary: '#9ca3af'
-        },
         border: '#e5e7eb',
         borderLight: '#f3f4f6',
-        success: '#10b981',
-        error: '#ef4444',
-        warning: '#f59e0b'
+        text: {
+            primary: '#1f2937',
+            secondary: '#6b7280',
+            tertiary: '#9ca3af',
+        },
     };
 
+    // Spacing values for consistent layout
     const spacing = {
-        xs: isMobile ? '6px' : '8px',
-        sm: isMobile ? '8px' : '12px',
-        md: isMobile ? '12px' : '16px',
-        lg: isMobile ? '16px' : '20px',
-        xl: isMobile ? '24px' : '32px'
-    };
-
-    // Inline styles - Modern Design
-    const containerStyle = {
-        minHeight: '100vh',
-        background: isMobile 
-            ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
-            : colors.background,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        maxWidth: '100%',
-        width: '100%',
-        margin: '0 auto',
-        ...(isMobile ? {} : { 
-            maxWidth: '900px',
-            padding: `${spacing.xl} ${spacing.lg}`,
-            background: colors.background,
-            boxSizing: 'border-box'
-        })
-    };
-
-    const headerStyle = {
-        background: isMobile 
-            ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
-            : colors.surface,
-        padding: isMobile ? `${spacing.sm} ${spacing.md}` : `${spacing.md} ${spacing.lg}`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: spacing.sm,
-        position: isMobile ? 'fixed' : 'relative',
-        top: isMobile ? '60px' : 'auto',
-        left: 0,
-        right: 0,
-        zIndex: 40,
-        flexShrink: 0,
-        boxShadow: isMobile ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.08)',
-        borderRadius: isMobile ? 0 : '16px',
-        marginBottom: isMobile ? 0 : spacing.md,
-        border: isMobile ? 'none' : `1px solid ${colors.border}`
-    };
-
-    const headerTopRowStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%'
-    };
-
-    const headerTitleStyle = {
-        color: isMobile ? 'white' : colors.text.primary,
-        fontSize: isMobile ? '14px' : '16px',
-        fontWeight: 700,
-        margin: 0,
-        letterSpacing: '-0.02em'
-    };
-
-    const backBtnStyle = {
-        background: isMobile ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-        border: 'none',
-        color: isMobile ? 'white' : colors.text.primary,
-        cursor: 'pointer',
-        padding: isMobile ? '6px' : '8px',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.2s ease'
-    };
-
-    const timerStyle = {
-        background: isMobile ? 'rgba(255, 255, 255, 0.15)' : colors.primaryLight,
-        padding: isMobile ? '4px 10px' : '6px 12px',
-        borderRadius: '8px',
-        color: isMobile ? 'white' : colors.primaryDark,
-        fontSize: isMobile ? '11px' : '12px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        fontWeight: 600,
-        backdropFilter: isMobile ? 'blur(10px)' : 'none'
-    };
-
-    const stepProgressStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: spacing.xs,
-        width: '100%',
-        paddingTop: spacing.xs
-    };
-
-    const stepItemStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        gap: spacing.xs
-    };
-
-    const getStepCircleStyle = (step) => ({
-        width: isMobile ? '28px' : '32px',
-        height: isMobile ? '28px' : '32px',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 700,
-        fontSize: isMobile ? '11px' : '12px',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        background: currentStep > step || currentStep === step 
-            ? (isMobile ? 'white' : colors.primary)
-            : (isMobile ? 'rgba(255, 255, 255, 0.2)' : colors.borderLight),
-        color: currentStep > step || currentStep === step 
-            ? (isMobile ? colors.primary : 'white')
-            : (isMobile ? 'white' : colors.text.tertiary),
-        boxShadow: currentStep > step || currentStep === step 
-            ? (isMobile ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 8px rgba(16, 185, 129, 0.3)')
-            : 'none'
-    });
-
-    const getStepLineStyle = (step) => ({
-        width: isMobile ? '20px' : '28px',
-        height: '2px',
-        margin: `0 ${spacing.xs}`,
-        transition: 'all 0.3s ease',
-        background: currentStep > step 
-            ? (isMobile ? 'white' : colors.primary)
-            : (isMobile ? 'rgba(255, 255, 255, 0.2)' : colors.border),
-        borderRadius: '2px'
-    });
-
-    const contentStyle = {
-        background: isMobile ? colors.surface : colors.surface,
-        borderRadius: isMobile ? '20px 20px 0 0' : '16px',
-        padding: isMobile ? spacing.sm : spacing.md,
-        marginTop: 0,
-        paddingTop: isMobile ? '200px' : spacing.lg,
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        paddingBottom: isMobile ? '100px' : spacing.lg,
-        position: 'relative',
-        zIndex: 1,
-        minHeight: 0,
-        maxWidth: '100%',
-        width: '100%',
-        boxShadow: isMobile ? 'none' : '0 4px 16px rgba(0, 0, 0, 0.08)',
-        border: isMobile ? 'none' : `1px solid ${colors.border}`
+        xs: '4px',
+        sm: '12px',
+        md: '16px',
+        lg: '24px',
     };
 
     return (
@@ -537,255 +485,204 @@ const CheckoutPageNew = () => {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
-            <div style={containerStyle}>
+            <div className={`min-h-screen flex flex-col overflow-hidden w-full max-w-full mx-auto ${
+                isMobile 
+                    ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' 
+                    : 'max-w-[900px] px-5 sm:px-8 py-8 bg-gray-50'
+            }`}>
             {/* Header with Step Progress */}
-            <div style={headerStyle}>
+            <div 
+                className={`flex flex-col gap-2 sm:gap-3 flex-shrink-0 ${
+                    isMobile 
+                        ? 'fixed top-[148px] left-0 right-0 z-[60] px-3 py-3 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-md' 
+                        : 'relative px-4 py-4 bg-white rounded-2xl shadow-sm border border-gray-200 mb-4'
+                }`}
+            >
                 {/* Top Row: Back Button, Title, Timer */}
-                <div style={headerTopRowStyle}>
+                <div className="flex items-center justify-between w-full">
                     <button 
-                        style={backBtnStyle} 
+                        className={`flex items-center justify-center rounded-lg transition-all duration-200 ${
+                            isMobile 
+                                ? 'p-1.5 bg-white/10 text-white hover:bg-white/20 hover:scale-105' 
+                                : 'p-2 text-gray-900 hover:bg-gray-100'
+                        }`}
                         onClick={handleBack}
-                        onMouseEnter={(e) => {
-                            e.target.style.background = isMobile ? 'rgba(255, 255, 255, 0.2)' : colors.borderLight;
-                            e.target.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.background = isMobile ? 'rgba(255, 255, 255, 0.1)' : 'transparent';
-                            e.target.style.transform = 'scale(1)';
-                        }}
                     >
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                    <h1 style={headerTitleStyle}>{stepTitles[currentStep - 1]}</h1>
-                    <div style={timerStyle}>
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" strokeWidth={2} />
-                        <path strokeLinecap="round" strokeWidth={2} d="M12 6v6l4 2" />
-                    </svg>
-                    <span>10:00</span>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h1 className={`font-bold m-0 tracking-tight ${
+                        isMobile 
+                            ? 'text-sm text-white' 
+                            : 'text-base text-gray-900'
+                    }`}>
+                        {stepTitles[currentStep - 1]}
+                    </h1>
+                    <div className={`flex items-center gap-1 rounded-lg font-semibold ${
+                        isMobile 
+                            ? `px-2.5 py-1 text-[11px] backdrop-blur-md ${
+                                timeRemaining <= 120 
+                                    ? 'bg-red-500/20 text-red-100' 
+                                    : 'bg-white/15 text-white'
+                            }` 
+                            : `px-3 py-1.5 text-xs ${
+                                timeRemaining <= 120 
+                                    ? 'bg-red-100 text-red-700' 
+                                    : 'bg-emerald-100 text-emerald-700'
+                            }`
+                    }`}>
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" strokeWidth={2} />
+                            <path strokeLinecap="round" strokeWidth={2} d="M12 6v6l4 2" />
+                        </svg>
+                        <span>{formatTimeRemaining(timeRemaining)}</span>
+                    </div>
                 </div>
-            </div>
 
                 {/* Step Progress Circles */}
-                <div style={stepProgressStyle}>
-                {[1, 2, 3, 4].map((step, idx) => (
-                        <div style={stepItemStyle} key={step}>
-                            <div style={getStepCircleStyle(step)}>
-                            {currentStep > step ? '✓' : step}
-                        </div>
-                            {idx < 3 && <div style={getStepLineStyle(step)} />}
-                    </div>
-                ))}
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 w-full pt-2 pb-1">
+                    {[1, 2, 3, 4].map((step, idx) => {
+                        const isActive = currentStep >= step;
+                        return (
+                            <div key={step} className="flex items-center gap-1.5 sm:gap-2">
+                                <div className={`flex items-center justify-center font-bold rounded-full transition-all duration-300 ${
+                                    isMobile
+                                        ? `w-7 h-7 text-[11px] ${
+                                            isActive 
+                                                ? 'bg-white text-emerald-500 shadow-lg' 
+                                                : 'bg-white/20 text-white'
+                                        }`
+                                        : `w-8 h-8 text-xs ${
+                                            isActive 
+                                                ? 'bg-emerald-500 text-white shadow-md' 
+                                                : 'bg-gray-100 text-gray-400'
+                                        }`
+                                }`}>
+                                    {currentStep > step ? '✓' : step}
+                                </div>
+                                {idx < 3 && (
+                                    <div className={`h-0.5 transition-all duration-300 ${
+                                        isMobile
+                                            ? `w-5 ${isActive ? 'bg-white' : 'bg-white/20'}`
+                                            : `w-7 ${isActive ? 'bg-emerald-500' : 'bg-gray-200'}`
+                                    }`} />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Content */}
-            <div style={contentStyle}>
+            <div className={`bg-white flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full max-w-full ${
+                isMobile 
+                    ? 'rounded-t-[20px] px-3 pt-[150px] pb-[100px]' 
+                    : 'rounded-2xl p-4 shadow-lg border border-gray-200'
+            }`}>
                 {/* Step 1: Delivery Method */}
                 {currentStep === 1 && (() => {
                     const { homeDelivery, selfPickup } = getDeliveryOptions(confirmedLocation?.store);
                     
-                    const infoBannerStyle = {
-                        background: `linear-gradient(135deg, ${colors.primaryLight} 0%, #a7f3d0 100%)`,
-                        border: `1px solid ${colors.primary}`,
-                        borderRadius: '12px',
-                        padding: isMobile ? spacing.sm : spacing.md,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.sm,
-                        marginBottom: spacing.md,
-                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
-                    };
-
-                    const infoBannerIconStyle = {
-                        width: isMobile ? '28px' : '32px',
-                        height: isMobile ? '28px' : '32px',
-                        background: colors.primary,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        flexShrink: 0,
-                        fontSize: isMobile ? '14px' : '16px',
-                        fontWeight: 700
-                    };
-
-                    const sectionTitleStyle = {
-                        fontSize: isMobile ? '16px' : '18px',
-                        fontWeight: 800,
-                        color: colors.text.primary,
-                        margin: `0 0 ${spacing.xs} 0`,
-                        letterSpacing: '-0.03em'
-                    };
-
-                    const sectionSubtitleStyle = {
-                        fontSize: isMobile ? '13px' : '14px',
-                        color: colors.text.secondary,
-                        margin: `0 0 ${spacing.md} 0`,
-                        lineHeight: 1.5
-                    };
-
-                    const getDeliveryModeCardStyle = (isSelected) => ({
-                        background: isSelected 
-                            ? `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.surface} 100%)`
-                            : colors.surface,
-                        border: `2px solid ${isSelected ? colors.primary : colors.border}`,
-                        borderRadius: '16px',
-                        padding: isMobile ? spacing.sm : spacing.md,
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        alignItems: isMobile ? 'flex-start' : 'center',
-                        gap: spacing.sm,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        marginBottom: spacing.sm,
-                        width: '100%',
-                        boxShadow: isSelected 
-                            ? '0 4px 16px rgba(16, 185, 129, 0.15)'
-                            : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                        transform: isSelected ? 'translateY(-2px)' : 'translateY(0)'
-                    });
-
-                    const deliveryIconStyle = {
-                        width: isMobile ? '48px' : '52px',
-                        height: isMobile ? '48px' : '52px',
-                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
-                        borderRadius: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                                    fontSize: isMobile ? '20px' : '22px',
-                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                        flexShrink: 0
-                    };
-
-                    const deliveryContentStyle = {
-                        flex: 1,
-                        minWidth: 0
-                    };
-
-                    const deliveryContentH4Style = {
-                        fontSize: isMobile ? '15px' : '16px',
-                        fontWeight: 700,
-                        color: colors.text.primary,
-                        margin: `0 0 ${spacing.xs} 0`,
-                        letterSpacing: '-0.02em'
-                    };
-
-                    const deliveryContentPStyle = {
-                        fontSize: isMobile ? '12px' : '13px',
-                        color: colors.text.secondary,
-                        margin: 0,
-                        lineHeight: 1.5
-                    };
-
-                    const getRadioStyle = (isSelected) => ({
-                        width: isMobile ? '20px' : '24px',
-                        height: isMobile ? '20px' : '24px',
-                        border: `2px solid ${isSelected ? colors.primary : colors.border}`,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.3s ease',
-                        flexShrink: 0,
-                        background: isSelected ? colors.primary : 'transparent'
-                    });
-
-                    const radioInnerStyle = (isSelected) => isSelected ? {
-                        content: '',
-                        width: '12px',
-                        height: '12px',
-                        background: '#26b985',
-                        borderRadius: '50%',
-                        position: 'absolute'
-                    } : {};
-                    
                     return (
                         <>
                             {homeDelivery && !selfPickup && (
-                                <div style={infoBannerStyle}>
-                                    <div style={infoBannerIconStyle}>ℹ</div>
-                                    <div style={{ flex: 1 }}>
-                                        <h4 style={{ color: colors.primaryDark, fontSize: isMobile ? '13px' : '14px', fontWeight: 700, margin: '0 0 2px 0' }}>Home Delivery Only</h4>
-                                        <p style={{ color: colors.primary, fontSize: isMobile ? '12px' : '13px', margin: 0 }}>Only Home Delivery is available</p>
+                                <div className="bg-gradient-to-br from-emerald-100 to-emerald-200 border border-emerald-500 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 mb-4 shadow-sm">
+                                    <div className="w-7 h-2 sm:w-8 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm sm:text-base font-bold flex-shrink-0">ℹ</div>
+                                    <div className="flex-1">
+                                        <h4 className="text-emerald-700 text-xs sm:text-sm font-bold mb-0.5">Home Delivery Only</h4>
+                                        <p className="text-emerald-600 text-xs sm:text-[13px] m-0">Only Home Delivery is available</p>
                                     </div>
                                 </div>
                             )}
 
-                            <h2 style={sectionTitleStyle}>Choose Delivery Method</h2>
-                            <p style={sectionSubtitleStyle}>How do you want to receive your order?</p>
+                            <h2 className={`font-extrabold text-gray-900 mb-1 tracking-tight ${
+                                isMobile ? 'text-base' : 'text-lg'
+                            }`}>
+                                Choose Delivery Method
+                            </h2>
+                            <p className={`text-gray-600 mb-4 leading-relaxed ${
+                                isMobile ? 'text-[13px]' : 'text-sm'
+                            }`}>
+                                How do you want to receive your order?
+                            </p>
 
                             {homeDelivery && (
                                 <div
-                                    style={getDeliveryModeCardStyle(checkoutData.deliveryMode === 'home')}
+                                    className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 w-full ${
+                                        checkoutData.deliveryMode === 'home'
+                                            ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                    } ${
+                                        isMobile ? 'flex-col items-start p-2' : 'flex-row items-center p-3'
+                                    } flex gap-1 sm:gap-2`}
                                     onClick={() => setCheckoutData(prev => ({ ...prev, deliveryMode: 'home' }))}
-                                    onMouseEnter={(e) => {
-                                        if (checkoutData.deliveryMode !== 'home') {
-                                            e.currentTarget.style.borderColor = colors.primary;
-                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (checkoutData.deliveryMode !== 'home') {
-                                            e.currentTarget.style.borderColor = colors.border;
-                                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                                        }
-                                    }}
                                 >
-                                    <div style={deliveryIconStyle}>🏠</div>
-                                    <div style={deliveryContentStyle}>
-                                        <h4 style={deliveryContentH4Style}>Home Delivery</h4>
-                                        <p style={deliveryContentPStyle}>Delivered to your doorstep</p>
+                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] shadow-lg flex-shrink-0">🏠</div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
+                                            isMobile ? 'text-[15px]' : 'text-base'
+                                        }`}>
+                                            Home Delivery
+                                        </h4>
+                                        <p className={`text-gray-600 m-0 leading-relaxed ${
+                                            isMobile ? 'text-xs' : 'text-[13px]'
+                                        }`}>
+                                            Delivered to your doorstep
+                                        </p>
                                     </div>
-                                    <div style={getRadioStyle(checkoutData.deliveryMode === 'home')}>
-                                            {checkoutData.deliveryMode === 'home' && (
-                                                <div style={{ 
-                                                    width: isMobile ? '8px' : '10px', 
-                                                    height: isMobile ? '8px' : '10px', 
-                                                    background: 'white', 
-                                                    borderRadius: '50%' 
-                                                }} />
-                                            )}
+                                    <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
+                                        checkoutData.deliveryMode === 'home'
+                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                            : 'bg-transparent border-2 border-gray-200'
+                                    } ${
+                                        isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                                    }`}>
+                                        {checkoutData.deliveryMode === 'home' && (
+                                            <div className={`bg-white rounded-full ${
+                                                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                                            }`} />
+                                        )}
                                     </div>
                                 </div>
                             )}
 
                             {selfPickup && (
                                 <div
-                                    style={getDeliveryModeCardStyle(checkoutData.deliveryMode === 'pickup')}
+                                    className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 w-full ${
+                                        checkoutData.deliveryMode === 'pickup'
+                                            ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                    } ${
+                                        isMobile ? 'flex-col items-start p-3' : 'flex-row items-center p-4'
+                                    } flex gap-2 sm:gap-3`}
                                     onClick={() => setCheckoutData(prev => ({ ...prev, deliveryMode: 'pickup' }))}
-                                    onMouseEnter={(e) => {
-                                        if (checkoutData.deliveryMode !== 'pickup') {
-                                            e.currentTarget.style.borderColor = colors.primary;
-                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (checkoutData.deliveryMode !== 'pickup') {
-                                            e.currentTarget.style.borderColor = colors.border;
-                                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                                        }
-                                    }}
                                 >
-                                    <div style={deliveryIconStyle}>🏪</div>
-                                    <div style={deliveryContentStyle}>
-                                        <h4 style={deliveryContentH4Style}>Store Pickup</h4>
-                                        <p style={deliveryContentPStyle}>Pick up from store</p>
+                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] shadow-lg flex-shrink-0">🏪</div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
+                                            isMobile ? 'text-[15px]' : 'text-base'
+                                        }`}>
+                                            Store Pickup
+                                        </h4>
+                                        <p className={`text-gray-600 m-0 leading-relaxed ${
+                                            isMobile ? 'text-xs' : 'text-[13px]'
+                                        }`}>
+                                            Pick up from store
+                                        </p>
                                     </div>
-                                    <div style={getRadioStyle(checkoutData.deliveryMode === 'pickup')}>
-                                            {checkoutData.deliveryMode === 'pickup' && (
-                                                <div style={{ 
-                                                    width: isMobile ? '8px' : '10px', 
-                                                    height: isMobile ? '8px' : '10px', 
-                                                    background: 'white', 
-                                                    borderRadius: '50%' 
-                                                }} />
-                                            )}
+                                    <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
+                                        checkoutData.deliveryMode === 'pickup'
+                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                            : 'bg-transparent border-2 border-gray-200'
+                                    } ${
+                                        isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                                    }`}>
+                                        {checkoutData.deliveryMode === 'pickup' && (
+                                            <div className={`bg-white rounded-full ${
+                                                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                                            }`} />
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -796,417 +693,361 @@ const CheckoutPageNew = () => {
                 {/* Step 2: Address Selection */}
                 {currentStep === 2 && (
                     <>
-                        <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 800, color: colors.text.primary, margin: `0 0 ${spacing.xs} 0`, letterSpacing: '-0.03em' }}>Delivery Address</h2>
-                        <p style={{ fontSize: isMobile ? '13px' : '14px', color: colors.text.secondary, margin: `0 0 ${spacing.md} 0`, lineHeight: 1.5 }}>Select delivery address</p>
+                        {checkoutData.deliveryMode === 'pickup' ? (
+                            <>
+                                <h2 className={`font-extrabold text-gray-900 mb-1 tracking-tight ${
+                                    isMobile ? 'text-base' : 'text-lg'
+                                }`}>
+                                    Pickup Store
+                                </h2>
+                                <p className={`text-gray-600 mb-4 leading-relaxed ${
+                                    isMobile ? 'text-[13px]' : 'text-sm'
+                                }`}>
+                                    Select pickup store location
+                                </p>
 
-                        {isLoadingAddresses ? (
-                            <div style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                padding: `${spacing.xl} ${spacing.md}` 
-                            }}>
-                                <div style={{ 
-                                    width: isMobile ? '40px' : '48px', 
-                                    height: isMobile ? '40px' : '48px', 
-                                    border: `3px solid ${colors.border}`, 
-                                    borderTopColor: colors.primary, 
-                                    borderRadius: '50%', 
-                                    animation: 'spin 1s linear infinite' 
-                                }} />
-                                <p style={{ 
-                                    marginTop: spacing.md, 
-                                    color: colors.text.secondary,
-                                    fontSize: isMobile ? '14px' : '15px',
-                                    fontWeight: 500
-                                }}>
-                                    Loading addresses...
-                                </p>
-                            </div>
-                        ) : savedAddresses.length === 0 ? (
-                            <div style={{ 
-                                textAlign: 'center', 
-                                padding: `${spacing.xl} ${spacing.md}`,
-                                background: colors.borderLight,
-                                borderRadius: '20px',
-                                border: `1px dashed ${colors.border}`
-                            }}>
-                                <div style={{ 
-                                    width: isMobile ? '64px' : '80px', 
-                                    height: isMobile ? '64px' : '80px', 
-                                    background: colors.surface, 
-                                    borderRadius: '50%', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center', 
-                                    margin: `0 auto ${spacing.md}`, 
-                                    fontSize: isMobile ? '28px' : '32px',
-                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
-                                }}>
-                                    📍
-                                </div>
-                                <h4 style={{ 
-                                    fontSize: isMobile ? '16px' : '18px', 
-                                    fontWeight: 700, 
-                                    color: colors.text.primary, 
-                                    margin: `0 0 ${spacing.sm} 0`,
-                                    letterSpacing: '-0.01em'
-                                }}>
-                                    No saved addresses
-                                </h4>
-                                <p style={{ 
-                                    fontSize: isMobile ? '14px' : '15px', 
-                                    color: colors.text.secondary, 
-                                    margin: 0,
-                                    lineHeight: 1.5
-                                }}>
-                                    Add an address to continue
-                                </p>
-                            </div>
-                        ) : (
-                            savedAddresses.map((addr) => {
-                                const isSelected = checkoutData.selectedAddress?.id === addr.id;
-                                return (
-                                <div
-                                    key={addr.id}
-                                        style={{
-                                            background: isSelected 
-                                                ? `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.surface} 100%)`
-                                                : colors.surface,
-                                            border: `2px solid ${isSelected ? colors.primary : colors.border}`,
-                                            borderRadius: '16px',
-                                            padding: isMobile ? spacing.sm : spacing.md,
-                                            marginBottom: spacing.sm,
-                                            cursor: 'pointer',
-                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            boxShadow: isSelected 
-                                                ? '0 4px 16px rgba(16, 185, 129, 0.15)'
-                                                : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                                            transform: isSelected ? 'translateY(-2px)' : 'translateY(0)'
-                                        }}
-                                    onClick={() => setCheckoutData(prev => ({
-                                        ...prev,
-                                        selectedAddress: { id: addr.id, name: addr.name, address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}` }
-                                    }))}
-                                    onMouseEnter={(e) => {
-                                        if (!isSelected) {
-                                            e.currentTarget.style.borderColor = colors.primary;
-                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!isSelected) {
-                                            e.currentTarget.style.borderColor = colors.border;
-                                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                        }
-                                    }}
-                                >
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md }}>
-                                            <div style={{ 
-                                                width: isMobile ? '40px' : '44px', 
-                                                height: isMobile ? '40px' : '44px', 
-                                                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`, 
-                                                borderRadius: '12px', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center', 
-                                                color: 'white', 
-                                                flexShrink: 0, 
-                                                fontSize: isMobile ? '18px' : '20px',
-                                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                                            }}>📍</div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <h4 style={{ fontSize: isMobile ? '15px' : '16px', fontWeight: 700, color: colors.text.primary, margin: `0 0 ${spacing.xs} 0`, letterSpacing: '-0.01em' }}>{addr.name}</h4>
-                                                <p style={{ fontSize: isMobile ? '13px' : '14px', color: colors.text.secondary, margin: `0 0 ${spacing.xs} 0`, lineHeight: 1.5 }}>{addr.addressLine1}{addr.addressLine2 && `, ${addr.addressLine2}`}, {addr.city} - {addr.pinCode}</p>
-                                                <p style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.tertiary, margin: `${spacing.xs} 0 0 0` }}>PIN: {addr.pinCode}</p>
-                                                {addr.isDefault && (
-                                                    <span style={{ 
-                                                        display: 'inline-block', 
-                                                        background: `linear-gradient(135deg, ${colors.primaryLight} 0%, #a7f3d0 100%)`, 
-                                                        color: colors.primaryDark, 
-                                                        fontSize: isMobile ? '10px' : '11px', 
-                                                        fontWeight: 700, 
-                                                        padding: `${spacing.xs} ${spacing.sm}`, 
-                                                        borderRadius: '6px', 
-                                                        marginTop: spacing.xs, 
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.5px'
-                                                    }}>
-                                                        Default Address
-                                                    </span>
-                                                )}
+                                {isLoadingStores ? (
+                                    <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
+                                        <div className={`border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin ${
+                                            isMobile ? 'w-10 h-10' : 'w-12 h-12'
+                                        }`} />
+                                        <p className={`mt-4 text-gray-600 font-medium ${
+                                            isMobile ? 'text-sm' : 'text-[15px]'
+                                        }`}>
+                                            Loading stores...
+                                        </p>
+                                    </div>
+                                ) : storesError ? (
+                                    <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
+                                        <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
+                                            ⚠️
                                         </div>
-                                            <div style={{ 
-                                                width: isMobile ? '20px' : '24px', 
-                                                height: isMobile ? '20px' : '24px', 
-                                                border: `2px solid ${isSelected ? colors.primary : colors.border}`, 
-                                                borderRadius: '50%', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center', 
-                                                flexShrink: 0,
-                                                background: isSelected ? colors.primary : 'transparent',
-                                                transition: 'all 0.3s ease'
-                                            }}>
-                                                {isSelected && (
-                                                    <div style={{ 
-                                                        width: isMobile ? '8px' : '10px', 
-                                                        height: isMobile ? '8px' : '10px', 
-                                                        background: 'white', 
-                                                        borderRadius: '50%' 
-                                                    }} />
-                                                )}
+                                        <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
+                                            isMobile ? 'text-base' : 'text-lg'
+                                        }`}>
+                                            Unable to load stores
+                                        </h4>
+                                        <p className={`text-gray-600 m-0 leading-relaxed ${
+                                            isMobile ? 'text-sm' : 'text-[15px]'
+                                        }`}>
+                                            {storesError}
+                                        </p>
                                     </div>
-                                </div>
+                                ) : pickupStores.length === 0 ? (
+                                    <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
+                                        <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
+                                            🏪
+                                        </div>
+                                        <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
+                                            isMobile ? 'text-base' : 'text-lg'
+                                        }`}>
+                                            No stores available
+                                        </h4>
+                                        <p className={`text-gray-600 m-0 leading-relaxed ${
+                                            isMobile ? 'text-sm' : 'text-[15px]'
+                                        }`}>
+                                            No pickup stores found for your location
+                                        </p>
                                     </div>
-                                );
-                            })
-                        )}
+                                ) : (
+                                    pickupStores.map((store) => {
+                                        const isSelected = checkoutData.selectedPickupPoint?.id === store.id;
+                                        return (
+                                            <div
+                                                key={store.id}
+                                                className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 ${
+                                                    isSelected
+                                                        ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                                } ${
+                                                    isMobile ? 'p-3' : 'p-4'
+                                                }`}
+                                                onClick={() => setCheckoutData(prev => ({
+                                                    ...prev,
+                                                    selectedPickupPoint: store
+                                                }))}
+                                            >
+                                                <div className="flex items-start gap-3 sm:gap-4">
+                                                    <div className={`bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg ${
+                                                        isMobile ? 'w-10 h-10 text-lg' : 'w-11 h-11 text-xl'
+                                                    }`}>
+                                                        🏪
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
+                                                            isMobile ? 'text-[15px]' : 'text-base'
+                                                        }`}>
+                                                            {store.name}
+                                                        </h4>
+                                                        <p className={`text-gray-600 mb-1 leading-relaxed ${
+                                                            isMobile ? 'text-[13px]' : 'text-sm'
+                                                        }`}>
+                                                            {store.address}
+                                                        </p>
+                                                        <p className={`text-gray-400 mt-1 ${
+                                                            isMobile ? 'text-xs' : 'text-[13px]'
+                                                        }`}>
+                                                            {store.timings}
+                                                        </p>
+                                                        {store.distance && (
+                                                            <span className="inline-block bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md mt-1 uppercase tracking-wider">
+                                                                {store.distance}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
+                                                        isSelected
+                                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                                            : 'bg-transparent border-2 border-gray-200'
+                                                    } ${
+                                                        isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                                                    }`}>
+                                                        {isSelected && (
+                                                            <div className={`bg-white rounded-full ${
+                                                                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                                                            }`} />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <h2 className={`font-extrabold text-gray-900 mb-1 tracking-tight ${
+                                    isMobile ? 'text-base' : 'text-lg'
+                                }`}>
+                                    Delivery Address
+                                </h2>
+                                <p className={`text-gray-600 mb-4 leading-relaxed ${
+                                    isMobile ? 'text-[13px]' : 'text-sm'
+                                }`}>
+                                    Select delivery address
+                                </p>
 
-                        <button 
-                            style={{
-                                background: colors.surface,
-                                border: `2px dashed ${colors.border}`,
-                                borderRadius: '12px',
-                                padding: isMobile ? spacing.sm : spacing.md,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: spacing.xs,
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                width: '100%',
-                                color: colors.primary,
-                                fontSize: isMobile ? '13px' : '14px',
-                                fontWeight: 700,
-                                marginTop: spacing.sm
-                            }}
-                            onClick={() => navigate('/address')}
-                            onMouseEnter={(e) => {
-                                e.target.style.borderColor = colors.primary;
-                                e.target.style.background = colors.primaryLight;
-                                e.target.style.transform = 'translateY(-2px)';
-                                e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.target.style.borderColor = colors.border;
-                                e.target.style.background = colors.surface;
-                                e.target.style.transform = 'translateY(0)';
-                                e.target.style.boxShadow = 'none';
-                            }}
-                        >
-                            + ADD NEW ADDRESS
-                        </button>
+                                {isLoadingAddresses ? (
+                                    <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
+                                        <div className={`border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin ${
+                                            isMobile ? 'w-10 h-10' : 'w-12 h-12'
+                                        }`} />
+                                        <p className={`mt-4 text-gray-600 font-medium ${
+                                            isMobile ? 'text-sm' : 'text-[15px]'
+                                        }`}>
+                                            Loading addresses...
+                                        </p>
+                                    </div>
+                                ) : savedAddresses.length === 0 ? (
+                                    <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
+                                        <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
+                                            📍
+                                        </div>
+                                        <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
+                                            isMobile ? 'text-base' : 'text-lg'
+                                        }`}>
+                                            No saved addresses
+                                        </h4>
+                                        <p className={`text-gray-600 m-0 leading-relaxed ${
+                                            isMobile ? 'text-sm' : 'text-[15px]'
+                                        }`}>
+                                            Add an address to continue
+                                        </p>
+                                    </div>
+                                ) : (
+                                    savedAddresses.map((addr) => {
+                                        const isSelected = checkoutData.selectedAddress?.id === addr.id;
+                                        return (
+                                            <div
+                                                key={addr.id}
+                                                className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 ${
+                                                    isSelected
+                                                        ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                                } ${
+                                                    isMobile ? 'p-3' : 'p-4'
+                                                }`}
+                                                onClick={() => setCheckoutData(prev => ({
+                                                    ...prev,
+                                                    selectedAddress: { id: addr.id, name: addr.name, address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}` }
+                                                }))}
+                                            >
+                                                <div className="flex items-start gap-3 sm:gap-4">
+                                                    <div className={`bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg ${
+                                                        isMobile ? 'w-10 h-10 text-lg' : 'w-11 h-11 text-xl'
+                                                    }`}>
+                                                        📍
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
+                                                            isMobile ? 'text-[15px]' : 'text-base'
+                                                        }`}>
+                                                            {addr.name}
+                                                        </h4>
+                                                        <p className={`text-gray-600 mb-1 leading-relaxed ${
+                                                            isMobile ? 'text-[13px]' : 'text-sm'
+                                                        }`}>
+                                                            {addr.addressLine1}{addr.addressLine2 && `, ${addr.addressLine2}`}, {addr.city} - {addr.pinCode}
+                                                        </p>
+                                                        <p className={`text-gray-400 mt-1 ${
+                                                            isMobile ? 'text-xs' : 'text-[13px]'
+                                                        }`}>
+                                                            PIN: {addr.pinCode}
+                                                        </p>
+                                                        {addr.isDefault && (
+                                                            <span className="inline-block bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md mt-1 uppercase tracking-wider">
+                                                                Default Address
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
+                                                        isSelected
+                                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                                            : 'bg-transparent border-2 border-gray-200'
+                                                    } ${
+                                                        isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                                                    }`}>
+                                                        {isSelected && (
+                                                            <div className={`bg-white rounded-full ${
+                                                                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                                                            }`} />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+
+                                <button 
+                                    className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-3 sm:p-4 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-300 w-full text-emerald-500 text-[13px] sm:text-sm font-bold mt-2 hover:border-emerald-500 hover:bg-emerald-50 hover:-translate-y-0.5 hover:shadow-md"
+                                    onClick={() => navigate('/address')}
+                                >
+                                    + ADD NEW ADDRESS
+                                </button>
+                            </>
+                        )}
                     </>
                 )}
 
                 {/* Step 3: Time Slot */}
                 {currentStep === 3 && (
                     <>
-                        <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 800, color: colors.text.primary, margin: `0 0 ${spacing.xs} 0`, letterSpacing: '-0.03em' }}>Choose Delivery Time</h2>
-                        <p style={{ fontSize: isMobile ? '13px' : '14px', color: colors.text.secondary, margin: `0 0 ${spacing.md} 0`, lineHeight: 1.5 }}>Select delivery time slot</p>
+                        <h2 className={`font-extrabold text-gray-900 mb-1 tracking-tight ${
+                            isMobile ? 'text-base' : 'text-lg'
+                        }`}>
+                            Choose Delivery Time
+                        </h2>
+                        <p className={`text-gray-600 mb-4 leading-relaxed ${
+                            isMobile ? 'text-[13px]' : 'text-sm'
+                        }`}>
+                            Select delivery time slot
+                        </p>
 
                         {isLoadingSlots ? (
-                            <div style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                padding: `${spacing.xl} ${spacing.md}` 
-                            }}>
-                                <div style={{ 
-                                    width: isMobile ? '40px' : '48px', 
-                                    height: isMobile ? '40px' : '48px', 
-                                    border: `3px solid ${colors.border}`, 
-                                    borderTopColor: colors.primary, 
-                                    borderRadius: '50%', 
-                                    animation: 'spin 1s linear infinite' 
-                                }} />
-                                <p style={{ 
-                                    marginTop: spacing.md, 
-                                    color: colors.text.secondary,
-                                    fontSize: isMobile ? '14px' : '15px',
-                                    fontWeight: 500
-                                }}>
+                            <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
+                                <div className={`border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin ${
+                                    isMobile ? 'w-10 h-10' : 'w-12 h-12'
+                                }`} />
+                                <p className={`mt-4 text-gray-600 font-medium ${
+                                    isMobile ? 'text-sm' : 'text-[15px]'
+                                }`}>
                                     Loading slots...
                                 </p>
                             </div>
                         ) : slotsErrorMessage ? (
-                            <div style={{ 
-                                textAlign: 'center', 
-                                padding: `${spacing.xl} ${spacing.md}`,
-                                background: colors.borderLight,
-                                borderRadius: '20px',
-                                border: `1px dashed ${colors.border}`
-                            }}>
-                                <div style={{ 
-                                    width: isMobile ? '64px' : '80px', 
-                                    height: isMobile ? '64px' : '80px', 
-                                    background: colors.surface, 
-                                    borderRadius: '50%', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center', 
-                                    margin: `0 auto ${spacing.md}`, 
-                                    fontSize: isMobile ? '28px' : '32px',
-                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
-                                }}>
+                            <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
+                                <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
                                     ⚠️
                                 </div>
-                                <h4 style={{ 
-                                    fontSize: isMobile ? '16px' : '18px', 
-                                    fontWeight: 700, 
-                                    color: colors.text.primary, 
-                                    margin: `0 0 ${spacing.sm} 0`,
-                                    letterSpacing: '-0.01em'
-                                }}>
+                                <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
+                                    isMobile ? 'text-base' : 'text-lg'
+                                }`}>
                                     Slots Unavailable
                                 </h4>
-                                <p style={{ 
-                                    fontSize: isMobile ? '14px' : '15px', 
-                                    color: colors.text.secondary, 
-                                    margin: 0,
-                                    lineHeight: 1.5
-                                }}>
+                                <p className={`text-gray-600 m-0 leading-relaxed ${
+                                    isMobile ? 'text-sm' : 'text-[15px]'
+                                }`}>
                                     {slotsErrorMessage}
                                 </p>
                             </div>
                         ) : (
                             <>
-                                <div style={{ 
-                                    display: 'flex', 
-                                    flexDirection: isMobile ? 'column' : 'row', 
-                                    gap: spacing.sm, 
-                                    marginBottom: spacing.lg, 
-                                    overflowX: isMobile ? 'visible' : 'auto', 
-                                    paddingBottom: '4px'
-                                }}>
+                                <div className={`flex gap-2 sm:gap-3 mb-4 sm:mb-5 pb-1 ${
+                                    isMobile ? 'flex-col' : 'flex-row overflow-x-auto'
+                                }`}>
                                     {timeSlots.map((dateSlot, idx) => {
                                         const isActive = selectedDateTab === idx;
                                         return (
-                                        <button
-                                            key={idx}
-                                            style={{
-                                                padding: isMobile ? `${spacing.xs} ${spacing.sm}` : `${spacing.sm} ${spacing.md}`,
-                                                borderRadius: '12px',
-                                                fontSize: isMobile ? '12px' : '13px',
-                                                fontWeight: 700,
-                                                cursor: 'pointer',
-                                                whiteSpace: 'nowrap',
-                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                border: `2px solid ${isActive ? colors.primary : colors.border}`,
-                                                background: isActive 
-                                                    ? `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`
-                                                    : colors.surface,
-                                                color: isActive ? 'white' : colors.text.secondary,
-                                                boxShadow: isActive ? '0 4px 12px rgba(16, 185, 129, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.05)'
-                                            }}
-                                            onClick={() => setSelectedDateTab(idx)}
-                                        >
-                                            {idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : dateSlot.date?.split(' ')[1] || dateSlot.date}
-                                        </button>
+                                            <button
+                                                key={idx}
+                                                className={`rounded-xl font-bold cursor-pointer whitespace-nowrap transition-all duration-300 border-2 ${
+                                                    isActive
+                                                        ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-500 text-white shadow-lg'
+                                                        : 'bg-white border-gray-200 text-gray-600 shadow-sm hover:border-emerald-500'
+                                                } ${
+                                                    isMobile ? 'px-2 py-1.5 text-xs' : 'px-3 sm:px-4 py-2 text-[13px]'
+                                                }`}
+                                                onClick={() => setSelectedDateTab(idx)}
+                                            >
+                                                {idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : dateSlot.date?.split(' ')[1] || dateSlot.date}
+                                            </button>
                                         );
                                     })}
                                 </div>
 
-                                <h3 style={{ 
-                                    fontSize: isMobile ? '14px' : '15px', 
-                                    fontWeight: 700, 
-                                    color: colors.text.primary, 
-                                    marginBottom: spacing.sm,
-                                    letterSpacing: '-0.01em'
-                                }}>
+                                <h3 className={`font-bold text-gray-900 mb-2 sm:mb-3 tracking-tight ${
+                                    isMobile ? 'text-sm' : 'text-[15px]'
+                                }`}>
                                     {timeSlots[selectedDateTab]?.date || 'Today'}
                                 </h3>
 
                                 {timeSlots[selectedDateTab]?.slots?.map((slot) => {
                                     const isSelected = checkoutData.selectedTimeSlot?.id === slot.id;
                                     return (
-                                    <div
-                                        key={slot.id}
-                                            style={{
-                                                background: isSelected 
-                                                    ? `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.surface} 100%)`
-                                                    : slot.available 
-                                                        ? colors.surface 
-                                                        : colors.borderLight,
-                                                border: `2px solid ${isSelected ? colors.primary : slot.available ? colors.border : colors.border}`,
-                                                borderRadius: '12px',
-                                                padding: isMobile ? spacing.sm : spacing.md,
-                                                marginBottom: spacing.xs,
-                                                cursor: slot.available ? 'pointer' : 'not-allowed',
-                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                width: '100%',
-                                                display: 'flex',
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                opacity: slot.available ? 1 : 0.5,
-                                                boxShadow: isSelected 
-                                                    ? '0 4px 16px rgba(16, 185, 129, 0.15)'
-                                                    : slot.available 
-                                                        ? '0 2px 8px rgba(0, 0, 0, 0.05)'
-                                                        : 'none',
-                                                transform: isSelected ? 'translateY(-2px)' : 'translateY(0)'
-                                            }}
-                                        onClick={() => slot.available && setCheckoutData(prev => ({
-                                            ...prev,
-                                            selectedDate: timeSlots[selectedDateTab].date,
-                                            selectedTimeSlot: slot
-                                        }))}
-                                        onMouseEnter={(e) => {
-                                            if (slot.available && !isSelected) {
-                                                e.currentTarget.style.borderColor = colors.primary;
-                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
-                                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (slot.available && !isSelected) {
-                                                e.currentTarget.style.borderColor = colors.border;
-                                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                                                e.currentTarget.style.transform = 'translateY(0)';
-                                            }
-                                        }}
-                                    >
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
-                                                <h4 style={{ 
-                                                    fontSize: isMobile ? '14px' : '15px', 
-                                                    fontWeight: 700, 
-                                                    color: slot.available ? colors.text.primary : colors.text.tertiary, 
-                                                    margin: 0,
-                                                    letterSpacing: '-0.01em'
-                                                }}>
+                                        <div
+                                            key={slot.id}
+                                            className={`rounded-xl w-full flex flex-row items-center justify-between transition-all duration-300 mb-1 ${
+                                                isSelected
+                                                    ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                                    : slot.available
+                                                        ? 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
+                                                        : 'bg-gray-50 border-2 border-gray-200 opacity-50 cursor-not-allowed'
+                                            } ${
+                                                isMobile ? 'p-3' : 'p-4'
+                                            }`}
+                                            onClick={() => slot.available && setCheckoutData(prev => ({
+                                                ...prev,
+                                                selectedDate: timeSlots[selectedDateTab].date,
+                                                selectedTimeSlot: slot
+                                            }))}
+                                        >
+                                            <div className="flex flex-col gap-1">
+                                                <h4 className={`font-bold m-0 tracking-tight ${
+                                                    slot.available ? 'text-gray-900' : 'text-gray-400'
+                                                } ${
+                                                    isMobile ? 'text-sm' : 'text-[15px]'
+                                                }`}>
                                                     {slot.time}
                                                 </h4>
-                                                <span style={{ 
-                                                    fontSize: isMobile ? '11px' : '12px', 
-                                                    color: slot.available ? colors.primary : colors.text.tertiary, 
-                                                    fontWeight: 600 
-                                                }}>
+                                                <span className={`font-semibold ${
+                                                    slot.available ? 'text-emerald-500' : 'text-gray-400'
+                                                } ${
+                                                    isMobile ? 'text-[11px]' : 'text-xs'
+                                                }`}>
                                                     {slot.available ? 'Available' : 'Unavailable'}
                                                 </span>
-                                    </div>
+                                            </div>
                                             {isSelected && (
-                                                <div style={{
-                                                    width: isMobile ? '20px' : '24px',
-                                                    height: isMobile ? '20px' : '24px',
-                                                    background: colors.primary,
-                                                    borderRadius: '50%',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    flexShrink: 0
-                                                }}>
+                                                <div className={`bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                    isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                                                }`}>
                                                     <svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                     </svg>
                                                 </div>
                                             )}
-                                    </div>
+                                        </div>
                                     );
                                 })}
                             </>
@@ -1218,261 +1059,167 @@ const CheckoutPageNew = () => {
                 {currentStep === 4 && (
                     <>
                         <span 
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: spacing.xs,
-                                color: colors.primary,
-                                fontSize: isMobile ? '12px' : '13px',
-                                fontWeight: 600,
-                                marginBottom: spacing.sm,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                            }}
+                            className="flex items-center gap-1.5 text-emerald-500 text-xs sm:text-[13px] font-semibold mb-2 cursor-pointer transition-colors duration-200 hover:text-emerald-600"
                             onClick={() => setShowOrderDetails(true)}
-                            onMouseEnter={(e) => {
-                                e.target.style.color = colors.primaryDark;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.target.style.color = colors.primary;
-                            }}
                         >
                             View Order details &gt;
                         </span>
 
-                        <div style={{ 
-                            background: colors.surface, 
-                            borderRadius: '16px', 
-                            padding: isMobile ? spacing.sm : spacing.md, 
-                            marginBottom: spacing.sm, 
-                            border: `1px solid ${colors.border}`,
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-                        }}>
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: spacing.xs, 
-                                marginBottom: spacing.sm, 
-                                paddingBottom: spacing.sm, 
-                                borderBottom: `1px solid ${colors.borderLight}` 
-                            }}>
-                                <span style={{ fontSize: isMobile ? '16px' : '18px' }}>📋</span>
-                                <h3 style={{ 
-                                    fontSize: isMobile ? '12px' : '13px', 
-                                    fontWeight: 800, 
-                                    color: colors.primary, 
-                                    margin: 0, 
-                                    textTransform: 'uppercase', 
-                                    letterSpacing: '0.5px' 
-                                }}>
+                        <div className="bg-white rounded-2xl p-3 sm:p-4 mb-2 border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-gray-100">
+                                <ClipboardDocumentListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+                                <h3 className="text-xs sm:text-[13px] font-extrabold text-emerald-500 m-0 uppercase tracking-wider">
                                     ORDER SUMMARY
                                 </h3>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>{totalItems} items</span>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>₹{totalPrice.toFixed(2)}</span>
+                            <div className="flex justify-between items-center py-1">
+                                <span className={`text-gray-600 ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    {totalItems} items
+                                </span>
+                                <span className={`text-gray-900 font-semibold ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    ₹{totalPrice.toFixed(2)}
+                                </span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>📦 Distance</span>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>16.6 km</span>
+                            <div className="flex justify-between items-center py-1">
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    <MapPinIcon className="w-3.5 h-3.5" />
+                                    Distance
+                                </span>
+                                <span className={`text-gray-900 font-semibold ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    16.6 km
+                                </span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>🚚 Delivery Fee</span>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 700 }}>FREE</span>
+                            <div className="flex justify-between items-center py-1">
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    <TruckIcon className="w-3.5 h-3.5" />
+                                    Delivery Fee
+                                </span>
+                                <span className={`text-emerald-500 font-bold ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    FREE
+                                </span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>💰 Savings</span>
-                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 600 }}>₹{totalSavings.toFixed(2)}</span>
+                            <div className="flex justify-between items-center py-1">
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    <CurrencyDollarIcon className="w-3.5 h-3.5" />
+                                    Savings
+                                </span>
+                                <span className={`text-emerald-500 font-semibold ${
+                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                }`}>
+                                    ₹{totalSavings.toFixed(2)}
+                                </span>
                             </div>
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center', 
-                                padding: `${spacing.xs} 0`, 
-                                borderTop: `2px solid ${colors.border}`, 
-                                marginTop: spacing.sm, 
-                                paddingTop: spacing.sm 
-                            }}>
-                                <span style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 800, color: colors.text.primary }}>TOTAL</span>
-                                <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 800, color: colors.primary }}>₹{totalPrice.toFixed(2)}</span>
+                            <div className="flex justify-between items-center py-1 border-t-2 border-gray-200 mt-2 sm:mt-3 pt-2 sm:pt-3">
+                                <span className={`font-extrabold text-gray-900 ${
+                                    isMobile ? 'text-base' : 'text-lg'
+                                }`}>
+                                    TOTAL
+                                </span>
+                                <span className={`font-extrabold text-emerald-500 ${
+                                    isMobile ? 'text-lg' : 'text-[22px]'
+                                }`}>
+                                    ₹{totalPrice.toFixed(2)}
+                                </span>
                             </div>
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: spacing.xs, 
-                                background: colors.primaryLight, 
-                                color: colors.primaryDark, 
-                                padding: `${spacing.xs} ${spacing.sm}`, 
-                                borderRadius: '10px', 
-                                fontSize: isMobile ? '11px' : '12px', 
-                                fontWeight: 600, 
-                                marginTop: spacing.sm 
-                            }}>
-                                ✓ Free delivery for this order
+                            <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 text-emerald-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold mt-2 sm:mt-3">
+                                <CheckCircleIcon className="w-3.5 h-3.5" />
+                                Free delivery for this order
                             </div>
                         </div>
 
-                        <div style={{ 
-                            background: colors.surface, 
-                            border: `1px solid ${colors.border}`, 
-                            borderRadius: '12px', 
-                            padding: isMobile ? spacing.sm : spacing.md, 
-                            marginBottom: spacing.sm,
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-                        }}>
+                        <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 mb-2 shadow-sm">
                             <textarea
                                 placeholder="Any special instructions for delivery?"
                                 rows={2}
                                 value={orderNotes}
                                 onChange={(e) => setOrderNotes(e.target.value)}
+                                className="w-full border-none resize-none outline-none font-inherit bg-transparent text-gray-900 placeholder-gray-400"
                                 style={{
-                                    width: '100%',
-                                    border: 'none',
-                                    resize: 'none',
-                                    fontSize: isMobile ? '12px' : '13px',
-                                    color: colors.text.primary,
-                                    outline: 'none',
-                                    fontFamily: 'inherit',
-                                    background: 'transparent'
+                                    fontSize: isMobile ? '12px' : '13px'
                                 }}
                             />
                         </div>
 
-                        <div style={{ 
-                            background: colors.surface, 
-                            borderRadius: '16px', 
-                            padding: isMobile ? spacing.sm : spacing.md, 
-                            marginBottom: spacing.sm, 
-                            border: `1px solid ${colors.border}`,
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-                        }}>
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: spacing.xs, 
-                                marginBottom: spacing.sm, 
-                                paddingBottom: spacing.sm, 
-                                borderBottom: `1px solid ${colors.borderLight}` 
-                            }}>
-                                <span style={{ fontSize: isMobile ? '16px' : '18px' }}>💳</span>
-                                <h3 style={{ 
-                                    fontSize: isMobile ? '12px' : '13px', 
-                                    fontWeight: 800, 
-                                    color: colors.primary, 
-                                    margin: 0, 
-                                    textTransform: 'uppercase', 
-                                    letterSpacing: '0.5px' 
-                                }}>
+                        <div className="bg-white rounded-2xl p-3 sm:p-4 mb-2 border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-gray-100">
+                                <span className="text-base sm:text-lg">💳</span>
+                                <h3 className="text-xs sm:text-[13px] font-extrabold text-emerald-500 m-0 uppercase tracking-wider">
                                     PAYMENT METHOD
                                 </h3>
                             </div>
-                            <p style={{ 
-                                fontSize: isMobile ? '12px' : '13px', 
-                                color: colors.text.secondary, 
-                                margin: `0 0 ${spacing.sm} 0`,
-                                lineHeight: 1.5
-                            }}>
+                            <p className={`text-gray-600 m-0 mb-2 sm:mb-3 leading-relaxed ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
                                 Select your preferred payment option
                             </p>
 
                             {isLoadingPaymentModes ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: `${spacing.xl} ${spacing.md}` }}>
-                                    <div style={{ width: '40px', height: '40px', border: `3px solid ${colors.border}`, borderTopColor: colors.primary, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
+                                    <div className="w-10 h-10 border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin" />
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+                                <div className="flex flex-col gap-3 sm:gap-4">
                                     {enabledPaymentModes.map((mode) => {
-                                    const details = getPaymentMethodDetails(mode.name);
+                                        const details = getPaymentMethodDetails(mode.name);
                                         const isSelected = checkoutData.paymentMethod === details.value;
-                                    return (
-                                        <div
-                                            key={mode.id}
-                                                style={{
-                                                    background: isSelected 
-                                                        ? `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.surface} 100%)`
-                                                        : colors.surface,
-                                                    border: `2px solid ${isSelected ? colors.primary : colors.border}`,
-                                                    borderRadius: '16px',
-                                                    padding: isMobile ? spacing.sm : spacing.md,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: spacing.sm,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                    boxShadow: isSelected 
-                                                        ? '0 4px 16px rgba(16, 185, 129, 0.15)'
-                                                        : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                                                    transform: isSelected ? 'translateY(-2px)' : 'translateY(0)'
-                                                }}
-                                            onClick={() => setCheckoutData(prev => ({ ...prev, paymentMethod: details.value }))}
-                                                onMouseEnter={(e) => {
-                                                    if (!isSelected) {
-                                                        e.currentTarget.style.borderColor = colors.primary;
-                                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
-                                                    }
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    if (!isSelected) {
-                                                        e.currentTarget.style.borderColor = colors.border;
-                                                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                                                    }
-                                                }}
+                                        return (
+                                            <div
+                                                key={mode.id}
+                                                className={`rounded-2xl cursor-pointer transition-all duration-300 flex items-center gap-2 sm:gap-3 ${
+                                                    isSelected
+                                                        ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md'
+                                                } ${
+                                                    isMobile ? 'p-3' : 'p-4'
+                                                }`}
+                                                onClick={() => setCheckoutData(prev => ({ ...prev, paymentMethod: details.value }))}
                                             >
-                                                <div style={{ 
-                                                    width: isMobile ? '44px' : '48px', 
-                                                    height: isMobile ? '44px' : '48px', 
-                                                    background: colors.borderLight, 
-                                                    borderRadius: '12px', 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    fontSize: isMobile ? '20px' : '22px',
-                                                    flexShrink: 0
-                                                }}>
+                                                <div className={`bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                    isMobile ? 'w-11 h-11 text-xl' : 'w-12 h-12 text-[22px]'
+                                                }`}>
                                                     {details.icon}
-                                            </div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <h4 style={{ 
-                                                        margin: 0, 
-                                                        fontSize: isMobile ? '15px' : '16px', 
-                                                        fontWeight: 700, 
-                                                        color: colors.text.primary,
-                                                        letterSpacing: '-0.01em'
-                                                    }}>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className={`m-0 font-bold text-gray-900 tracking-tight ${
+                                                        isMobile ? 'text-[15px]' : 'text-base'
+                                                    }`}>
                                                         {details.name}
                                                     </h4>
-                                                    <p style={{ 
-                                                        margin: `${spacing.xs} 0 0`, 
-                                                        fontSize: isMobile ? '12px' : '13px', 
-                                                        color: colors.text.secondary,
-                                                        lineHeight: 1.4
-                                                    }}>
+                                                    <p className={`mt-1 text-gray-600 leading-snug ${
+                                                        isMobile ? 'text-xs' : 'text-[13px]'
+                                                    }`}>
                                                         {details.desc}
                                                     </p>
                                                 </div>
-                                                <div style={{ 
-                                                    width: isMobile ? '20px' : '24px', 
-                                                    height: isMobile ? '20px' : '24px', 
-                                                    border: `2px solid ${isSelected ? colors.primary : colors.border}`, 
-                                                    borderRadius: '50%', 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center',
-                                                    background: isSelected ? colors.primary : 'transparent',
-                                                    flexShrink: 0,
-                                                    transition: 'all 0.3s ease'
-                                                }}>
+                                                <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
+                                                    isSelected
+                                                        ? 'bg-emerald-500 border-2 border-emerald-500'
+                                                        : 'bg-transparent border-2 border-gray-200'
+                                                } ${
+                                                    isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                                                }`}>
                                                     {isSelected && (
-                                                        <div style={{ 
-                                                            width: isMobile ? '8px' : '10px', 
-                                                            height: isMobile ? '8px' : '10px', 
-                                                            background: 'white', 
-                                                            borderRadius: '50%' 
-                                                        }} />
+                                                        <div className={`bg-white rounded-full ${
+                                                            isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                                                        }`} />
                                                     )}
                                                 </div>
-                                        </div>
-                                    );
+                                            </div>
+                                        );
                                     })}
                                 </div>
                             )}
@@ -1482,107 +1229,202 @@ const CheckoutPageNew = () => {
 
                 {/* Order Summary Panel (Steps 1-3) */}
                 {currentStep < 4 && (
-                    <div style={{ 
-                        background: colors.surface, 
-                        borderRadius: '16px', 
-                        padding: isMobile ? spacing.sm : spacing.md, 
-                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)', 
-                        marginTop: spacing.md,
-                        border: `1px solid ${colors.border}`
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>Order Subtotal</span>
-                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>₹{totalPrice.toFixed(2)}</span>
+                    <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-lg mt-4 border border-gray-200">
+                        <div className="flex justify-between items-center py-1">
+                            <span className={`text-gray-600 ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
+                                Order Subtotal
+                            </span>
+                            <span className={`text-gray-900 font-semibold ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
+                                ₹{totalPrice.toFixed(2)}
+                            </span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>🚚 Delivery Fee:</span>
-                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 700 }}>₹0.00</span>
+                        <div className="flex justify-between items-center py-1">
+                            <span className={`flex items-center gap-1.5 text-gray-600 ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
+                                <TruckIcon className="w-3.5 h-3.5" />
+                                Delivery Fee:
+                            </span>
+                            <span className={`text-emerald-500 font-bold ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
+                                ₹0.00
+                            </span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>💰 You Save:</span>
-                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 600 }}>₹{totalSavings.toFixed(2)}</span>
+                        <div className="flex justify-between items-center py-1">
+                            <span className={`flex items-center gap-1.5 text-gray-600 ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
+                                <CurrencyDollarIcon className="w-3.5 h-3.5" />
+                                You Save:
+                            </span>
+                            <span className={`text-emerald-500 font-semibold ${
+                                isMobile ? 'text-xs' : 'text-[13px]'
+                            }`}>
+                                ₹{totalSavings.toFixed(2)}
+                            </span>
                         </div>
-                        <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            padding: `${spacing.xs} 0`, 
-                            borderTop: `2px solid ${colors.border}`, 
-                            marginTop: spacing.sm, 
-                            paddingTop: spacing.sm 
-                        }}>
-                            <span style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 800, color: colors.text.primary }}>Total</span>
-                            <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 800, color: colors.primary }}>₹{totalPrice.toFixed(2)}</span>
+                        <div className="flex justify-between items-center py-1 border-t-2 border-gray-200 mt-2 sm:mt-3 pt-2 sm:pt-3">
+                            <span className={`font-extrabold text-gray-900 ${
+                                isMobile ? 'text-base' : 'text-lg'
+                            }`}>
+                                Total
+                            </span>
+                            <span className={`font-extrabold text-emerald-500 ${
+                                isMobile ? 'text-lg' : 'text-[22px]'
+                            }`}>
+                                ₹{totalPrice.toFixed(2)}
+                            </span>
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Bottom Action Bar */}
-            <div style={{
-                position: isMobile ? 'fixed' : 'sticky',
-                bottom: isMobile ? 0 : 'auto',
-                left: 0,
-                right: 0,
-                background: colors.surface,
-                padding: isMobile ? `${spacing.sm} ${spacing.sm}` : `${spacing.md} ${spacing.md}`,
-                boxShadow: isMobile ? '0 -4px 20px rgba(0, 0, 0, 0.1)' : '0 4px 16px rgba(0, 0, 0, 0.08)',
-                zIndex: 100,
-                borderTop: isMobile ? 'none' : `1px solid ${colors.border}`,
-                borderRadius: isMobile ? 0 : '0 0 16px 16px',
-                ...(isMobile ? {} : { 
-                    maxWidth: '900px',
-                    margin: '0 auto',
-                    marginTop: spacing.md
-                })
-            }}>
+            <div className={`bg-white ${
+                isMobile 
+                    ? 'fixed bottom-0 left-0 right-0 z-[100] px-3 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]' 
+                    : 'sticky max-w-[900px] mx-auto mt-4 px-4 py-4 shadow-lg border-t border-gray-200 rounded-b-2xl'
+            }`}>
                 <button
-                    style={{
-                        width: '100%',
-                        padding: isMobile ? spacing.sm : spacing.md,
-                        background: (!canContinue() || loading) 
-                            ? colors.border 
-                            : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: 'white',
-                        fontSize: isMobile ? '14px' : '16px',
-                        fontWeight: 700,
-                        cursor: (!canContinue() || loading) ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: spacing.sm,
-                        letterSpacing: '-0.01em',
-                        boxShadow: (!canContinue() || loading) 
-                            ? 'none'
-                            : '0 4px 16px rgba(16, 185, 129, 0.3)'
-                    }}
+                    className={`rounded-xl text-white font-bold transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 tracking-tight ${
+                        (!canContinue() || loading)
+                            ? 'bg-gray-300 cursor-not-allowed'
+                            : 'bg-gradient-to-br from-emerald-500 to-emerald-600 cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5'
+                    } ${
+                        isMobile 
+                            ? 'w-full py-3 text-sm' 
+                            : 'w-full max-w-8xl mx-auto py-4 text-base px-20'
+                    }`}
                     disabled={!canContinue() || loading}
                     onClick={currentStep === 4 ? handlePlaceOrder : handleContinue}
-                    onMouseEnter={(e) => {
-                        if (!(!canContinue() || loading)) {
-                            e.target.style.transform = 'translateY(-2px)';
-                            e.target.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (!(!canContinue() || loading)) {
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.3)';
-                        }
-                    }}
                 >
                     {loading ? 'Processing...' : currentStep === 4 ? 'PLACE ORDER →' : 'CONTINUE'}
                 </button>
             </div>
+        </div>
 
-            <OrderSuccessModal
-                isVisible={showOrderSuccessModal}
-                onClose={() => setShowOrderSuccessModal(false)}
-                orderNumber={orderNumber}
-            />
+        {/* Modals - Outside main container to prevent clipping */}
+        {showTimeoutModal && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'fadeIn 0.2s ease',
+                        padding: isMobile ? '16px' : '24px'
+                    }}
+                >
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes slideUp {
+                            from { transform: translateY(20px); opacity: 0; }
+                            to { transform: translateY(0); opacity: 1; }
+                        }
+                    `}</style>
+                    <div 
+                        style={{
+                            background: 'white',
+                            borderRadius: isMobile ? '20px' : '24px',
+                            width: '100%',
+                            maxWidth: isMobile ? '100%' : '400px',
+                            overflow: 'hidden',
+                            animation: 'slideUp 0.3s ease',
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            padding: isMobile ? '20px 16px' : '24px 20px',
+                            borderBottom: '1px solid #e5e7eb',
+                            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)'
+                        }}>
+                            <div style={{
+                                width: isMobile ? '56px' : '64px',
+                                height: isMobile ? '56px' : '64px',
+                                borderRadius: '50%',
+                                background: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: isMobile ? '28px' : '32px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                            }}>
+                                ⏰
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div style={{ 
+                            padding: isMobile ? '24px 16px' : '32px 24px',
+                            textAlign: 'center'
+                        }}>
+                            <h3 style={{ 
+                                fontSize: isMobile ? '18px' : '20px', 
+                                fontWeight: 800, 
+                                color: '#1f2937', 
+                                margin: `0 0 ${isMobile ? '8px' : '12px'} 0`,
+                                letterSpacing: '-0.02em'
+                            }}>
+                                Session Timeout
+                            </h3>
+                            <p style={{ 
+                                fontSize: isMobile ? '14px' : '15px', 
+                                color: '#6b7280', 
+                                margin: `0 0 ${isMobile ? '20px' : '24px'} 0`,
+                                lineHeight: '1.5'
+                            }}>
+                                Your checkout session has expired after 10 minutes. Please return to your cart and start the checkout process again.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    sessionStorage.removeItem('checkout_session_start');
+                                    navigate('/cart');
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: isMobile ? '12px' : '14px',
+                                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    fontSize: isMobile ? '14px' : '15px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                                }}
+                            >
+                                Return to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Order Details Bottom Sheet */}
             {showOrderDetails && (
@@ -1649,7 +1491,7 @@ const CheckoutPageNew = () => {
                                 margin: 0,
                                 letterSpacing: '-0.02em'
                             }}>
-                                <span style={{ fontSize: isMobile ? '16px' : '18px' }}>📋</span> Order Summary
+                                <ClipboardDocumentListIcon style={{ width: isMobile ? '16px' : '18px', height: isMobile ? '16px' : '18px', color: colors.primary }} /> Order Summary
                             </h3>
                             <button 
                                 style={{
@@ -1714,10 +1556,11 @@ const CheckoutPageNew = () => {
                                                     display: 'flex', 
                                                     alignItems: 'center', 
                                                     justifyContent: 'center', 
-                                                    color: colors.text.tertiary, 
-                                                    fontSize: isMobile ? '20px' : '24px' 
+                                                    color: colors.text.tertiary
                                                 }}>
-                                                    📦
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: isMobile ? '24px' : '28px', height: isMobile ? '24px' : '28px' }}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                                    </svg>
                                                 </div>
                                             )}
                                         </div>
@@ -1774,15 +1617,24 @@ const CheckoutPageNew = () => {
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>₹{totalPrice.toFixed(2)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>📦 Distance</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
+                                        <MapPinIcon style={{ width: '14px', height: '14px' }} />
+                                        Distance
+                                    </span>
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>16.6 km</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>🚚 Delivery Fee</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
+                                        <TruckIcon style={{ width: '14px', height: '14px' }} />
+                                        Delivery Fee
+                                    </span>
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 700 }}>FREE</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>💰 Savings</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
+                                        <CurrencyDollarIcon style={{ width: '14px', height: '14px' }} />
+                                        Savings
+                                    </span>
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 600 }}>₹{totalSavings.toFixed(2)}</span>
                                 </div>
                                 <div style={{ 
@@ -1818,7 +1670,7 @@ const CheckoutPageNew = () => {
                                     color: colors.primaryDark,
                                     boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
                                 }}>
-                                    <span style={{ fontSize: isMobile ? '14px' : '16px' }}>✓</span>
+                                    <CheckCircleIcon style={{ width: isMobile ? '14px' : '16px', height: isMobile ? '14px' : '16px' }} />
                                     Free delivery for this order!
                                 </div>
                                 <div style={{ 
@@ -1833,7 +1685,7 @@ const CheckoutPageNew = () => {
                                     color: '#b45309',
                                     boxShadow: '0 2px 8px rgba(245, 158, 11, 0.1)'
                                 }}>
-                                    <span style={{ fontSize: isMobile ? '14px' : '16px' }}>💰</span>
+                                    <BanknotesIcon style={{ width: isMobile ? '14px' : '16px', height: isMobile ? '14px' : '16px' }} />
                                     You saved ₹{totalSavings.toFixed(2)} on this order!
                                 </div>
                             </div>
@@ -1841,7 +1693,17 @@ const CheckoutPageNew = () => {
                     </div>
                 </div>
             )}
-        </div>
+
+        {/* Order Success Modal */}
+        <OrderSuccessModal
+            isVisible={showOrderSuccessModal}
+            onClose={() => {
+                setShowOrderSuccessModal(false);
+                // Clear cart after modal is closed
+                clearUserCart();
+            }}
+            orderNumber={orderNumber}
+        />
         </>
     );
 };

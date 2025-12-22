@@ -293,7 +293,7 @@ export const getAllOrders = async (limit = 50, status = null) => {
  * @returns {Object} - Order in UI format
  */
 export const transformOrderFromAPI = (apiOrder) => {
-  // Handle both list response format and detail response format
+  // Handle both new API format and legacy format
   const deliveryInfo = apiOrder.delivery_info || {};
   const paymentInfo = apiOrder.payment_info || {};
 
@@ -306,30 +306,30 @@ export const transformOrderFromAPI = (apiOrder) => {
     estimatedDeliveryDate: apiOrder.estimated_delivery_date,
     actualDeliveryDate: apiOrder.actual_delivery_date,
 
-    // Delivery information - handle both formats
+    // Delivery information - handle both new and legacy formats
     deliverySlot: apiOrder.delivery_slot ||
       (deliveryInfo.delivery_slot_from && deliveryInfo.delivery_slot_to
         ? `${deliveryInfo.delivery_slot_from} - ${deliveryInfo.delivery_slot_to}`
         : 'TBD'),
-    deliveryDate: deliveryInfo.delivery_date,
+    deliveryDate: deliveryInfo.delivery_date || apiOrder.estimated_delivery_date,
     deliveryAddress: apiOrder.delivery_address || deliveryInfo.delivery_address,
 
     // Payment information - handle both formats
     paymentMode: apiOrder.payment_mode || paymentInfo.payment_mode_name,
     paymentStatus: apiOrder.payment_status || paymentInfo.payment_status,
 
-    // Order summary
+    // Order summary - handle new API format
     orderSummary: {
       subtotal: apiOrder.order_summary?.subtotal || 0,
       deliveryCharges: apiOrder.order_summary?.delivery_charges || 0,
       taxAmount: apiOrder.order_summary?.tax_amount || 0,
       discountAmount: apiOrder.order_summary?.discount_amount || 0,
       totalAmount: apiOrder.order_summary?.total_amount || 0,
-      totalItems: apiOrder.order_summary?.total_items || 0,
+      totalItems: apiOrder.order_summary?.total_items || apiOrder.items_count || 0,
       totalQuantity: apiOrder.order_summary?.total_quantity || 0
     },
 
-    // Items
+    // Items - handle new API format with product_code, product_name, etc.
     itemsCount: apiOrder.items_count || apiOrder.order_summary?.total_items || 0,
     orderItems: apiOrder.order_items || [],
     orderNotes: apiOrder.order_notes || '',

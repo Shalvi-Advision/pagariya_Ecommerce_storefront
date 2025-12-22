@@ -1,132 +1,305 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircleIcon, XMarkIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 
 const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
-  const [animationClass, setAnimationClass] = useState('opacity-0 scale-95');
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   
   useEffect(() => {
-    let timer;
-    
-    if (isVisible) {
-      // Trigger entrance animation
-      setAnimationClass('opacity-100 scale-100');
-      
-      // Auto-close after 5 seconds
-      timer = setTimeout(() => {
-        // Start exit animation
-        setAnimationClass('opacity-0 scale-95');
-        
-        // Actually close after animation completes
-        setTimeout(() => {
-          onClose();
-        }, 500);
-      }, 5000);
-    }
-    
-    return () => {
-      clearTimeout(timer);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
     };
-  }, [isVisible, onClose]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
-  if (!isVisible) return null;
-
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isVisible && typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+    } else if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'unset';
+      }
+    };
+  }, [isVisible]);
+  
   const handleViewOrder = () => {
-    setAnimationClass('opacity-0 scale-95');
-    setTimeout(() => {
-      onClose();
-      navigate('/orders');
-    }, 500);
+    onClose();
+    navigate('/orders');
   };
 
   const handleContinueShopping = () => {
-    setAnimationClass('opacity-0 scale-95');
-    setTimeout(() => {
-      onClose();
-      navigate('/');
-    }, 500);
+    onClose();
+    navigate('/');
   };
   
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm transition-opacity">
+  // Debug: Log when modal should be visible
+  useEffect(() => {
+    if (isVisible) {
+      console.log('OrderSuccessModal: isVisible is true, orderNumber:', orderNumber);
+    }
+  }, [isVisible, orderNumber]);
+  
+  if (!isVisible) {
+    return null;
+  }
+  
+  const modalContent = (
+    <div 
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        animation: 'fadeIn 0.2s ease',
+        padding: isMobile ? '16px' : '24px'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `}</style>
       <div 
-        className={`bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden transform transition-all duration-500 ${animationClass}`}
+        style={{
+          background: 'white',
+          borderRadius: isMobile ? '20px' : '24px',
+          width: '100%',
+          maxWidth: isMobile ? '100%' : '450px',
+          overflow: 'hidden',
+          animation: 'slideUp 0.3s ease',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Success Header with Gradient Background */}
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 flex items-center justify-center relative">
-          <div className="absolute -bottom-10 w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-            <div className="bg-green-50 w-16 h-16 rounded-full flex items-center justify-center">
-              <CheckCircleIcon className="w-10 h-10 text-green-500" />
-            </div>
+        {/* Header */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          padding: isMobile ? '24px 16px' : '28px 20px',
+          borderBottom: '1px solid #e5e7eb',
+          background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+          position: 'relative'
+        }}>
+          <div style={{
+            width: isMobile ? '64px' : '72px',
+            height: isMobile ? '64px' : '72px',
+            borderRadius: '50%',
+            background: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+          }}>
+            <CheckCircleIcon style={{ 
+              width: isMobile ? '36px' : '40px', 
+              height: isMobile ? '36px' : '40px', 
+              color: '#10b981' 
+            }} />
           </div>
           
           {/* Close Button */}
           <button 
-            onClick={() => {
-              setAnimationClass('opacity-0 scale-95');
-              setTimeout(onClose, 500);
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: isMobile ? '12px' : '16px',
+              right: isMobile ? '12px' : '16px',
+              background: 'transparent',
+              border: 'none',
+              width: isMobile ? '32px' : '36px',
+              height: isMobile ? '32px' : '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#6b7280',
+              fontSize: isMobile ? '18px' : '20px',
+              borderRadius: '50%',
+              transition: 'all 0.2s ease'
             }}
-            className="absolute top-3 right-3 text-white hover:text-green-100 transition-colors"
+            onMouseEnter={(e) => {
+              e.target.style.background = '#f3f4f6';
+              e.target.style.color = '#1f2937';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent';
+              e.target.style.color = '#6b7280';
+            }}
           >
-            <XMarkIcon className="w-6 h-6" />
+            <XMarkIcon style={{ width: isMobile ? '20px' : '24px', height: isMobile ? '20px' : '24px' }} />
           </button>
         </div>
-        
+
         {/* Content */}
-        <div className="px-6 pt-14 pb-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+        <div style={{ 
+          padding: isMobile ? '24px 16px' : '32px 24px',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ 
+            fontSize: isMobile ? '20px' : '24px', 
+            fontWeight: 800, 
+            color: '#1f2937', 
+            margin: `0 0 ${isMobile ? '12px' : '16px'} 0`,
+            letterSpacing: '-0.02em'
+          }}>
             Order Placed Successfully!
           </h3>
           
-          <div className="flex items-center justify-center my-5">
-            <div className="relative">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                <ShoppingBagIcon className="w-12 h-12 text-green-600" />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
-                <CheckCircleIcon className="w-5 h-5 text-white" />
-              </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: isMobile ? '16px' : '20px'
+          }}>
+            <div style={{
+              width: isMobile ? '80px' : '96px',
+              height: isMobile ? '80px' : '96px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+            }}>
+              <ShoppingBagIcon style={{ 
+                width: isMobile ? '40px' : '48px', 
+                height: isMobile ? '40px' : '48px', 
+                color: '#10b981' 
+              }} />
             </div>
           </div>
           
-          <p className="text-gray-600 mb-2">
+          <p style={{ 
+            fontSize: isMobile ? '15px' : '16px', 
+            color: '#6b7280', 
+            margin: `0 0 ${isMobile ? '12px' : '16px'} 0`,
+            lineHeight: '1.5'
+          }}>
             Thank you for your purchase!
           </p>
           
           {orderNumber && (
-            <p className="text-gray-800 font-medium mb-4">
-              Order #{orderNumber}
-            </p>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: `${isMobile ? '8px' : '10px'} ${isMobile ? '16px' : '20px'}`,
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              borderRadius: '12px',
+              marginBottom: isMobile ? '16px' : '20px',
+              border: '1px solid #a7f3d0'
+            }}>
+              <span style={{
+                fontSize: isMobile ? '13px' : '14px',
+                fontWeight: 600,
+                color: '#059669'
+              }}>
+                Order #{orderNumber}
+              </span>
+            </div>
           )}
           
-          <p className="text-sm text-gray-500 mb-6">
+          <p style={{ 
+            fontSize: isMobile ? '13px' : '14px', 
+            color: '#9ca3af', 
+            margin: `0 0 ${isMobile ? '24px' : '28px'} 0`,
+            lineHeight: '1.5'
+          }}>
             You will receive an order confirmation email with details of your order.
           </p>
           
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+          <div style={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: '12px',
+            width: '100%'
+          }}>
             <button
               onClick={handleViewOrder}
-              className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              style={{
+                flex: 1,
+                padding: isMobile ? '12px' : '14px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: isMobile ? '14px' : '15px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+              }}
             >
               View Order
             </button>
             <button
               onClick={handleContinueShopping}
-              className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              style={{
+                flex: 1,
+                padding: isMobile ? '12px' : '14px',
+                background: 'white',
+                color: '#374151',
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                fontSize: isMobile ? '14px' : '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f9fafb';
+                e.target.style.borderColor = '#d1d5db';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.borderColor = '#e5e7eb';
+              }}
             >
               Continue Shopping
             </button>
           </div>
         </div>
-        
-        {/* Progress Bar Animation */}
-        <div className="relative h-1 bg-gray-200">
-          <div className="absolute inset-0 bg-green-500 origin-left animate-shrink-linear" />
-        </div>
       </div>
     </div>
   );
+  
+  // Use portal to render directly to body, with fallback
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+  
+  // Fallback if portal is not available
+  return modalContent;
 };
 
 export default OrderSuccessModal;
