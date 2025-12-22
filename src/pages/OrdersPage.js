@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextOptimized';
 import { useOrders } from '../context/OrderContext';
 import AccountSidebar from '../components/AccountSidebar';
 

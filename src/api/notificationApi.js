@@ -5,7 +5,7 @@ const API_URL = `${API_BASE_URL}/notifications`;
 
 // Get headers directly from function to ensure latest token is used
 const getHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     return {
         headers: {
             Authorization: `Bearer ${token}`

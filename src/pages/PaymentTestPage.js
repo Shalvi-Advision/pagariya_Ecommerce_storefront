@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PaymentButton from '../components/PaymentButton';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextOptimized';
 
 /**
  * Payment Test Page

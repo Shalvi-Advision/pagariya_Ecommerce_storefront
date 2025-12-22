@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFavorite } from '../context/FavoriteContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextOptimized';
 import { Link, useNavigate } from 'react-router-dom';
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextOptimized';
 import { useOrders } from '../context/OrderContext';
 import { usePincode } from '../context/PincodeContext';
 import { useToast } from '../context/ToastContext';

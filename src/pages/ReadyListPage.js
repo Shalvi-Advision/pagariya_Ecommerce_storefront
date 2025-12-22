@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AccountSidebar from '../components/AccountSidebar';
 import { useCart } from '../context/CartContext';
 import { useCartDrawer } from '../context/CartDrawerContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextOptimized';
 import { 
   PlusIcon,
   MinusIcon,
