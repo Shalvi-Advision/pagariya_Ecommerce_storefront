@@ -56,8 +56,8 @@ export const APP_CONSTANTS = {
 
   // API constants
   API_BASE_URL: process.env.REACT_APP_API_URL || "https://ecommerceapi-web.onrender.com/api",
-  PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE || 'PROJ001',
-  DEFAULT_STORE_CODE: process.env.REACT_APP_DEFAULT_STORE_CODE || 'PAG001',
+  PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE || 'RET9575',
+  DEFAULT_STORE_CODE: process.env.REACT_APP_DEFAULT_STORE_CODE || 'GRK001',
   IMAGE_BASE_URL: process.env.REACT_APP_IMAGE_URL || 'https://ecommerceapi-web.onrender.com/uploads',
 
   // Pagination defaults
