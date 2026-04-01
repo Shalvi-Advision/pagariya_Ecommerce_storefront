@@ -1,36 +1,50 @@
-// Modern Green Color Palette for E-Commerce
+// Warm Orange & Brown Color Palette for Grahak Peth E-Commerce
 // Tailwind-friendly theme constants
 
 export const COLORS = {
-  // Modern Green Primary Palette (Fresh + Premium)
+  // Primary Palette (Warm Orange)
   primary: {
-    50:  '#f3faf7',   // Mint Tint
-    100: '#d6f5e7',
-    200: '#b0ebd2',
-    300: '#7fddb9',
-    400: '#4ccca0',   // Modern Fresh Green
-    500: '#26b985',   // Main Brand Green
-    600: '#139f6d',
-    700: '#0e8059',
-    800: '#0b6648',
-    900: '#084c37',   // Elegant Deep Green
+    50:  '#fff8f0',   // Lightest warm tint
+    100: '#ffe8cc',
+    200: '#ffd199',
+    300: '#ffb566',
+    400: '#f99b33',
+    500: '#E57D02',   // Main Brand Orange
+    600: '#cc6e02',
+    700: '#b35f02',
+    800: '#994f02',
+    900: '#804001',   // Deep warm orange
   },
 
-  // Secondary (slate-neutral modern)
+  // Secondary (Warm Tan range)
   secondary: {
-    50: '#f8fafc',
-    100: '#eef2f6',
-    200: '#e1e7ef',
-    300: '#c8d2de',
-    400: '#9eacbe',
-    500: '#6f7e94',
-    600: '#4d5a6f',
-    700: '#394558',
-    800: '#222f3f',
-    900: '#0f1a28',
+    50:  '#fdf8f3',
+    100: '#f8edd9',
+    200: '#f0d9b5',
+    300: '#D4A574',   // Light tan
+    400: '#c49158',
+    500: '#B87B38',   // Main tan
+    600: '#a06a2e',
+    700: '#885a26',
+    800: '#6f4a1f',
+    900: '#573a18',
   },
 
-  // Success: Slightly brighter than primary
+  // Accent (Saddle Brown range)
+  accent: {
+    50:  '#faf4ee',
+    100: '#f0dfd0',
+    200: '#dbb99a',
+    300: '#A0603A',   // Light accent
+    400: '#8B4513',   // Main saddle brown
+    500: '#7a3c11',
+    600: '#6B350F',   // Dark accent
+    700: '#5a2d0d',
+    800: '#49240a',
+    900: '#381c08',
+  },
+
+  // Success (keep green for semantic meaning)
   success: {
     50:  '#f2fcf7',
     100: '#d0f7e3',
@@ -44,7 +58,7 @@ export const COLORS = {
     900: '#083f2e',
   },
 
-  // Warning (modern amber)
+  // Warning (amber - harmonizes with orange palette)
   warning: {
     50: '#fffaeb',
     100: '#fef0c7',
@@ -131,7 +145,7 @@ export const SHADOWS = {
   xl: '0 20px 25px rgba(0, 0, 0, 0.12)',
   '2xl': '0 25px 50px rgba(0, 0, 0, 0.15)',
   inner: 'inset 0 2px 4px rgba(0, 0, 0, 0.06)',
-  outline: '0 0 0 3px rgba(38, 185, 133, 0.5)', // green glow
+  outline: '0 0 0 3px rgba(229, 125, 2, 0.5)', // orange glow
 };
 
 export const Z_INDEX = {

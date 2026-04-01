@@ -316,9 +316,9 @@ const HomePage = () => {
 
       {/* GSTBanner in a styled container */}
       {/* <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-teal-50/50 to-cyan-50/50"></div>
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50/50 via-primary-50/50 to-cyan-50/50"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-primary-400/20 to-primary-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-primary-300/20 to-blue-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
         <div className="relative container mx-auto px-2 sm:px-4 lg:px-6">
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-2 sm:p-3 lg:p-4 shadow-xl border border-white/60 hover:shadow-2xl transition-all duration-300 overflow-hidden">
             <GSTBanner />

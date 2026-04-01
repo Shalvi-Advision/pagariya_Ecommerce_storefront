@@ -15,7 +15,7 @@ const SavedCardIllustration = () => {
         {/* Decorative elements around the circle */}
         <div className="absolute -top-2 -left-2 w-3 h-3 bg-pink-400 rounded-full"></div>
         <div className="absolute -top-2 -right-2 w-3 h-3 bg-yellow-400 rounded-full transform rotate-45"></div>
-        <div className="absolute top-1/2 -right-4 w-3 h-3 bg-teal-400 rounded-full"></div>
+        <div className="absolute top-1/2 -right-4 w-3 h-3 bg-primary-400 rounded-full"></div>
         <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-green-400 rounded-full transform rotate-45"></div>
         
         {/* Main illustration content */}

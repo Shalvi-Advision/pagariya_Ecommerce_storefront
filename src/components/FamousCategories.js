@@ -17,9 +17,9 @@ const FamousCategories = () => {
     { color: "bg-purple-50", iconColor: "text-purple-600" },
     { color: "bg-yellow-50", iconColor: "text-yellow-600" },
     { color: "bg-pink-50", iconColor: "text-pink-600" },
-    { color: "bg-cyan-50", iconColor: "text-cyan-600" },
+    { color: "bg-cyan-50", iconColor: "text-primary-500" },
     { color: "bg-amber-50", iconColor: "text-amber-600" },
-    { color: "bg-emerald-50", iconColor: "text-emerald-600" },
+    { color: "bg-primary-50", iconColor: "text-primary-600" },
     { color: "bg-indigo-50", iconColor: "text-indigo-600" },
     { color: "bg-gray-50", iconColor: "text-gray-600" }
   ];

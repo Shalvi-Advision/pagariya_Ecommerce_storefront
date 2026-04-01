@@ -125,7 +125,7 @@
 
   /* Modern gradient button */
   .btn-gradient {
-    @apply bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300;
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300;
   }
 
   /* Glassmorphism effect */
@@ -148,11 +148,11 @@
   
   /* Gradient text */
   .text-gradient {
-    @apply bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500 bg-clip-text text-transparent;
   }
-  
-  .text-gradient-purple {
-    @apply bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent;
+
+  .text-gradient-accent {
+    @apply bg-gradient-to-r from-accent-400 via-accent-300 to-secondary-300 bg-clip-text text-transparent;
   }
 }
 
@@ -236,32 +236,32 @@
   
   @keyframes glow {
     from {
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 20px rgba(229, 125, 2, 0.3);
     }
     to {
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.6), 0 0 40px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 30px rgba(229, 125, 2, 0.6), 0 0 40px rgba(229, 125, 2, 0.3);
     }
   }
 
   /* Modern gradient backgrounds */
   .bg-gradient-modern-1 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #E57D02 0%, #cc6e02 100%);
   }
-  
+
   .bg-gradient-modern-2 {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #D4A574 0%, #B87B38 100%);
   }
-  
+
   .bg-gradient-modern-3 {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #f99b33 0%, #E57D02 100%);
   }
-  
+
   .bg-gradient-modern-4 {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #ffb566 0%, #f99b33 100%);
   }
-  
+
   .bg-gradient-modern-5 {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    background: linear-gradient(135deg, #8B4513 0%, #A0603A 100%);
   }
 
   /* Text shadow utilities */

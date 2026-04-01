@@ -37,7 +37,7 @@ const LoginSuccessModal = ({ isVisible, onClose, userName }) => {
         className={`bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden transform transition-all duration-500 ${animationClass}`}
       >
         {/* Success Header with Gradient Background */}
-        <div className="bg-gradient-to-r from-green-400 to-emerald-500 p-6 flex items-center justify-center relative">
+        <div className="bg-gradient-to-r from-primary-400 to-primary-500 p-6 flex items-center justify-center relative">
           <div className="absolute -bottom-8 w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
             <div className="bg-green-50 w-14 h-14 rounded-full flex items-center justify-center">
               <CheckCircleIcon className="w-10 h-10 text-green-500" />

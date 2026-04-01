@@ -19,9 +19,9 @@ const PopularCategoriesAPI = () => {
     { color: "bg-purple-50", iconColor: "text-purple-600" },
     { color: "bg-yellow-50", iconColor: "text-yellow-600" },
     { color: "bg-pink-50", iconColor: "text-pink-600" },
-    { color: "bg-cyan-50", iconColor: "text-cyan-600" },
+    { color: "bg-cyan-50", iconColor: "text-primary-500" },
     { color: "bg-amber-50", iconColor: "text-amber-600" },
-    { color: "bg-emerald-50", iconColor: "text-emerald-600" },
+    { color: "bg-primary-50", iconColor: "text-primary-600" },
     { color: "bg-indigo-50", iconColor: "text-indigo-600" },
     { color: "bg-gray-50", iconColor: "text-gray-600" }
   ];
@@ -198,8 +198,8 @@ const PopularCategoriesAPI = () => {
           <div className="relative container mx-auto px-4">
             <div className="flex justify-center items-center py-20">
               <div className="relative">
-                <div className="w-12 h-12 border-4 border-transparent border-t-cyan-500 border-r-blue-500 rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-12 h-12 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-lg animate-pulse"></div>
+                <div className="w-12 h-12 border-4 border-transparent border-t-primary-400 border-r-blue-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-12 h-12 bg-gradient-to-r from-primary-300/20 to-blue-400/20 rounded-full blur-lg animate-pulse"></div>
               </div>
             </div>
           </div>
@@ -209,18 +209,18 @@ const PopularCategoriesAPI = () => {
           <div key={section._id || sectionIndex} className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
             {/* Modern Gradient Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 via-blue-50/50 to-indigo-50/50"></div>
-            <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-primary-300/20 to-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
 
             <div className="relative container mx-auto px-4">
               <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl border border-white/60 hover:shadow-2xl transition-all duration-300">
                 <div className="flex items-center justify-between mb-8">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs sm:text-sm font-semibold text-cyan-600 uppercase tracking-wider">Trending</span>
+                      <div className="w-2 h-2 bg-gradient-to-r from-primary-400 to-blue-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs sm:text-sm font-semibold text-primary-500 uppercase tracking-wider">Trending</span>
                     </div>
                     <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
-                      <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      <span className="bg-gradient-to-r from-primary-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
                         {section.title || 'Popular Categories'}
                       </span>
                     </h2>
@@ -228,7 +228,7 @@ const PopularCategoriesAPI = () => {
                       <p className="text-gray-600 text-sm sm:text-base">{section.description}</p>
                     )}
                   </div>
-                  <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                  <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-primary-500 to-primary-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
                     <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                     <span>Fresh & Fast Delivery</span>
                   </div>
@@ -286,7 +286,7 @@ const PopularCategoriesAPI = () => {
                             </span>
                           </div>
                         </div>
-                        <span className="text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-cyan-600 transition-colors duration-200">
+                        <span className="text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-primary-500 transition-colors duration-200">
                           {category.name}
                         </span>
                       </div>
@@ -297,7 +297,7 @@ const PopularCategoriesAPI = () => {
 
                   {/* Enhanced Scroll Arrow with Gradient */}
                   {section.categoriesList.length > 0 && (
-                    <button className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full p-3 shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 group">
+                    <button className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-primary-400 to-blue-500 text-white rounded-full p-3 shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 group">
                       <ChevronRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
                     </button>
                   )}

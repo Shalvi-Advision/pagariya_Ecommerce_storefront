@@ -56,7 +56,7 @@ const useRazorpay = () => {
         key: 'rzp_test_RgWaBOoRN7gWiU',
         amount: orderResponse.amount, // Amount in paise
         currency: orderResponse.currency,
-        name: process.env.REACT_APP_COMPANY_NAME || 'Patel Mart',
+        name: process.env.REACT_APP_COMPANY_NAME || 'Grahak Peth',
         description: 'Order Payment',
         order_id: orderResponse.id,
         prefill: {
@@ -65,7 +65,7 @@ const useRazorpay = () => {
           contact: prefill.contact || '',
         },
         theme: {
-          color: '#10b981', // Primary green color
+          color: '#E57D02', // Primary orange color
         },
         modal: {
           backdropclose: false,

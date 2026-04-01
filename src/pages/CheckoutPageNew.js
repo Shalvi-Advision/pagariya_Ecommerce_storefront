@@ -18,8 +18,8 @@ import useRazorpay from '../hooks/useRazorpay';
 import { getPincodeStores, formatStoreData } from '../api/pincodeService';
 import { getAddresses, transformAddressFromAPI } from '../api/addressApi';
 import { getDeliverySlots, generateTimeSlotsFromAPI, transformDeliverySlotFromAPI } from '../api/deliverySlotsApi';
-import { getEnabledPaymentModes, mapPaymentModeToUI } from '../api/paymentModesApi';
 import { COLORS } from '../constants/theme';
+import { getEnabledPaymentModes, mapPaymentModeToUI } from '../api/paymentModesApi';
 import OrderSuccessModal from '../components/OrderSuccessModal';
 import { apiPost } from '../services/api';
 import cartService from '../services/cartService';
@@ -457,16 +457,16 @@ const CheckoutPageNew = () => {
 
     // Colors for dynamic styling (gradients, etc.)
     const colors = {
-        primary: '#10b981',
-        primaryDark: '#059669',
-        primaryLight: '#d1fae5',
-        surface: '#ffffff',
-        border: '#e5e7eb',
-        borderLight: '#f3f4f6',
+        primary: COLORS.primary[500],
+        primaryDark: COLORS.primary[600],
+        primaryLight: COLORS.primary[100],
+        surface: COLORS.white,
+        border: COLORS.gray[200],
+        borderLight: COLORS.gray[100],
         text: {
-            primary: '#1f2937',
-            secondary: '#6b7280',
-            tertiary: '#9ca3af',
+            primary: COLORS.gray[900],
+            secondary: COLORS.gray[500],
+            tertiary: COLORS.gray[400],
         },
     };
 
@@ -487,14 +487,14 @@ const CheckoutPageNew = () => {
             `}</style>
             <div className={`min-h-screen flex flex-col overflow-hidden w-full max-w-full mx-auto ${
                 isMobile 
-                    ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' 
+                    ? 'bg-gradient-to-br from-primary-500 to-primary-600' 
                     : 'max-w-[900px] px-5 sm:px-8 py-8 bg-gray-50'
             }`}>
             {/* Header with Step Progress */}
             <div 
                 className={`flex flex-col gap-2 sm:gap-3 flex-shrink-0 ${
                     isMobile 
-                        ? 'fixed top-[148px] left-0 right-0 z-[60] px-3 py-3 bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-md' 
+                        ? 'fixed top-[148px] left-0 right-0 z-[60] px-3 py-3 bg-gradient-to-br from-primary-500 to-primary-600 shadow-md' 
                         : 'relative px-4 py-4 bg-white rounded-2xl shadow-sm border border-gray-200 mb-4'
                 }`}
             >
@@ -529,7 +529,7 @@ const CheckoutPageNew = () => {
                             : `px-3 py-1.5 text-xs ${
                                 timeRemaining <= 120 
                                     ? 'bg-red-100 text-red-700' 
-                                    : 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-primary-100 text-primary-700'
                             }`
                     }`}>
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -550,12 +550,12 @@ const CheckoutPageNew = () => {
                                     isMobile
                                         ? `w-7 h-7 text-[11px] ${
                                             isActive 
-                                                ? 'bg-white text-emerald-500 shadow-lg' 
+                                                ? 'bg-white text-primary-500 shadow-lg' 
                                                 : 'bg-white/20 text-white'
                                         }`
                                         : `w-8 h-8 text-xs ${
                                             isActive 
-                                                ? 'bg-emerald-500 text-white shadow-md' 
+                                                ? 'bg-primary-500 text-white shadow-md' 
                                                 : 'bg-gray-100 text-gray-400'
                                         }`
                                 }`}>
@@ -565,7 +565,7 @@ const CheckoutPageNew = () => {
                                     <div className={`h-0.5 transition-all duration-300 ${
                                         isMobile
                                             ? `w-5 ${isActive ? 'bg-white' : 'bg-white/20'}`
-                                            : `w-7 ${isActive ? 'bg-emerald-500' : 'bg-gray-200'}`
+                                            : `w-7 ${isActive ? 'bg-primary-500' : 'bg-gray-200'}`
                                     }`} />
                                 )}
                             </div>
@@ -587,11 +587,11 @@ const CheckoutPageNew = () => {
                     return (
                         <>
                             {homeDelivery && !selfPickup && (
-                                <div className="bg-gradient-to-br from-emerald-100 to-emerald-200 border border-emerald-500 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 mb-4 shadow-sm">
-                                    <div className="w-7 h-2 sm:w-8 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm sm:text-base font-bold flex-shrink-0">ℹ</div>
+                                <div className="bg-gradient-to-br from-primary-100 to-primary-200 border border-primary-500 rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 mb-4 shadow-sm">
+                                    <div className="w-7 h-2 sm:w-8 sm:h-6 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm sm:text-base font-bold flex-shrink-0">ℹ</div>
                                     <div className="flex-1">
-                                        <h4 className="text-emerald-700 text-xs sm:text-sm font-bold mb-0.5">Home Delivery Only</h4>
-                                        <p className="text-emerald-600 text-xs sm:text-[13px] m-0">Only Home Delivery is available</p>
+                                        <h4 className="text-primary-700 text-xs sm:text-sm font-bold mb-0.5">Home Delivery Only</h4>
+                                        <p className="text-primary-600 text-xs sm:text-[13px] m-0">Only Home Delivery is available</p>
                                     </div>
                                 </div>
                             )}
@@ -611,14 +611,14 @@ const CheckoutPageNew = () => {
                                 <div
                                     className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 w-full ${
                                         checkoutData.deliveryMode === 'home'
-                                            ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
-                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                            ? 'bg-gradient-to-br from-primary-50 to-white border-2 border-primary-500 shadow-lg -translate-y-0.5'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:border-primary-500 hover:shadow-md hover:-translate-y-0.5'
                                     } ${
                                         isMobile ? 'flex-col items-start p-2' : 'flex-row items-center p-3'
                                     } flex gap-1 sm:gap-2`}
                                     onClick={() => setCheckoutData(prev => ({ ...prev, deliveryMode: 'home' }))}
                                 >
-                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] shadow-lg flex-shrink-0">🏠</div>
+                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] shadow-lg flex-shrink-0">🏠</div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
                                             isMobile ? 'text-[15px]' : 'text-base'
@@ -633,7 +633,7 @@ const CheckoutPageNew = () => {
                                     </div>
                                     <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
                                         checkoutData.deliveryMode === 'home'
-                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                            ? 'bg-primary-500 border-2 border-primary-500'
                                             : 'bg-transparent border-2 border-gray-200'
                                     } ${
                                         isMobile ? 'w-5 h-5' : 'w-6 h-6'
@@ -651,14 +651,14 @@ const CheckoutPageNew = () => {
                                 <div
                                     className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 w-full ${
                                         checkoutData.deliveryMode === 'pickup'
-                                            ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
-                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                            ? 'bg-gradient-to-br from-primary-50 to-white border-2 border-primary-500 shadow-lg -translate-y-0.5'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:border-primary-500 hover:shadow-md hover:-translate-y-0.5'
                                     } ${
                                         isMobile ? 'flex-col items-start p-3' : 'flex-row items-center p-4'
                                     } flex gap-2 sm:gap-3`}
                                     onClick={() => setCheckoutData(prev => ({ ...prev, deliveryMode: 'pickup' }))}
                                 >
-                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] shadow-lg flex-shrink-0">🏪</div>
+                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] shadow-lg flex-shrink-0">🏪</div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
                                             isMobile ? 'text-[15px]' : 'text-base'
@@ -673,7 +673,7 @@ const CheckoutPageNew = () => {
                                     </div>
                                     <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
                                         checkoutData.deliveryMode === 'pickup'
-                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                            ? 'bg-primary-500 border-2 border-primary-500'
                                             : 'bg-transparent border-2 border-gray-200'
                                     } ${
                                         isMobile ? 'w-5 h-5' : 'w-6 h-6'
@@ -708,7 +708,7 @@ const CheckoutPageNew = () => {
 
                                 {isLoadingStores ? (
                                     <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
-                                        <div className={`border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin ${
+                                        <div className={`border-3 border-gray-200 border-t-primary-500 rounded-full animate-spin ${
                                             isMobile ? 'w-10 h-10' : 'w-12 h-12'
                                         }`} />
                                         <p className={`mt-4 text-gray-600 font-medium ${
@@ -757,8 +757,8 @@ const CheckoutPageNew = () => {
                                                 key={store.id}
                                                 className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 ${
                                                     isSelected
-                                                        ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
-                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                                        ? 'bg-gradient-to-br from-primary-50 to-white border-2 border-primary-500 shadow-lg -translate-y-0.5'
+                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-primary-500 hover:shadow-md hover:-translate-y-0.5'
                                                 } ${
                                                     isMobile ? 'p-3' : 'p-4'
                                                 }`}
@@ -768,7 +768,7 @@ const CheckoutPageNew = () => {
                                                 }))}
                                             >
                                                 <div className="flex items-start gap-3 sm:gap-4">
-                                                    <div className={`bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg ${
+                                                    <div className={`bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg ${
                                                         isMobile ? 'w-10 h-10 text-lg' : 'w-11 h-11 text-xl'
                                                     }`}>
                                                         🏪
@@ -790,14 +790,14 @@ const CheckoutPageNew = () => {
                                                             {store.timings}
                                                         </p>
                                                         {store.distance && (
-                                                            <span className="inline-block bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md mt-1 uppercase tracking-wider">
+                                                            <span className="inline-block bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md mt-1 uppercase tracking-wider">
                                                                 {store.distance}
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
                                                         isSelected
-                                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                                            ? 'bg-primary-500 border-2 border-primary-500'
                                                             : 'bg-transparent border-2 border-gray-200'
                                                     } ${
                                                         isMobile ? 'w-5 h-5' : 'w-6 h-6'
@@ -829,7 +829,7 @@ const CheckoutPageNew = () => {
 
                                 {isLoadingAddresses ? (
                                     <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
-                                        <div className={`border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin ${
+                                        <div className={`border-3 border-gray-200 border-t-primary-500 rounded-full animate-spin ${
                                             isMobile ? 'w-10 h-10' : 'w-12 h-12'
                                         }`} />
                                         <p className={`mt-4 text-gray-600 font-medium ${
@@ -862,8 +862,8 @@ const CheckoutPageNew = () => {
                                                 key={addr.id}
                                                 className={`rounded-2xl cursor-pointer transition-all duration-300 mb-2 ${
                                                     isSelected
-                                                        ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
-                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5'
+                                                        ? 'bg-gradient-to-br from-primary-50 to-white border-2 border-primary-500 shadow-lg -translate-y-0.5'
+                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-primary-500 hover:shadow-md hover:-translate-y-0.5'
                                                 } ${
                                                     isMobile ? 'p-3' : 'p-4'
                                                 }`}
@@ -873,7 +873,7 @@ const CheckoutPageNew = () => {
                                                 }))}
                                             >
                                                 <div className="flex items-start gap-3 sm:gap-4">
-                                                    <div className={`bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg ${
+                                                    <div className={`bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg ${
                                                         isMobile ? 'w-10 h-10 text-lg' : 'w-11 h-11 text-xl'
                                                     }`}>
                                                         📍
@@ -895,14 +895,14 @@ const CheckoutPageNew = () => {
                                                             PIN: {addr.pinCode}
                                                         </p>
                                                         {addr.isDefault && (
-                                                            <span className="inline-block bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md mt-1 uppercase tracking-wider">
+                                                            <span className="inline-block bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-md mt-1 uppercase tracking-wider">
                                                                 Default Address
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
                                                         isSelected
-                                                            ? 'bg-emerald-500 border-2 border-emerald-500'
+                                                            ? 'bg-primary-500 border-2 border-primary-500'
                                                             : 'bg-transparent border-2 border-gray-200'
                                                     } ${
                                                         isMobile ? 'w-5 h-5' : 'w-6 h-6'
@@ -920,7 +920,7 @@ const CheckoutPageNew = () => {
                                 )}
 
                                 <button 
-                                    className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-3 sm:p-4 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-300 w-full text-emerald-500 text-[13px] sm:text-sm font-bold mt-2 hover:border-emerald-500 hover:bg-emerald-50 hover:-translate-y-0.5 hover:shadow-md"
+                                    className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-3 sm:p-4 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-300 w-full text-primary-500 text-[13px] sm:text-sm font-bold mt-2 hover:border-primary-500 hover:bg-primary-50 hover:-translate-y-0.5 hover:shadow-md"
                                     onClick={() => navigate('/address')}
                                 >
                                     + ADD NEW ADDRESS
@@ -946,7 +946,7 @@ const CheckoutPageNew = () => {
 
                         {isLoadingSlots ? (
                             <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
-                                <div className={`border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin ${
+                                <div className={`border-3 border-gray-200 border-t-primary-500 rounded-full animate-spin ${
                                     isMobile ? 'w-10 h-10' : 'w-12 h-12'
                                 }`} />
                                 <p className={`mt-4 text-gray-600 font-medium ${
@@ -983,8 +983,8 @@ const CheckoutPageNew = () => {
                                                 key={idx}
                                                 className={`rounded-xl font-bold cursor-pointer whitespace-nowrap transition-all duration-300 border-2 ${
                                                     isActive
-                                                        ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-500 text-white shadow-lg'
-                                                        : 'bg-white border-gray-200 text-gray-600 shadow-sm hover:border-emerald-500'
+                                                        ? 'bg-gradient-to-br from-primary-500 to-primary-600 border-primary-500 text-white shadow-lg'
+                                                        : 'bg-white border-gray-200 text-gray-600 shadow-sm hover:border-primary-500'
                                                 } ${
                                                     isMobile ? 'px-2 py-1.5 text-xs' : 'px-3 sm:px-4 py-2 text-[13px]'
                                                 }`}
@@ -1009,9 +1009,9 @@ const CheckoutPageNew = () => {
                                             key={slot.id}
                                             className={`rounded-xl w-full flex flex-row items-center justify-between transition-all duration-300 mb-1 ${
                                                 isSelected
-                                                    ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
+                                                    ? 'bg-gradient-to-br from-primary-50 to-white border-2 border-primary-500 shadow-lg -translate-y-0.5'
                                                     : slot.available
-                                                        ? 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
+                                                        ? 'bg-white border-2 border-gray-200 shadow-sm hover:border-primary-500 hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
                                                         : 'bg-gray-50 border-2 border-gray-200 opacity-50 cursor-not-allowed'
                                             } ${
                                                 isMobile ? 'p-3' : 'p-4'
@@ -1031,7 +1031,7 @@ const CheckoutPageNew = () => {
                                                     {slot.time}
                                                 </h4>
                                                 <span className={`font-semibold ${
-                                                    slot.available ? 'text-emerald-500' : 'text-gray-400'
+                                                    slot.available ? 'text-primary-500' : 'text-gray-400'
                                                 } ${
                                                     isMobile ? 'text-[11px]' : 'text-xs'
                                                 }`}>
@@ -1039,7 +1039,7 @@ const CheckoutPageNew = () => {
                                                 </span>
                                             </div>
                                             {isSelected && (
-                                                <div className={`bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                <div className={`bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0 ${
                                                     isMobile ? 'w-5 h-5' : 'w-6 h-6'
                                                 }`}>
                                                     <svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -1059,7 +1059,7 @@ const CheckoutPageNew = () => {
                 {currentStep === 4 && (
                     <>
                         <span 
-                            className="flex items-center gap-1.5 text-emerald-500 text-xs sm:text-[13px] font-semibold mb-2 cursor-pointer transition-colors duration-200 hover:text-emerald-600"
+                            className="flex items-center gap-1.5 text-primary-500 text-xs sm:text-[13px] font-semibold mb-2 cursor-pointer transition-colors duration-200 hover:text-primary-600"
                             onClick={() => setShowOrderDetails(true)}
                         >
                             View Order details &gt;
@@ -1067,8 +1067,8 @@ const CheckoutPageNew = () => {
 
                         <div className="bg-white rounded-2xl p-3 sm:p-4 mb-2 border border-gray-200 shadow-sm">
                             <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-gray-100">
-                                <ClipboardDocumentListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
-                                <h3 className="text-xs sm:text-[13px] font-extrabold text-emerald-500 m-0 uppercase tracking-wider">
+                                <ClipboardDocumentListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-500" />
+                                <h3 className="text-xs sm:text-[13px] font-extrabold text-primary-500 m-0 uppercase tracking-wider">
                                     ORDER SUMMARY
                                 </h3>
                             </div>
@@ -1104,7 +1104,7 @@ const CheckoutPageNew = () => {
                                     <TruckIcon className="w-3.5 h-3.5" />
                                     Delivery Fee
                                 </span>
-                                <span className={`text-emerald-500 font-bold ${
+                                <span className={`text-primary-500 font-bold ${
                                     isMobile ? 'text-xs' : 'text-[13px]'
                                 }`}>
                                     FREE
@@ -1117,7 +1117,7 @@ const CheckoutPageNew = () => {
                                     <CurrencyDollarIcon className="w-3.5 h-3.5" />
                                     Savings
                                 </span>
-                                <span className={`text-emerald-500 font-semibold ${
+                                <span className={`text-primary-500 font-semibold ${
                                     isMobile ? 'text-xs' : 'text-[13px]'
                                 }`}>
                                     ₹{totalSavings.toFixed(2)}
@@ -1129,13 +1129,13 @@ const CheckoutPageNew = () => {
                                 }`}>
                                     TOTAL
                                 </span>
-                                <span className={`font-extrabold text-emerald-500 ${
+                                <span className={`font-extrabold text-primary-500 ${
                                     isMobile ? 'text-lg' : 'text-[22px]'
                                 }`}>
                                     ₹{totalPrice.toFixed(2)}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 text-emerald-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold mt-2 sm:mt-3">
+                            <div className="flex items-center gap-1.5 sm:gap-2 bg-primary-50 text-primary-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold mt-2 sm:mt-3">
                                 <CheckCircleIcon className="w-3.5 h-3.5" />
                                 Free delivery for this order
                             </div>
@@ -1157,7 +1157,7 @@ const CheckoutPageNew = () => {
                         <div className="bg-white rounded-2xl p-3 sm:p-4 mb-2 border border-gray-200 shadow-sm">
                             <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-gray-100">
                                 <span className="text-base sm:text-lg">💳</span>
-                                <h3 className="text-xs sm:text-[13px] font-extrabold text-emerald-500 m-0 uppercase tracking-wider">
+                                <h3 className="text-xs sm:text-[13px] font-extrabold text-primary-500 m-0 uppercase tracking-wider">
                                     PAYMENT METHOD
                                 </h3>
                             </div>
@@ -1169,7 +1169,7 @@ const CheckoutPageNew = () => {
 
                             {isLoadingPaymentModes ? (
                                 <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
-                                    <div className="w-10 h-10 border-3 border-gray-200 border-t-emerald-500 rounded-full animate-spin" />
+                                    <div className="w-10 h-10 border-3 border-gray-200 border-t-primary-500 rounded-full animate-spin" />
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-3 sm:gap-4">
@@ -1181,8 +1181,8 @@ const CheckoutPageNew = () => {
                                                 key={mode.id}
                                                 className={`rounded-2xl cursor-pointer transition-all duration-300 flex items-center gap-2 sm:gap-3 ${
                                                     isSelected
-                                                        ? 'bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500 shadow-lg -translate-y-0.5'
-                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-md'
+                                                        ? 'bg-gradient-to-br from-primary-50 to-white border-2 border-primary-500 shadow-lg -translate-y-0.5'
+                                                        : 'bg-white border-2 border-gray-200 shadow-sm hover:border-primary-500 hover:shadow-md'
                                                 } ${
                                                     isMobile ? 'p-3' : 'p-4'
                                                 }`}
@@ -1207,7 +1207,7 @@ const CheckoutPageNew = () => {
                                                 </div>
                                                 <div className={`flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-300 ${
                                                     isSelected
-                                                        ? 'bg-emerald-500 border-2 border-emerald-500'
+                                                        ? 'bg-primary-500 border-2 border-primary-500'
                                                         : 'bg-transparent border-2 border-gray-200'
                                                 } ${
                                                     isMobile ? 'w-5 h-5' : 'w-6 h-6'
@@ -1249,7 +1249,7 @@ const CheckoutPageNew = () => {
                                 <TruckIcon className="w-3.5 h-3.5" />
                                 Delivery Fee:
                             </span>
-                            <span className={`text-emerald-500 font-bold ${
+                            <span className={`text-primary-500 font-bold ${
                                 isMobile ? 'text-xs' : 'text-[13px]'
                             }`}>
                                 ₹0.00
@@ -1262,7 +1262,7 @@ const CheckoutPageNew = () => {
                                 <CurrencyDollarIcon className="w-3.5 h-3.5" />
                                 You Save:
                             </span>
-                            <span className={`text-emerald-500 font-semibold ${
+                            <span className={`text-primary-500 font-semibold ${
                                 isMobile ? 'text-xs' : 'text-[13px]'
                             }`}>
                                 ₹{totalSavings.toFixed(2)}
@@ -1274,7 +1274,7 @@ const CheckoutPageNew = () => {
                             }`}>
                                 Total
                             </span>
-                            <span className={`font-extrabold text-emerald-500 ${
+                            <span className={`font-extrabold text-primary-500 ${
                                 isMobile ? 'text-lg' : 'text-[22px]'
                             }`}>
                                 ₹{totalPrice.toFixed(2)}
@@ -1294,7 +1294,7 @@ const CheckoutPageNew = () => {
                     className={`rounded-xl text-white font-bold transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 tracking-tight ${
                         (!canContinue() || loading)
                             ? 'bg-gray-300 cursor-not-allowed'
-                            : 'bg-gradient-to-br from-emerald-500 to-emerald-600 cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5'
+                            : 'bg-gradient-to-br from-primary-500 to-primary-600 cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5'
                     } ${
                         isMobile 
                             ? 'w-full py-3 text-sm' 
@@ -1400,7 +1400,7 @@ const CheckoutPageNew = () => {
                                 style={{
                                     width: '100%',
                                     padding: isMobile ? '12px' : '14px',
-                                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                    background: 'linear-gradient(135deg, #E57D02 0%, #cc6e02 100%)',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '12px',
@@ -1408,7 +1408,7 @@ const CheckoutPageNew = () => {
                                     fontWeight: 700,
                                     cursor: 'pointer',
                                     transition: 'all 0.2s ease',
-                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                    boxShadow: '0 4px 12px rgba(229, 125, 2, 0.3)'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.target.style.transform = 'translateY(-2px)';
@@ -1416,7 +1416,7 @@ const CheckoutPageNew = () => {
                                 }}
                                 onMouseLeave={(e) => {
                                     e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(229, 125, 2, 0.3)';
                                 }}
                             >
                                 Return to Cart
@@ -1666,9 +1666,9 @@ const CheckoutPageNew = () => {
                                     borderRadius: '12px', 
                                     fontSize: isMobile ? '11px' : '12px', 
                                     fontWeight: 600, 
-                                    background: `linear-gradient(135deg, ${colors.primaryLight} 0%, #a7f3d0 100%)`, 
+                                    background: `linear-gradient(135deg, ${colors.primaryLight} 0%, #ffd199 100%)`, 
                                     color: colors.primaryDark,
-                                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
+                                    boxShadow: '0 2px 8px rgba(229, 125, 2, 0.1)'
                                 }}>
                                     <CheckCircleIcon style={{ width: isMobile ? '14px' : '16px', height: isMobile ? '14px' : '16px' }} />
                                     Free delivery for this order!

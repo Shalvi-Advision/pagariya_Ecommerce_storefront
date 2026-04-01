@@ -214,7 +214,7 @@ export const TEXT_STYLES = {
     fontSize: FONT_SIZE['body-sm'][0],
     fontWeight: FONT_WEIGHT.normal,
     lineHeight: '1.5',
-    color: '#16a34a', // Success color
+    color: '#0d9567', // Success color (success-600)
   },
   warning: {
     fontSize: FONT_SIZE['body-sm'][0],

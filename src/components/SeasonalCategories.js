@@ -41,7 +41,7 @@ const SeasonalCategories = () => {
     {
       name: "Health Care",
       icon: "💊",
-      bgColor: "bg-teal-600",
+      bgColor: "bg-primary-600",
       image: "🍯" // Health products
     },
     {

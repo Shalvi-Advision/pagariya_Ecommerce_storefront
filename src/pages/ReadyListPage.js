@@ -370,7 +370,7 @@ const ReadyListPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/20 to-teal-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-primary-50/20 to-primary-50/30">
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar */}
         <AccountSidebar />
@@ -390,7 +390,7 @@ const ReadyListPage = () => {
                 </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-600 hover:from-primary-700 hover:to-primary-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <PlusIcon className="w-5 h-5" />
                   Create New List
@@ -402,7 +402,7 @@ const ReadyListPage = () => {
               /* Empty State */
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-12">
                 <div className="text-center max-w-md mx-auto">
-                  <div className="w-24 h-24 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <span className="text-5xl">📝</span>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Grahak List</h3>
@@ -411,7 +411,7 @@ const ReadyListPage = () => {
                   </p>
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="bg-gradient-to-r from-primary-600 to-primary-600 hover:from-primary-700 hover:to-primary-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     Get Started
                   </button>
@@ -423,7 +423,7 @@ const ReadyListPage = () => {
                 <div className="lg:col-span-1">
                   <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <CalendarIcon className="w-6 h-6 text-emerald-600" />
+                      <CalendarIcon className="w-6 h-6 text-primary-600" />
                       My Lists
                     </h2>
                     <div className="space-y-3">
@@ -433,7 +433,7 @@ const ReadyListPage = () => {
                           onClick={() => setActiveList(list)}
                           className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                             activeList?.id === list.id
-                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-500 shadow-md'
+                              ? 'bg-gradient-to-r from-primary-50 to-primary-50 border-2 border-primary-500 shadow-md'
                               : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                           }`}
                         >
@@ -455,7 +455,7 @@ const ReadyListPage = () => {
                               {list.totalItems} items
                             </span>
                             <span className="flex items-center gap-1">
-                              <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
+                              <CheckCircleIcon className="w-4 h-4 text-primary-600" />
                               {list.completedItems}
                             </span>
                           </div>
@@ -463,7 +463,7 @@ const ReadyListPage = () => {
                           <div className="mt-3">
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all duration-300"
+                                className="bg-gradient-to-r from-primary-500 to-primary-500 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${list.totalItems > 0 ? (list.completedItems / list.totalItems) * 100 : 0}%` }}
                               ></div>
                             </div>
@@ -479,11 +479,11 @@ const ReadyListPage = () => {
                   {activeList && (
                     <>
                       {/* Active List Header */}
-                      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl shadow-xl p-6 text-white">
+                      <div className="bg-gradient-to-r from-primary-600 to-primary-600 rounded-2xl shadow-xl p-6 text-white">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div>
                             <h2 className="text-2xl font-bold mb-2">{activeList.name}</h2>
-                            <p className="text-emerald-100">
+                            <p className="text-primary-100">
                               {activeList.completedItems} of {activeList.totalItems} items purchased
                             </p>
                           </div>
@@ -502,7 +502,7 @@ const ReadyListPage = () => {
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() => setShowAddItemModal(true)}
-                          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold px-4 py-2 rounded-xl border-2 border-gray-200 hover:border-emerald-500 transition-all duration-200"
+                          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold px-4 py-2 rounded-xl border-2 border-gray-200 hover:border-primary-500 transition-all duration-200"
                         >
                           <PlusIcon className="w-5 h-5" />
                           Add Item
@@ -516,7 +516,7 @@ const ReadyListPage = () => {
                         </button>
                         <button
                           onClick={() => setShowSuggestions(!showSuggestions)}
-                          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold px-4 py-2 rounded-xl border-2 border-gray-200 hover:border-teal-500 transition-all duration-200"
+                          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold px-4 py-2 rounded-xl border-2 border-gray-200 hover:border-primary-500 transition-all duration-200"
                         >
                           <SparklesIcon className="w-5 h-5 text-yellow-500" />
                           {showSuggestions ? 'Hide' : 'Show'} Suggestions
@@ -541,7 +541,7 @@ const ReadyListPage = () => {
                                   key={item.id}
                                   className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                                     item.checked
-                                      ? 'bg-emerald-50 border-emerald-300'
+                                      ? 'bg-primary-50 border-primary-300'
                                       : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                                   }`}
                                 >
@@ -552,9 +552,9 @@ const ReadyListPage = () => {
                                       className="flex-shrink-0"
                                     >
                                       {item.checked ? (
-                                        <CheckCircleSolid className="w-6 h-6 text-emerald-600" />
+                                        <CheckCircleSolid className="w-6 h-6 text-primary-600" />
                                       ) : (
-                                        <div className="w-6 h-6 border-2 border-gray-300 rounded-full hover:border-emerald-500 transition-colors"></div>
+                                        <div className="w-6 h-6 border-2 border-gray-300 rounded-full hover:border-primary-500 transition-colors"></div>
                                       )}
                                     </button>
 
@@ -639,7 +639,7 @@ const ReadyListPage = () => {
                                       <h4 className="font-semibold text-gray-900 truncate">{item.name}</h4>
                                       <p className="text-sm text-gray-500">{item.category}</p>
                                       <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                                        <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
                                           {item.purchaseCount}x bought
                                         </span>
                                         <span className="text-xs text-gray-500">{item.lastPurchased}</span>
@@ -650,7 +650,7 @@ const ReadyListPage = () => {
                                     <div className="font-bold text-gray-900">₹{item.price}</div>
                                     <button
                                       onClick={() => handleAddItemToList(item)}
-                                      className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
+                                      className="flex items-center gap-1 bg-gradient-to-r from-primary-500 to-primary-500 hover:from-primary-600 hover:to-primary-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
                                     >
                                       <PlusIcon className="w-4 h-4" />
                                       Add
@@ -690,7 +690,7 @@ const ReadyListPage = () => {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="e.g., Monthly Essentials, Weekly Groceries"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors mb-6"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 transition-colors mb-6"
               autoFocus
               onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
             />
@@ -704,7 +704,7 @@ const ReadyListPage = () => {
               <button
                 onClick={handleCreateList}
                 disabled={!newListName.trim()}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-600 hover:from-primary-700 hover:to-primary-700 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create List
               </button>
@@ -740,7 +740,7 @@ const ReadyListPage = () => {
                   value={searchQuery}
                   onChange={(e) => handleProductSearch(e.target.value)}
                   placeholder="Search for products..."
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 transition-colors"
                   autoFocus
                 />
               </div>
@@ -755,7 +755,7 @@ const ReadyListPage = () => {
                 </div>
               ) : isSearching ? (
                 <div className="text-center py-8">
-                  <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-600">Searching...</p>
                 </div>
               ) : searchResults.length === 0 ? (
@@ -779,14 +779,14 @@ const ReadyListPage = () => {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 truncate">{product.name}</h4>
                         <p className="text-sm text-gray-500">{product.category}</p>
-                        <p className="text-lg font-bold text-emerald-600 mt-1">₹{product.price}</p>
+                        <p className="text-lg font-bold text-primary-600 mt-1">₹{product.price}</p>
                       </div>
                       <button
                         onClick={() => {
                           handleAddFromSearch(product);
                           setShowAddItemModal(false);
                         }}
-                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200"
+                        className="flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-600 hover:from-primary-700 hover:to-primary-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200"
                       >
                         <PlusIcon className="w-5 h-5" />
                         Add
@@ -808,7 +808,7 @@ const ReadyListPage = () => {
                       handleAddItemToList(item);
                       setShowAddItemModal(false);
                     }}
-                    className="px-3 py-1.5 bg-white hover:bg-emerald-50 border border-gray-200 hover:border-emerald-500 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-700 transition-all duration-200"
+                    className="px-3 py-1.5 bg-white hover:bg-primary-50 border border-gray-200 hover:border-primary-500 rounded-lg text-sm font-medium text-gray-700 hover:text-primary-700 transition-all duration-200"
                   >
                     {item.name}
                   </button>

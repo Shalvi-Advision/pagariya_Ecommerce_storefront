@@ -438,7 +438,7 @@ const Carousel = () => {
       {banners.length > 1 && (
       <div className="absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r from-black/20 to-black/10">
         <div 
-          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 transition-all duration-200 ease-linear shadow-lg"
+          className="h-full bg-gradient-to-r from-primary-500 via-primary-500 to-primary-400 transition-all duration-200 ease-linear shadow-lg"
           style={{ 
               width: `${((currentSlide + 1) / banners.length) * 100}%` 
           }}

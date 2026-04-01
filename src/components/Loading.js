@@ -17,12 +17,12 @@ const Loading = ({ size = 'medium', text = 'Loading...' }) => {
     <div className="flex flex-col items-center justify-center p-6">
       <div className="relative">
         {/* Gradient spinner */}
-        <div className={`${sizes[size]} ${borderSizes[size]} border-transparent border-t-emerald-500 border-r-teal-500 border-b-cyan-500 rounded-full animate-spin`}></div>
+        <div className={`${sizes[size]} ${borderSizes[size]} border-transparent border-t-primary-500 border-r-primary-500 border-b-primary-400 rounded-full animate-spin`}></div>
         {/* Background glow */}
-        <div className={`absolute inset-0 ${sizes[size]} bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 rounded-full blur-lg animate-pulse`}></div>
+        <div className={`absolute inset-0 ${sizes[size]} bg-gradient-to-r from-primary-400/20 to-primary-300/20 rounded-full blur-lg animate-pulse`}></div>
       </div>
       {text && (
-        <p className="mt-4 text-sm sm:text-base font-semibold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent animate-pulse">{text}</p>
+        <p className="mt-4 text-sm sm:text-base font-semibold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent animate-pulse">{text}</p>
       )}
     </div>
   );

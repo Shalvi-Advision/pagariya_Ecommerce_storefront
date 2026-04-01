@@ -209,7 +209,7 @@ const ProductCard = ({ product, onAddToCart }) => {
         {/* Stock Status Badge with Gradient */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20">
           {safeStoreQuantity > 0 ? (
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-lg backdrop-blur-sm">
+            <div className="bg-gradient-to-r from-primary-500 to-primary-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-lg backdrop-blur-sm">
               In Stock
             </div>
           ) : (

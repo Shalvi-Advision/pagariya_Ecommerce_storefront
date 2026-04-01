@@ -17,9 +17,9 @@ const PopularCategories = () => {
     { color: "bg-purple-50", iconColor: "text-purple-600" },
     { color: "bg-yellow-50", iconColor: "text-yellow-600" },
     { color: "bg-pink-50", iconColor: "text-pink-600" },
-    { color: "bg-cyan-50", iconColor: "text-cyan-600" },
+    { color: "bg-cyan-50", iconColor: "text-primary-500" },
     { color: "bg-amber-50", iconColor: "text-amber-600" },
-    { color: "bg-emerald-50", iconColor: "text-emerald-600" },
+    { color: "bg-primary-50", iconColor: "text-primary-600" },
     { color: "bg-indigo-50", iconColor: "text-indigo-600" },
     { color: "bg-gray-50", iconColor: "text-gray-600" }
   ];
@@ -124,7 +124,7 @@ const PopularCategories = () => {
     <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
       {/* Modern Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 via-blue-50/50 to-indigo-50/50"></div>
-      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-br from-primary-300/20 to-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       
       <div className="relative container mx-auto px-4">
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md border border-white/60 hover:shadow-lg transition-all duration-300">
@@ -135,13 +135,13 @@ const PopularCategories = () => {
                 
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
-                <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   Top Categories
                 </span>
               </h2>
               <p className="text-gray-600 text-sm sm:text-base"></p>
             </div>
-            <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow">
+            <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-primary-500 to-primary-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
               <span>Fresh & Fast Delivery</span>
             </div>
@@ -151,8 +151,8 @@ const PopularCategories = () => {
             {loading ? (
               <div className="flex justify-center items-center py-10">
                 <div className="relative">
-                  <div className="w-12 h-12 border-4 border-transparent border-t-cyan-500 border-r-blue-500 rounded-full animate-spin"></div>
-                  <div className="absolute inset-0 w-12 h-12 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-lg animate-pulse"></div>
+                  <div className="w-12 h-12 border-4 border-transparent border-t-primary-400 border-r-blue-500 rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 w-12 h-12 bg-gradient-to-r from-primary-300/20 to-blue-400/20 rounded-full blur-lg animate-pulse"></div>
                 </div>
               </div>
             ) : (
@@ -189,7 +189,7 @@ const PopularCategories = () => {
                             </span>
                           </div>
                         </div>
-                        <span className="text-xs font-semibold text-gray-800 text-center leading-tight group-hover:text-cyan-600 transition-colors duration-200 px-2 line-clamp-2 flex items-center justify-center flex-1">
+                        <span className="text-xs font-semibold text-gray-800 text-center leading-tight group-hover:text-primary-500 transition-colors duration-200 px-2 line-clamp-2 flex items-center justify-center flex-1">
                           {category.name}
                         </span>
                       </div>
@@ -200,7 +200,7 @@ const PopularCategories = () => {
             )}
             
             {/* Enhanced Scroll Arrow with Gradient */}
-            <button className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full p-3 shadow hover:shadow-md hover:scale-105 transition-all duration-200 group">
+            <button className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-primary-400 to-blue-500 text-white rounded-full p-3 shadow hover:shadow-md hover:scale-105 transition-all duration-200 group">
               <ChevronRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
             </button>
           </div>

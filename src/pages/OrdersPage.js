@@ -267,8 +267,8 @@ const OrdersPage = () => {
             {loading && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                    <ShoppingBagIcon className="w-8 h-8 text-emerald-600" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <ShoppingBagIcon className="w-8 h-8 text-primary-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading orders...</h3>
                   <p className="text-gray-600">Please wait while we fetch your orders</p>
@@ -306,7 +306,7 @@ const OrdersPage = () => {
                   <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">Your order history will appear here</p>
                   <button
                     onClick={() => navigate('/')}
-                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold py-2.5 sm:py-2 px-4 sm:px-6 rounded-lg transition-all shadow-sm hover:shadow-md min-h-[44px] sm:min-h-0 text-sm sm:text-base"
+                    className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-2.5 sm:py-2 px-4 sm:px-6 rounded-lg transition-all shadow-sm hover:shadow-md min-h-[44px] sm:min-h-0 text-sm sm:text-base"
                   >
                     Start Shopping
                   </button>
@@ -317,11 +317,11 @@ const OrdersPage = () => {
                 {userOrders.map((order) => (
                   <div key={order.orderNumber || order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden">
                     {/* Order Header */}
-                    <div className="bg-gradient-to-r from-emerald-50 to-white px-4 sm:px-6 py-4 border-b border-gray-100">
+                    <div className="bg-gradient-to-r from-primary-50 to-white px-4 sm:px-6 py-4 border-b border-gray-100">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <ShoppingBagIcon className="w-5 h-5 text-emerald-600" />
+                            <ShoppingBagIcon className="w-5 h-5 text-primary-600" />
                             <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                               Order #{order.orderNumber || order.id}
                             </h3>
@@ -359,7 +359,7 @@ const OrdersPage = () => {
                         <div className="space-y-4">
                           <div className="bg-gray-50 rounded-lg p-4">
                             <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                              <TruckIcon className="w-4 h-4 text-emerald-600" />
+                              <TruckIcon className="w-4 h-4 text-primary-600" />
                               Delivery Information
                             </h4>
                             <div className="space-y-3">
@@ -371,7 +371,7 @@ const OrdersPage = () => {
                               <div>
                                 <p className="text-xs text-gray-500 mb-1">Expected Delivery</p>
                                 <div className="flex items-center gap-2">
-                                  <ClockIcon className="w-4 h-4 text-emerald-600" />
+                                  <ClockIcon className="w-4 h-4 text-primary-600" />
                                   <p className="text-sm font-medium text-gray-900">{getDeliveryDateDisplay(order)}</p>
                                 </div>
                               </div>
@@ -383,7 +383,7 @@ const OrdersPage = () => {
                         <div className="space-y-4">
                           <div className="bg-gray-50 rounded-lg p-4">
                             <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center gap-2">
-                              <CreditCardIcon className="w-4 h-4 text-emerald-600" />
+                              <CreditCardIcon className="w-4 h-4 text-primary-600" />
                               Payment Information
                             </h4>
                             <div className="space-y-3">
@@ -410,7 +410,7 @@ const OrdersPage = () => {
                       {/* Order Items */}
                       <div className="border-t border-gray-200 pt-3">
                         <h4 className="font-semibold text-sm text-gray-900 mb-2.5 flex items-center gap-1.5">
-                          <ShoppingBagIcon className="w-4 h-4 text-emerald-600" />
+                          <ShoppingBagIcon className="w-4 h-4 text-primary-600" />
                           Order Items ({order.itemsCount || order.orderSummary?.totalItems || 0} items)
                         </h4>
                         <div className="space-y-2 mb-4">
@@ -468,7 +468,7 @@ const OrdersPage = () => {
                         </div>
 
                         {/* Order Summary */}
-                        <div className="bg-gradient-to-br from-emerald-50 to-gray-50 rounded-lg p-3 border border-emerald-100">
+                        <div className="bg-gradient-to-br from-primary-50 to-gray-50 rounded-lg p-3 border border-primary-100">
                           <h4 className="font-semibold text-sm text-gray-900 mb-2.5">Order Summary</h4>
                           <div className="space-y-1.5">
                             <div className="flex justify-between items-center text-xs">
@@ -483,20 +483,20 @@ const OrdersPage = () => {
                             )}
                             <div className="flex justify-between items-center text-xs">
                               <span className="text-gray-600">Delivery</span>
-                              <span className={`font-medium ${order.orderSummary?.deliveryCharges === 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
+                              <span className={`font-medium ${order.orderSummary?.deliveryCharges === 0 ? 'text-primary-600' : 'text-gray-900'}`}>
                                 {order.orderSummary?.deliveryCharges === 0 ? 'FREE' : `₹${(order.orderSummary?.deliveryCharges || 0).toFixed(2)}`}
                               </span>
                             </div>
                             {order.orderSummary?.discountAmount > 0 && (
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-emerald-600">Discount</span>
-                                <span className="font-medium text-emerald-600">-₹{(order.orderSummary.discountAmount || 0).toFixed(2)}</span>
+                                <span className="text-primary-600">Discount</span>
+                                <span className="font-medium text-primary-600">-₹{(order.orderSummary.discountAmount || 0).toFixed(2)}</span>
                               </div>
                             )}
                             <div className="border-t border-gray-300 pt-1.5 mt-1.5">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm font-bold text-gray-900">Total</span>
-                                <span className="text-lg font-bold text-emerald-600">
+                                <span className="text-lg font-bold text-primary-600">
                                   ₹{(order.orderSummary?.totalAmount || order.totalAmount || 0).toFixed(2)}
                                 </span>
                               </div>

@@ -99,7 +99,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
           justifyContent: 'center', 
           padding: isMobile ? '24px 16px' : '28px 20px',
           borderBottom: '1px solid #e5e7eb',
-          background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+          background: 'linear-gradient(135deg, #ffe8cc 0%, #ffd199 100%)',
           position: 'relative'
         }}>
           <div style={{
@@ -115,7 +115,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
             <CheckCircleIcon style={{ 
               width: isMobile ? '36px' : '40px', 
               height: isMobile ? '36px' : '40px', 
-              color: '#10b981' 
+              color: '#E57D02' 
             }} />
           </div>
           
@@ -177,7 +177,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               width: isMobile ? '80px' : '96px',
               height: isMobile ? '80px' : '96px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+              background: 'linear-gradient(135deg, #ffe8cc 0%, #ffd199 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -186,7 +186,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               <ShoppingBagIcon style={{ 
                 width: isMobile ? '40px' : '48px', 
                 height: isMobile ? '40px' : '48px', 
-                color: '#10b981' 
+                color: '#E57D02' 
               }} />
             </div>
           </div>
@@ -206,15 +206,15 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               alignItems: 'center',
               gap: '8px',
               padding: `${isMobile ? '8px' : '10px'} ${isMobile ? '16px' : '20px'}`,
-              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              background: 'linear-gradient(135deg, #fff8f0 0%, #ffe8cc 100%)',
               borderRadius: '12px',
               marginBottom: isMobile ? '16px' : '20px',
-              border: '1px solid #a7f3d0'
+              border: '1px solid #ffd199'
             }}>
               <span style={{
                 fontSize: isMobile ? '13px' : '14px',
                 fontWeight: 600,
-                color: '#059669'
+                color: '#cc6e02'
               }}>
                 Order #{orderNumber}
               </span>
@@ -241,7 +241,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               style={{
                 flex: 1,
                 padding: isMobile ? '12px' : '14px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: 'linear-gradient(135deg, #E57D02 0%, #cc6e02 100%)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
