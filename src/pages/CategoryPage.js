@@ -747,7 +747,7 @@ const CategoryPage = () => {
       <div 
         className="min-h-screen flex items-center justify-center"
         style={{
-          background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]}, ${COLORS.primary[100]})`
+          backgroundColor: COLORS.primary[50]
         }}
       >
         <div className="text-center">
@@ -756,14 +756,14 @@ const CategoryPage = () => {
               className="w-16 h-16 border-4 border-transparent rounded-full animate-spin"
               style={{
                 borderTopColor: COLORS.primary[500],
-                borderRightColor: COLORS.success[500],
+                borderRightColor: COLORS.primary[400],
                 borderBottomColor: COLORS.primary[400]
               }}
             ></div>
             <div 
               className="absolute inset-0 w-16 h-16 rounded-full blur-lg animate-pulse"
               style={{
-                background: `linear-gradient(to right, ${hexToRgba(COLORS.primary[400], 0.2)}, ${hexToRgba(COLORS.success[400], 0.2)})`
+                backgroundColor: hexToRgba(COLORS.primary[400], 0.2)
               }}
             ></div>
           </div>
@@ -771,7 +771,7 @@ const CategoryPage = () => {
             className="mt-4 font-semibold bg-clip-text text-transparent"
             style={{
               color: COLORS.gray[600],
-              background: `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+              background: COLORS.primary[600],
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}
@@ -813,13 +813,13 @@ const CategoryPage = () => {
             onClick={() => window.location.reload()}
             className="px-6 py-3 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
             style={{
-              background: `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`
+              background: COLORS.primary[500]
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+              e.currentTarget.style.background = COLORS.primary[600];
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`;
+              e.currentTarget.style.background = COLORS.primary[500];
             }}
           >
             Try Again
@@ -845,7 +845,7 @@ const CategoryPage = () => {
             <h1 
               className="text-lg font-bold bg-clip-text text-transparent flex-1"
               style={{
-                background: `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                background: COLORS.primary[600],
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}
@@ -1163,7 +1163,7 @@ const CategoryPage = () => {
               <div 
                 className="absolute inset-0"
                 style={{
-                  background: `linear-gradient(to right, ${hexToRgba(COLORS.primary[500], 0.1)}, ${hexToRgba(COLORS.success[500], 0.1)}, ${hexToRgba(COLORS.primary[400], 0.1)})`
+                  backgroundColor: hexToRgba(COLORS.primary[500], 0.1)
                 }}
               ></div>
               <div 
@@ -1176,7 +1176,7 @@ const CategoryPage = () => {
                   <div 
                     className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden shadow-md"
                     style={{
-                      background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]})`
+                      background: COLORS.primary[50]
                     }}
                   >
                     {departmentImage ? (
@@ -1197,7 +1197,7 @@ const CategoryPage = () => {
                   <h2 
                     className="text-lg font-bold bg-clip-text text-transparent"
                     style={{
-                      background: `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                      background: COLORS.primary[600],
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent'
                     }}
@@ -1636,11 +1636,11 @@ const CategoryPage = () => {
                         </button>
                         
                         <img
-                          src={product.image_url || '/images/logo.jpg'}
+                          src={product.image_url || '/images/default_image.jpg'}
                           alt={product.product_name}
                           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                           onError={(e) => {
-                            e.target.src = '/images/logo.jpg';
+                            e.target.src = '/images/default_image.jpg';
                           }}
                         />
                 {product.discount_percentage > 0 && (
@@ -1694,7 +1694,7 @@ const CategoryPage = () => {
                             style={{
                               background: (addingToCart[product.p_code || product._id] || !storeEnabled)
                                 ? COLORS.gray[400]
-                                : `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                                : COLORS.primary[600],
                               cursor: (addingToCart[product.p_code || product._id] || !storeEnabled) ? 'not-allowed' : 'pointer',
                               opacity: (addingToCart[product.p_code || product._id] || !storeEnabled) ? 0.5 : 1
                             }}
@@ -1706,12 +1706,12 @@ const CategoryPage = () => {
                             title={!storeEnabled ? (getStoreMessage() || 'Store is not accepting orders') : 'Add to cart'}
                             onMouseEnter={(e) => {
                               if (!addingToCart[product.p_code || product._id] && storeEnabled) {
-                                e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                                e.currentTarget.style.background = COLORS.primary[700];
                               }
                             }}
                             onMouseLeave={(e) => {
                               if (!addingToCart[product.p_code || product._id] && storeEnabled) {
-                                e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                                e.currentTarget.style.background = COLORS.primary[600];
                               }
                             }}
                           >
@@ -1737,7 +1737,7 @@ const CategoryPage = () => {
                             <div 
                               className="flex items-stretch border-2 rounded-lg overflow-hidden shadow-md w-full hover:shadow-lg transition-all duration-200 h-8 sm:h-9"
                               style={{
-                                background: `linear-gradient(to right, ${COLORS.primary[50]}, ${COLORS.success[50]})`,
+                                background: COLORS.primary[50],
                                 borderColor: COLORS.primary[200]
                               }}
                             >
@@ -1753,7 +1753,7 @@ const CategoryPage = () => {
                                 style={{
                                   backgroundColor: (parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) <= 0
                                     ? COLORS.gray[200]
-                                    : `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                                    : COLORS.primary[600],
                                   color: (parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) <= 0
                                     ? COLORS.gray[400]
                                     : COLORS.white,
@@ -1761,12 +1761,12 @@ const CategoryPage = () => {
                                 }}
                                 onMouseEnter={(e) => {
                                   if ((parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) > 0) {
-                                    e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                                    e.currentTarget.style.background = COLORS.primary[700];
                                   }
                                 }}
                                 onMouseLeave={(e) => {
                                   if ((parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) > 0) {
-                                    e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                                    e.currentTarget.style.background = COLORS.primary[600];
                                   }
                                 }}
                               >
@@ -1823,7 +1823,7 @@ const CategoryPage = () => {
                                 style={{
                                   backgroundColor: (parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) >= (product.max_quantity_allowed || 10)
                                     ? COLORS.gray[200]
-                                    : `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                                    : COLORS.primary[600],
                                   color: (parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) >= (product.max_quantity_allowed || 10)
                                     ? COLORS.gray[400]
                                     : COLORS.white,
@@ -1831,12 +1831,12 @@ const CategoryPage = () => {
                                 }}
                                 onMouseEnter={(e) => {
                                   if ((parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) < (product.max_quantity_allowed || 10)) {
-                                    e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                                    e.currentTarget.style.background = COLORS.primary[700];
                                   }
                                 }}
                                 onMouseLeave={(e) => {
                                   if ((parseInt(quantities[product.p_code || product._id] || 1, 10) || 1) < (product.max_quantity_allowed || 10)) {
-                                    e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                                    e.currentTarget.style.background = COLORS.primary[600];
                                   }
                                 }}
                               >
@@ -1866,17 +1866,17 @@ const CategoryPage = () => {
                           style={{
                             background: !pagination.has_prev 
                               ? COLORS.gray[300]
-                              : `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`,
+                              : COLORS.primary[500],
                             opacity: !pagination.has_prev ? 0.5 : 1
                           }}
                           onMouseEnter={(e) => {
                             if (pagination.has_prev) {
-                              e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                              e.currentTarget.style.background = COLORS.primary[600];
                             }
                           }}
                           onMouseLeave={(e) => {
                             if (pagination.has_prev) {
-                              e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`;
+                              e.currentTarget.style.background = COLORS.primary[500];
                             }
                           }}
                         >
@@ -1894,7 +1894,7 @@ const CategoryPage = () => {
                                 className="px-2.5 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-300"
                                 style={{
                                   background: isActive 
-                                    ? `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`
+                                    ? COLORS.primary[500]
                                     : COLORS.white,
                                   color: isActive ? COLORS.white : COLORS.gray[700],
                                   border: isActive ? 'none' : `2px solid ${COLORS.gray[200]}`,
@@ -1927,17 +1927,17 @@ const CategoryPage = () => {
                           style={{
                             background: !pagination.has_next 
                               ? COLORS.gray[300]
-                              : `linear-gradient(to right, ${COLORS.success[500]}, ${COLORS.primary[400]})`,
+                              : COLORS.primary[500],
                             opacity: !pagination.has_next ? 0.5 : 1
                           }}
                           onMouseEnter={(e) => {
                             if (pagination.has_next) {
-                              e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.success[600]}, ${COLORS.primary[500]})`;
+                              e.currentTarget.style.background = COLORS.primary[600];
                             }
                           }}
                           onMouseLeave={(e) => {
                             if (pagination.has_next) {
-                              e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.success[500]}, ${COLORS.primary[400]})`;
+                              e.currentTarget.style.background = COLORS.primary[500];
                             }
                           }}
                         >
@@ -1955,13 +1955,13 @@ const CategoryPage = () => {
                     <div 
                       className="absolute inset-0 rounded-full blur-2xl opacity-30 animate-pulse"
                       style={{
-                        background: `linear-gradient(to bottom right, ${COLORS.primary[400]}, ${COLORS.success[400]})`
+                        background: COLORS.primary[400]
                       }}
                     ></div>
                     <div 
                       className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center mx-auto shadow-xl"
                       style={{
-                        background: `linear-gradient(to bottom right, ${COLORS.primary[100]}, ${COLORS.success[100]})`
+                        background: COLORS.primary[100]
                       }}
                     >
                       <span className="text-4xl sm:text-6xl">📦</span>
@@ -1975,13 +1975,13 @@ const CategoryPage = () => {
                     onClick={clearFilters}
                     className="px-4 sm:px-6 py-2.5 sm:py-3 text-white rounded-xl text-sm sm:text-base font-bold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
                     style={{
-                      background: `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`
+                      background: COLORS.primary[500]
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                      e.currentTarget.style.background = COLORS.primary[600];
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[500]}, ${COLORS.success[500]})`;
+                      e.currentTarget.style.background = COLORS.primary[500];
                     }}
                   >
                     Clear Filters
@@ -2003,11 +2003,11 @@ const CategoryPage = () => {
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, ${COLORS.primary[500]}, ${COLORS.success[500]});
+          background: ${COLORS.primary[500]};
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, ${COLORS.primary[600]}, ${COLORS.success[600]});
+          background: ${COLORS.primary[600]};
         }
         .scrollbar-hide {
           -ms-overflow-style: none;

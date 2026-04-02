@@ -62,7 +62,7 @@ const BestsellerProductCard = ({ product }) => {
 
   const productId = p_code || id || 'unknown';
   const displayName = product_name || 'Product';
-  const displayImage = image_url || pcode_img || '/images/logo.jpg';
+  const displayImage = image_url || pcode_img || '/images/default_image.jpg';
   const displayMrp = product_mrp || 0;
   const displayPrice = our_price || 0;
   const discount = discount_percentage || 0;
@@ -216,7 +216,7 @@ const BestsellerProductCard = ({ product }) => {
             alt={displayName}
             className="w-24 h-24 object-contain mb-2"
             onError={(e) => {
-              e.target.src = '/images/logo.jpg';
+              e.target.src = '/images/default_image.jpg';
             }}
           />
           {/* Placeholder for prepared dish image - can be added later */}
@@ -259,20 +259,20 @@ const BestsellerProductCard = ({ product }) => {
               title={!storeEnabled ? (getStoreMessage() || 'Store is not accepting orders') : 'Add to cart'}
               className="w-full h-9 rounded text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 text-white shadow-md hover:shadow-lg"
               style={{
-                background: (addingToCart || !storeEnabled)
+                backgroundColor: (addingToCart || !storeEnabled)
                   ? COLORS.gray[400]
-                  : `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                  : COLORS.primary[600],
                 cursor: (addingToCart || !storeEnabled) ? 'not-allowed' : 'pointer',
                 opacity: (addingToCart || !storeEnabled) ? 0.5 : 1
               }}
               onMouseEnter={(e) => {
                 if (!addingToCart && storeEnabled) {
-                  e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                  e.currentTarget.style.backgroundColor = COLORS.primary[700];
                 }
               }}
               onMouseLeave={(e) => {
                 if (!addingToCart && storeEnabled) {
-                  e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                  e.currentTarget.style.backgroundColor = COLORS.primary[600];
                 }
               }}
             >
@@ -294,7 +294,7 @@ const BestsellerProductCard = ({ product }) => {
               <div 
                 className="flex items-stretch border-2 rounded-lg overflow-hidden shadow-md w-full transition-all duration-200 h-9"
                 style={{
-                  background: `linear-gradient(to right, ${COLORS.primary[50]}, ${COLORS.success[50]})`,
+                  backgroundColor: COLORS.primary[50],
                   borderColor: COLORS.primary[200]
                 }}
               >
@@ -309,7 +309,7 @@ const BestsellerProductCard = ({ product }) => {
                   style={{
                     backgroundColor: quantity <= 1
                       ? COLORS.gray[200]
-                      : `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                      : COLORS.primary[600],
                     color: quantity <= 1
                       ? COLORS.gray[400]
                       : COLORS.white,
@@ -317,12 +317,12 @@ const BestsellerProductCard = ({ product }) => {
                   }}
                   onMouseEnter={(e) => {
                     if (quantity > 1) {
-                      e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                      e.currentTarget.style.backgroundColor = COLORS.primary[700];
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (quantity > 1) {
-                      e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                      e.currentTarget.style.backgroundColor = COLORS.primary[600];
                     }
                   }}
                 >
@@ -352,7 +352,7 @@ const BestsellerProductCard = ({ product }) => {
                   style={{
                     backgroundColor: quantity >= maxQuantity
                       ? COLORS.gray[200]
-                      : `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                      : COLORS.primary[600],
                     color: quantity >= maxQuantity
                       ? COLORS.gray[400]
                       : COLORS.white,
@@ -360,12 +360,12 @@ const BestsellerProductCard = ({ product }) => {
                   }}
                   onMouseEnter={(e) => {
                     if (quantity < maxQuantity) {
-                      e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                      e.currentTarget.style.backgroundColor = COLORS.primary[700];
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (quantity < maxQuantity) {
-                      e.currentTarget.style.background = `linear-gradient(to bottom right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                      e.currentTarget.style.backgroundColor = COLORS.primary[600];
                     }
                   }}
                 >

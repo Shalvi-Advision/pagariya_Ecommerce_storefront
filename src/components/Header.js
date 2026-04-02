@@ -379,7 +379,7 @@ const Header = () => {
             <div className="flex-1 flex justify-center absolute left-1/2 transform -translate-x-1/2">
               <Link to="/" className="flex items-center flex-shrink-0">
                 <img
-                  src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg`}
+                  src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg`}
                   alt="Grahak Peth"
                   className="h-12 sm:h-14 w-auto object-contain"
                   style={{
@@ -851,7 +851,7 @@ const Header = () => {
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-shrink-0">
               <Link to="/" className="flex items-center">
                 <img
-                  src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg`}
+                  src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg`}
                   alt="Grahak Peth"
                   className="h-10 sm:h-10 lg:h-14 w-auto object-contain"
                   style={{

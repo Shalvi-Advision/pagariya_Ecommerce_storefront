@@ -444,7 +444,7 @@ const processProductData = (product) => {
     package_size: product.package_size ? `${product.package_size} ${product.package_unit || 'GM'}` : '1 GM',
     category: product.category || 'General',
     brand: product.brand_name || product.brand || 'Unknown',
-    image_url: product.pcode_img || product.image_url || '/images/logo.jpg',
+    image_url: product.pcode_img || product.image_url || '/images/default_image.jpg',
     is_active: product.pcode_status === 'Y',
     created_at: product.created_at || new Date().toISOString(),
     updated_at: product.updated_at || new Date().toISOString()

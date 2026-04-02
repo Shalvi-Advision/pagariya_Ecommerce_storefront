@@ -233,11 +233,11 @@ const FavoritesPage = () => {
                 </button>
                 
                 <img
-                  src={product.image_url || '/images/logo.jpg'}
+                  src={product.image_url || '/images/default_image.jpg'}
                   alt={product.product_name}
                   className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                   onError={(e) => {
-                    e.target.src = '/images/logo.jpg';
+                    e.target.src = '/images/default_image.jpg';
                   }}
                 />
                 {product.discount_percentage > 0 && (

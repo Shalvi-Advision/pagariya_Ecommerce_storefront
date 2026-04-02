@@ -476,19 +476,19 @@ const ProductDetailsPage = () => {
                   disabled={!isInStock()}
                   className={`flex-1 ${isMobile ? 'py-3' : 'py-2.5 sm:py-3'} px-4 ${isMobile ? 'text-sm' : 'sm:px-6 text-sm sm:text-base'} font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md text-white ${isMobile ? '' : 'hover:shadow-lg transform hover:scale-105 active:scale-95'} disabled:cursor-not-allowed`}
                   style={{
-                    background: !isInStock()
+                    backgroundColor: !isInStock()
                       ? COLORS.gray[400]
-                      : `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                      : COLORS.primary[600],
                     opacity: !isInStock() ? 0.5 : 1
                   }}
                   onMouseEnter={(e) => {
                     if (isInStock() && !isMobile) {
-                      e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                      e.currentTarget.style.backgroundColor = COLORS.primary[700];
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (isInStock() && !isMobile) {
-                      e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                      e.currentTarget.style.backgroundColor = COLORS.primary[600];
                     }
                   }}
                 >

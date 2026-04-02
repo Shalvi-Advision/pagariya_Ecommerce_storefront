@@ -67,7 +67,7 @@ class CartService {
       package_size: packageSize || 1,
       package_unit: packageUnit,
       brand_name: cartItem.brand || cartItem.brand_name || 'Unknown',
-      pcode_img: cartItem.image || cartItem.pcode_img || '/images/logo.jpg'
+      pcode_img: cartItem.image || cartItem.pcode_img || '/images/default_image.jpg'
     };
   }
 

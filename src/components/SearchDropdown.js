@@ -249,7 +249,7 @@ const SearchDropdown = ({
             {displayProducts.map((product, index) => {
               const isSelected = index === selectedIndex;
               const productId = product.p_code || product.id || product._id;
-              const productImage = product.pcode_img || product.image_url || '/images/logo.jpg';
+              const productImage = product.pcode_img || product.image_url || '/images/default_image.jpg';
               const productName = product.product_name || 'Unnamed Product';
               const price = product.our_price || product.product_mrp || 0;
 
@@ -282,7 +282,7 @@ const SearchDropdown = ({
                       alt={productName}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = '/images/logo.jpg';
+                        e.target.src = '/images/default_image.jpg';
                       }}
                       loading="lazy"
                     />

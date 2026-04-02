@@ -90,11 +90,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
                     {/* Product Image */}
                     <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                       <img
-                        src={item.image || '/images/logo.jpg'}
+                        src={item.image || '/images/default_image.jpg'}
                         alt={item.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = '/images/logo.jpg';
+                          e.target.src = '/images/default_image.jpg';
                         }}
                       />
                     </div>

@@ -198,7 +198,7 @@ const RegisterPage = () => {
               </div>
             ) : (
               <img
-                src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg?v=2`}
+                src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg?v=2`}
                 alt="Grahak Peth"
                 className="h-12 w-auto object-contain"
                 style={{
@@ -345,20 +345,20 @@ const RegisterPage = () => {
               disabled={loading}
               className="w-full text-white font-semibold py-3.5 px-6 rounded-lg transition-all duration-200 uppercase tracking-wide disabled:cursor-not-allowed shadow-lg"
               style={{
-                background: loading 
-                  ? `linear-gradient(to right, ${COLORS.gray[300]}, ${COLORS.gray[400]})`
-                  : `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`,
+                backgroundColor: loading
+                  ? COLORS.gray[400]
+                  : COLORS.primary[600],
                 opacity: loading ? 0.5 : 1
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
-                  e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[700]}, ${COLORS.success[700]})`;
+                  e.currentTarget.style.backgroundColor = COLORS.primary[700];
                   e.currentTarget.style.boxShadow = '0 20px 25px rgba(0, 0, 0, 0.12)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!loading) {
-                  e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary[600]}, ${COLORS.success[600]})`;
+                  e.currentTarget.style.backgroundColor = COLORS.primary[600];
                   e.currentTarget.style.boxShadow = '0 10px 15px rgba(0, 0, 0, 0.1)';
                 }
               }}

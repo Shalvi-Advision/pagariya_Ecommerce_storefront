@@ -429,11 +429,11 @@ const OrdersPage = () => {
                             return items.map((item, index) => (
                               <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                 <img
-                                  src={item.product_image || item.image || '/images/logo.jpg'}
+                                  src={item.product_image || item.image || '/images/default_image.jpg'}
                                   alt={item.product_name || item.title || 'Product'}
                                   className="w-12 h-12 object-cover rounded flex-shrink-0 border border-gray-200"
                                   onError={(e) => {
-                                    e.target.src = '/images/logo.jpg';
+                                    e.target.src = '/images/default_image.jpg';
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">

@@ -192,7 +192,7 @@ const LoginPage = () => {
               </div>
             ) : (
               <img
-                src={`${process.env.PUBLIC_URL}/images/Main_Logo.jpg?v=2`}
+                src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg?v=2`}
                 alt="Grahak Peth"
                 className="h-12 w-auto object-contain"
                 style={{

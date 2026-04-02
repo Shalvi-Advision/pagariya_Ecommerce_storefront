@@ -94,7 +94,7 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
   };
 
   // Default fallback values
-  const getDefaultImage = () => '/images/logo.jpg';
+  const getDefaultImage = () => '/images/default_image.jpg';
   const getDefaultBgColor = () => '#f3f4f6';
 
   // Load categories for a specific department

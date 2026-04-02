@@ -38,7 +38,7 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   const displayPrice = price || our_price || 0;
   const displayMrp = mrp || product_mrp || 0;
   const displayDiscount = discount || discount_percentage || 0;
-  const displayImage = image_url || pcode_img || image || '/images/logo.jpg';
+  const displayImage = image_url || pcode_img || image || '/images/default_image.jpg';
   const displayPcode = pcode || id || 'unknown';
 
   // Create weight options if not provided
@@ -203,7 +203,10 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
           
           <button
             onClick={handleAddToCart}
-            className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            style={{ backgroundColor: '#cc6e02' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#b35f02'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#cc6e02'; }}
           >
             <ShoppingCartIcon className="w-4 h-4" />
             ADD TO CART

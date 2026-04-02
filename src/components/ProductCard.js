@@ -71,7 +71,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   const safeDescription = safeValue(description, 'No description available');
   const safeBrandName = safeValue(brand_name, '');
   const safePackageUnit = safeValue(package_unit, 'unit');
-  const safeImage = safeValue(image, fallbackImage || '/images/logo.jpg');
+  const safeImage = safeValue(image, fallbackImage || '/images/default_image.jpg');
   const safePcode = safeValue(pcode, safeId); // Use pcode if available, fallback to id
 
   // Debug: Log the final image URL being used
@@ -354,9 +354,20 @@ const ProductCard = ({ product, onAddToCart }) => {
                 title={!storeEnabled ? (getStoreMessage() || 'Store is not accepting orders') : (safeStoreQuantity === 0 ? 'Out of stock' : 'Add to cart')}
                 className={`w-full py-2.5 sm:py-3 px-4 sm:px-5 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 shadow-md ${
                   safeStoreQuantity > 0 && !addingToCart && storeEnabled
-                    ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white hover:shadow-lg transform hover:scale-105'
+                    ? 'text-white hover:shadow-lg transform hover:scale-105'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
+                style={safeStoreQuantity > 0 && !addingToCart && storeEnabled ? { backgroundColor: '#cc6e02' } : {}}
+                onMouseEnter={(e) => {
+                  if (safeStoreQuantity > 0 && !addingToCart && storeEnabled) {
+                    e.currentTarget.style.backgroundColor = '#b35f02';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (safeStoreQuantity > 0 && !addingToCart && storeEnabled) {
+                    e.currentTarget.style.backgroundColor = '#cc6e02';
+                  }
+                }}
               >
                 {addingToCart ? (
                   <>
