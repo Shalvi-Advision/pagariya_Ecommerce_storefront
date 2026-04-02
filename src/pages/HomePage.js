@@ -57,12 +57,12 @@ const HomePage = () => {
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        return location?.store?.store_code || 'AVB';
+        return location?.store?.store_code || 'GRK001';
       } catch (error) {
         console.warn('Failed to parse location data:', error);
       }
     }
-    return 'AVB'; // Default store code
+    return 'GRK001'; // Default store code
   };
 
   // Memoize loadProducts function to prevent recreating it on every render

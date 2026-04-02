@@ -13,7 +13,7 @@ export const transformToApiFormat = (cartItem) => {
     package_unit: cartItem.package_unit || cartItem.packageSize?.split(' ')[1] || 'GM',
     brand_name: cartItem.brand || cartItem.brand_name || 'Unknown',
     pcode_img: cartItem.image || cartItem.pcode_img || '/images/default_image.jpg',
-    store_code: cartItem.store_code || 'AVB' // Default store code
+    store_code: cartItem.store_code || 'GRK001' // Default store code
   };
 };
 
@@ -262,12 +262,12 @@ export const getStoreCode = () => {
     const locationData = localStorage.getItem('confirmedLocation');
     if (locationData) {
       const location = JSON.parse(locationData);
-      return location?.store?.store_code || 'AVB';
+      return location?.store?.store_code || 'GRK001';
     }
   } catch (error) {
     console.error('Error getting store code:', error);
   }
-  return 'AVB';
+  return 'GRK001';
 };
 
 // Check if store is enabled

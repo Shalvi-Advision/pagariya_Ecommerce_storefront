@@ -25,13 +25,13 @@ const FavoritesPage = () => {
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        return location?.store?.store_code || location?.store?.storeCode || 'AVB';
+        return location?.store?.store_code || location?.store?.storeCode || 'GRK001';
       } catch (error) {
         console.error('Error parsing location data:', error);
-        return 'AVB';
+        return 'GRK001';
       }
     }
-    return 'AVB';
+    return 'GRK001';
   };
 
   // Fetch favorite products from API

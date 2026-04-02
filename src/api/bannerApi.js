@@ -9,12 +9,12 @@ const getStoreCode = () => {
     const locationData = localStorage.getItem('confirmedLocation');
     if (locationData) {
       const location = JSON.parse(locationData);
-      return location?.store?.store_code || 'AVB';
+      return location?.store?.store_code || 'GRK001';
     }
   } catch (error) {
     console.error('Error getting store code:', error);
   }
-  return 'AVB';
+  return 'GRK001';
 };
 
 // Offline storage utilities for banners
