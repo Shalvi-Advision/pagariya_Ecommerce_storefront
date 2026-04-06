@@ -24,6 +24,7 @@ import OrderSuccessModal from '../components/OrderSuccessModal';
 import { apiPost } from '../services/api';
 import cartService from '../services/cartService';
 import { PROJECT_CODE } from '../constants';
+import { calculateDeliveryCharges } from '../api/deliveryChargesApi';
 
 const CheckoutPageNew = () => {
     const { items, totalItems, totalPrice, clearCart, clearUserCart } = useCart();
@@ -63,6 +64,16 @@ const CheckoutPageNew = () => {
     const [isSessionExpired, setIsSessionExpired] = useState(false);
     const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
+    // Delivery charges state
+    const [deliveryChargeData, setDeliveryChargeData] = useState({
+        distance_km: 0,
+        delivery_charge: 0,
+        free_delivery: false,
+        delivery_available: true,
+        reason: '',
+        isLoading: false
+    });
+
     // Checkout data
     const [checkoutData, setCheckoutData] = useState(() => ({
         selectedPincode: getCurrentPincode() || '',
@@ -75,6 +86,89 @@ const CheckoutPageNew = () => {
     }));
 
     // Fetch pickup stores
+    // Fetch delivery charges when address is selected
+    // Geocode address using Nominatim (free, no API key)
+    const geocodeAddress = async (address) => {
+        const query = [address.addressLine1, address.city, address.pinCode, 'India']
+            .filter(Boolean).join(', ');
+        try {
+            const resp = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+                { headers: { 'User-Agent': 'ShalviEcommerce/1.0' } }
+            );
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+            }
+        } catch (e) {
+            console.warn('Nominatim geocoding failed:', e.message);
+        }
+        // Fallback: try with just pincode
+        try {
+            const resp = await fetch(
+                `https://nominatim.openstreetmap.org/search?postalcode=${address.pinCode}&country=India&format=json&limit=1`,
+                { headers: { 'User-Agent': 'ShalviEcommerce/1.0' } }
+            );
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+            }
+        } catch (e) {
+            console.warn('Pincode geocoding failed:', e.message);
+        }
+        return null;
+    };
+
+    const fetchDeliveryCharges = async (address) => {
+        const storeCode = confirmedLocation?.store?.store_code || 'GRK001';
+        setDeliveryChargeData(prev => ({ ...prev, isLoading: true }));
+
+        let lat = address?.latitude;
+        let lon = address?.longitude;
+
+        // If address has no coordinates, geocode it
+        if (!lat || !lon || lat === '' || lon === '' || lat === '0' || lon === '0') {
+            console.log('Address has no coordinates, geocoding...');
+            const coords = await geocodeAddress(address);
+            if (coords) {
+                lat = coords.latitude;
+                lon = coords.longitude;
+                console.log(`Geocoded to: ${lat}, ${lon}`);
+            } else {
+                console.warn('Geocoding failed, cannot calculate delivery charges');
+                setDeliveryChargeData(prev => ({
+                    ...prev, delivery_charge: 0, free_delivery: false,
+                    distance_km: 0, isLoading: false, reason: 'Unable to determine location'
+                }));
+                return;
+            }
+        }
+
+        try {
+            const result = await calculateDeliveryCharges({
+                store_code: storeCode,
+                address_latitude: lat,
+                address_longitude: lon,
+                order_amount: totalPrice
+            });
+            if (result.success && result.data) {
+                setDeliveryChargeData({
+                    distance_km: result.data.distance_km || 0,
+                    delivery_charge: result.data.delivery_charge || 0,
+                    free_delivery: result.data.free_delivery || false,
+                    delivery_available: result.data.delivery_available !== false,
+                    reason: result.data.reason || '',
+                    isLoading: false
+                });
+            } else {
+                setDeliveryChargeData(prev => ({ ...prev, delivery_charge: 0, free_delivery: false, isLoading: false }));
+            }
+        } catch (err) {
+            console.error('Error fetching delivery charges:', err);
+            setDeliveryChargeData(prev => ({ ...prev, delivery_charge: 0, free_delivery: false, isLoading: false }));
+        }
+    };
+
     const fetchPickupStores = async (pincode) => {
         if (!pincode) return;
         setIsLoadingStores(true);
@@ -409,6 +503,8 @@ const CheckoutPageNew = () => {
                 payment_mode_id: paymentModeId,
                 order_notes: orderNotes,
                 payment_details: paymentDetails,
+                delivery_charges: deliveryChargeData.delivery_charge || 0,
+                delivery_distance: deliveryChargeData.distance_km || 0,
             };
 
             const response = await apiPost('/orders/place-order', orderPayload);
@@ -876,10 +972,20 @@ const CheckoutPageNew = () => {
                                                 } ${
                                                     isMobile ? 'p-3' : 'p-4'
                                                 }`}
-                                                onClick={() => setCheckoutData(prev => ({
-                                                    ...prev,
-                                                    selectedAddress: { id: addr.id, name: addr.name, address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}` }
-                                                }))}
+                                                onClick={() => {
+                                                    const selectedAddr = {
+                                                        id: addr.id,
+                                                        name: addr.name,
+                                                        address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}`,
+                                                        addressLine1: addr.addressLine1,
+                                                        city: addr.city,
+                                                        pinCode: addr.pinCode,
+                                                        latitude: addr.latitude,
+                                                        longitude: addr.longitude
+                                                    };
+                                                    setCheckoutData(prev => ({ ...prev, selectedAddress: selectedAddr }));
+                                                    fetchDeliveryCharges(selectedAddr);
+                                                }}
                                             >
                                                 <div className="flex items-start gap-3 sm:gap-4">
                                                     <div className={`bg-primary-500 rounded-xl flex items-center justify-center text-white flex-shrink-0 ${
@@ -1093,61 +1199,51 @@ const CheckoutPageNew = () => {
                                     ₹{totalPrice.toFixed(2)}
                                 </span>
                             </div>
+                            {deliveryChargeData.distance_km > 0 && (
+                                <div className="flex justify-between items-center py-1">
+                                    <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                        <MapPinIcon className="w-3.5 h-3.5" />
+                                        Distance
+                                    </span>
+                                    <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                        {deliveryChargeData.distance_km} km
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center py-1">
-                                <span className={`flex items-center gap-1.5 text-gray-600 ${
-                                    isMobile ? 'text-xs' : 'text-[13px]'
-                                }`}>
-                                    <MapPinIcon className="w-3.5 h-3.5" />
-                                    Distance
-                                </span>
-                                <span className={`text-gray-900 font-semibold ${
-                                    isMobile ? 'text-xs' : 'text-[13px]'
-                                }`}>
-                                    16.6 km
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1">
-                                <span className={`flex items-center gap-1.5 text-gray-600 ${
-                                    isMobile ? 'text-xs' : 'text-[13px]'
-                                }`}>
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                     <TruckIcon className="w-3.5 h-3.5" />
                                     Delivery Fee
                                 </span>
-                                <span className={`text-primary-500 font-bold ${
-                                    isMobile ? 'text-xs' : 'text-[13px]'
+                                <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
+                                    deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'text-green-600' : 'text-gray-900'
                                 }`}>
-                                    FREE
+                                    {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : `₹${deliveryChargeData.delivery_charge.toFixed(2)}`}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center py-1">
-                                <span className={`flex items-center gap-1.5 text-gray-600 ${
-                                    isMobile ? 'text-xs' : 'text-[13px]'
-                                }`}>
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                     <CurrencyDollarIcon className="w-3.5 h-3.5" />
                                     Savings
                                 </span>
-                                <span className={`text-primary-500 font-semibold ${
-                                    isMobile ? 'text-xs' : 'text-[13px]'
-                                }`}>
+                                <span className={`text-green-600 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                     ₹{totalSavings.toFixed(2)}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-t-2 border-gray-200 mt-2 sm:mt-3 pt-2 sm:pt-3">
-                                <span className={`font-extrabold text-gray-900 ${
-                                    isMobile ? 'text-base' : 'text-lg'
-                                }`}>
+                                <span className={`font-extrabold text-gray-900 ${isMobile ? 'text-base' : 'text-lg'}`}>
                                     TOTAL
                                 </span>
-                                <span className={`font-extrabold text-primary-500 ${
-                                    isMobile ? 'text-lg' : 'text-[22px]'
-                                }`}>
-                                    ₹{totalPrice.toFixed(2)}
+                                <span className={`font-extrabold text-primary-500 ${isMobile ? 'text-lg' : 'text-[22px]'}`}>
+                                    ₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 bg-primary-50 text-primary-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold mt-2 sm:mt-3">
-                                <CheckCircleIcon className="w-3.5 h-3.5" />
-                                Free delivery for this order
-                            </div>
+                            {(deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0) && deliveryChargeData.distance_km > 0 && (
+                                <div className="flex items-center gap-1.5 sm:gap-2 bg-green-50 text-green-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold mt-2 sm:mt-3">
+                                    <CheckCircleIcon className="w-3.5 h-3.5" />
+                                    Free delivery for this order
+                                </div>
+                            )}
                         </div>
 
                         <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 mb-2 shadow-sm">
@@ -1240,55 +1336,59 @@ const CheckoutPageNew = () => {
                 {currentStep < 4 && (
                     <div className={`rounded-xl p-3 sm:p-4 ${isMobile ? 'bg-gray-50 border border-gray-100 mt-auto' : 'bg-white shadow-lg border border-gray-200 rounded-2xl mt-4'}`}>
                         <div className="flex justify-between items-center py-1">
-                            <span className={`text-gray-600 ${
-                                isMobile ? 'text-xs' : 'text-[13px]'
-                            }`}>
+                            <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                 Order Subtotal
                             </span>
-                            <span className={`text-gray-900 font-semibold ${
-                                isMobile ? 'text-xs' : 'text-[13px]'
-                            }`}>
+                            <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                 ₹{totalPrice.toFixed(2)}
                             </span>
                         </div>
+                        {deliveryChargeData.distance_km > 0 && (
+                            <div className="flex justify-between items-center py-1">
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                    🚗 Distance:
+                                </span>
+                                <span className={`text-gray-700 font-medium ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                    {deliveryChargeData.distance_km} km
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center py-1">
-                            <span className={`flex items-center gap-1.5 text-gray-600 ${
-                                isMobile ? 'text-xs' : 'text-[13px]'
-                            }`}>
+                            <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                 <TruckIcon className="w-3.5 h-3.5" />
                                 Delivery Fee:
                             </span>
-                            <span className={`text-primary-500 font-bold ${
-                                isMobile ? 'text-xs' : 'text-[13px]'
+                            <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
+                                deliveryChargeData.isLoading ? 'text-gray-400' :
+                                deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'text-green-600' : 'text-gray-900'
                             }`}>
-                                ₹0.00
+                                {deliveryChargeData.isLoading ? 'Calculating...' :
+                                 deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' :
+                                 `₹${deliveryChargeData.delivery_charge.toFixed(2)}`}
                             </span>
                         </div>
                         <div className="flex justify-between items-center py-1">
-                            <span className={`flex items-center gap-1.5 text-gray-600 ${
-                                isMobile ? 'text-xs' : 'text-[13px]'
-                            }`}>
+                            <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                 <CurrencyDollarIcon className="w-3.5 h-3.5" />
                                 You Save:
                             </span>
-                            <span className={`text-primary-500 font-semibold ${
-                                isMobile ? 'text-xs' : 'text-[13px]'
-                            }`}>
+                            <span className={`text-green-600 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                 ₹{totalSavings.toFixed(2)}
                             </span>
                         </div>
                         <div className="flex justify-between items-center py-1 border-t-2 border-gray-200 mt-2 sm:mt-3 pt-2 sm:pt-3">
-                            <span className={`font-extrabold text-gray-900 ${
-                                isMobile ? 'text-base' : 'text-lg'
-                            }`}>
+                            <span className={`font-extrabold text-gray-900 ${isMobile ? 'text-base' : 'text-lg'}`}>
                                 Total
                             </span>
-                            <span className={`font-extrabold text-primary-500 ${
-                                isMobile ? 'text-lg' : 'text-[22px]'
-                            }`}>
-                                ₹{totalPrice.toFixed(2)}
+                            <span className={`font-extrabold text-primary-500 ${isMobile ? 'text-lg' : 'text-[22px]'}`}>
+                                ₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}
                             </span>
                         </div>
+                        {deliveryChargeData.free_delivery && deliveryChargeData.distance_km > 0 && (
+                            <div className="flex items-center justify-center gap-1.5 mt-2 py-1.5 bg-green-50 rounded-lg">
+                                <span className="text-green-600 text-[11px] font-medium">✅ Free delivery for this order</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -1302,7 +1402,7 @@ const CheckoutPageNew = () => {
                 {isMobile && (
                     <div className="flex items-center justify-between mb-2 px-1">
                         <span className="text-xs text-gray-500">{totalItems} items</span>
-                        <span className="text-sm font-bold text-gray-900">₹{totalPrice.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-gray-900">₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}</span>
                     </div>
                 )}
                 <button
@@ -1636,33 +1736,35 @@ const CheckoutPageNew = () => {
                                         <MapPinIcon style={{ width: '14px', height: '14px' }} />
                                         Distance
                                     </span>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>16.6 km</span>
+                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>{deliveryChargeData.distance_km > 0 ? `${deliveryChargeData.distance_km} km` : '--'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
                                         <TruckIcon style={{ width: '14px', height: '14px' }} />
                                         Delivery Fee
                                     </span>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 700 }}>FREE</span>
+                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? '#16a34a' : colors.text.primary, fontWeight: 700 }}>
+                                        {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : `₹${deliveryChargeData.delivery_charge.toFixed(2)}`}
+                                    </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
                                         <CurrencyDollarIcon style={{ width: '14px', height: '14px' }} />
                                         Savings
                                     </span>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.primary, fontWeight: 600 }}>₹{totalSavings.toFixed(2)}</span>
+                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#16a34a', fontWeight: 600 }}>₹{totalSavings.toFixed(2)}</span>
                                 </div>
-                                <div style={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
-                                    alignItems: 'center', 
-                                    padding: `${spacing.xs} 0`, 
-                                    marginTop: spacing.sm, 
-                                    paddingTop: spacing.sm, 
-                                    borderTop: `2px dashed ${colors.border}` 
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: `${spacing.xs} 0`,
+                                    marginTop: spacing.sm,
+                                    paddingTop: spacing.sm,
+                                    borderTop: `2px dashed ${colors.border}`
                                 }}>
                                     <span style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 800, color: colors.text.primary }}>Total</span>
-                                    <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 800, color: colors.primary }}>₹{totalPrice.toFixed(2)}</span>
+                                    <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 800, color: colors.primary }}>₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}</span>
                                 </div>
                             </div>
 
