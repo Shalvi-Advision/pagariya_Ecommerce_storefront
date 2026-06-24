@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { usePincode } from '../context/PincodeContext';
@@ -90,11 +91,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
                     {/* Product Image */}
                     <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                       <img
-                        src={item.image || '/images/default_image.jpg'}
+                        src={item.image || DEFAULT_PRODUCT_IMAGE}
                         alt={item.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = '/images/default_image.jpg';
+                          onProductImageError(e);
                         }}
                       />
                     </div>

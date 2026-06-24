@@ -2,6 +2,7 @@
 // Helper functions for cart operations and data transformation
 
 import { DEFAULT_STORE_CODE } from '../constants';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 
 // Transform frontend cart item to API format
 export const transformToApiFormat = (cartItem) => {
@@ -14,7 +15,7 @@ export const transformToApiFormat = (cartItem) => {
     package_size: cartItem.package_size || cartItem.packageSize?.split(' ')[0] || 1,
     package_unit: cartItem.package_unit || cartItem.packageSize?.split(' ')[1] || 'GM',
     brand_name: cartItem.brand || cartItem.brand_name || 'Unknown',
-    pcode_img: cartItem.image || cartItem.pcode_img || '/images/default_image.jpg',
+    pcode_img: cartItem.image || cartItem.pcode_img || DEFAULT_PRODUCT_IMAGE,
     store_code: cartItem.store_code || DEFAULT_STORE_CODE
   };
 };
@@ -327,8 +328,8 @@ export const createCartItemFromProduct = (product, quantity = 1) => {
     price: product.our_price || product.price || 0,
     unit_price: product.our_price || product.price || 0,
     quantity: quantity,
-    image: product.pcode_img || product.image_url || product.image || '/images/default_image.jpg',
-    pcode_img: product.pcode_img || product.image_url || product.image || '/images/default_image.jpg',
+    image: product.pcode_img || product.image_url || product.image || DEFAULT_PRODUCT_IMAGE,
+    pcode_img: product.pcode_img || product.image_url || product.image || DEFAULT_PRODUCT_IMAGE,
     brand: product.brand_name || product.brand || 'Unknown',
     brand_name: product.brand_name || product.brand || 'Unknown',
     packageSize: product.package_size ? `${product.package_size} ${product.package_unit || 'GM'}` : '1 GM',

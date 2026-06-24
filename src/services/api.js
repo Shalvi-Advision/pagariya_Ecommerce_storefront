@@ -1,5 +1,6 @@
 // Base API service with authentication support
 import axios from 'axios';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { APP_CONSTANTS } from '../constants';
 import { optimizedFetch, generateCacheKey, cacheResponse, getCachedResponse } from '../utils/apiOptimizer';
 import { throttle } from '../utils/asyncUtils';
@@ -444,7 +445,7 @@ const processProductData = (product) => {
     package_size: product.package_size ? `${product.package_size} ${product.package_unit || 'GM'}` : '1 GM',
     category: product.category || 'General',
     brand: product.brand_name || product.brand || 'Unknown',
-    image_url: product.pcode_img || product.image_url || '/images/default_image.jpg',
+    image_url: product.pcode_img || product.image_url || DEFAULT_PRODUCT_IMAGE,
     is_active: product.pcode_status === 'Y',
     created_at: product.created_at || new Date().toISOString(),
     updated_at: product.updated_at || new Date().toISOString()

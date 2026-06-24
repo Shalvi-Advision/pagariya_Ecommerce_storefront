@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useNavigate } from 'react-router-dom';
 import { XCircleIcon, MinusIcon, PlusIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import { useCart } from '../context/CartContext';
@@ -229,7 +230,7 @@ const SearchDropdown = ({
             {displayProducts.map((product, index) => {
               const isSelected = index === selectedIndex;
               const productId = product.p_code || product.id || product._id;
-              const productImage = product.pcode_img || product.image_url || '/images/default_image.jpg';
+              const productImage = product.pcode_img || product.image_url || DEFAULT_PRODUCT_IMAGE;
               const productName = product.product_name || 'Unnamed Product';
               const price = product.our_price || product.product_mrp || 0;
               const cartQty = getCartQuantity(productId);
@@ -254,7 +255,7 @@ const SearchDropdown = ({
                         src={productImage}
                         alt={productName}
                         className="w-full h-full object-cover"
-                        onError={(e) => { e.target.src = '/images/default_image.jpg'; }}
+                        onError={(e) => { onProductImageError(e); }}
                         loading="lazy"
                       />
                     </div>

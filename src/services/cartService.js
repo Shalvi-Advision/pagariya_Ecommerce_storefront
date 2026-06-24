@@ -2,6 +2,7 @@
 // Handles all cart-related API operations with data transformation
 
 import { apiPost, apiGet } from './api';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { APP_CONSTANTS } from '../constants';
 
 // Cart Service Class
@@ -67,7 +68,7 @@ class CartService {
       package_size: packageSize || 1,
       package_unit: packageUnit,
       brand_name: cartItem.brand || cartItem.brand_name || 'Unknown',
-      pcode_img: cartItem.image || cartItem.pcode_img || '/images/default_image.jpg'
+      pcode_img: cartItem.image || cartItem.pcode_img || DEFAULT_PRODUCT_IMAGE
     };
   }
 

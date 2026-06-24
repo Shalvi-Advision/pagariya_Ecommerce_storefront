@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { getAdvertisements } from '../api/merchandisingApi';
@@ -249,8 +250,8 @@ const AdvertisementCarousel = () => {
                           id: product.p_code || product.product_details?.p_code,
                           p_code: product.product_details?.p_code || product.p_code,
                           product_name: product.product_details?.product_name || '',
-                          image_url: product.product_details?.pcode_img || product.product_details?.image_url || '/images/default_image.jpg',
-                          pcode_img: product.product_details?.pcode_img || product.product_details?.image_url || '/images/default_image.jpg',
+                          image_url: product.product_details?.pcode_img || product.product_details?.image_url || DEFAULT_PRODUCT_IMAGE,
+                          pcode_img: product.product_details?.pcode_img || product.product_details?.image_url || DEFAULT_PRODUCT_IMAGE,
                           product_mrp: product.product_details?.product_mrp || 0,
                           our_price: product.product_details?.our_price || 0,
                           discount_percentage: product.product_details?.discount_percentage || 0,

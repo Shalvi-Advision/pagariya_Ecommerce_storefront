@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useFavorite } from '../context/FavoriteContext';
 import { useAuth } from '../context/AuthContextOptimized';
 import { Link, useNavigate } from 'react-router-dom';
@@ -234,11 +235,11 @@ const FavoritesPage = () => {
                 </button>
                 
                 <img
-                  src={product.image_url || '/images/default_image.jpg'}
+                  src={product.image_url || DEFAULT_PRODUCT_IMAGE}
                   alt={product.product_name}
                   className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                   onError={(e) => {
-                    e.target.src = '/images/default_image.jpg';
+                    onProductImageError(e);
                   }}
                 />
                 {product.discount_percentage > 0 && (

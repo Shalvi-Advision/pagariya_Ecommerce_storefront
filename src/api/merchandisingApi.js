@@ -1,5 +1,6 @@
 // Merchandising API service functions
 import { APP_CONSTANTS, DEFAULT_STORE_CODE } from '../constants';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
@@ -143,8 +144,8 @@ const processProductData = (product) => {
     product_name: product.product_name || '',
     our_price: product.our_price || 0,
     product_mrp: product.product_mrp || 0,
-    pcode_img: product.pcode_img || product.image_url || '/images/default_image.jpg',
-    image_url: product.pcode_img || product.image_url || '/images/default_image.jpg',
+    pcode_img: product.pcode_img || product.image_url || DEFAULT_PRODUCT_IMAGE,
+    image_url: product.pcode_img || product.image_url || DEFAULT_PRODUCT_IMAGE,
     store_quantity: product.store_quantity || 50,
     package_size: product.package_size || '',
     package_unit: product.package_unit || '',
@@ -182,7 +183,7 @@ const getFallbackBestSellers = () => {
               product_name: 'Ind Chska Kas Methi Mas 25gm',
               our_price: 24,
               product_mrp: 30,
-              pcode_img: '/images/default_image.jpg',
+              pcode_img: DEFAULT_PRODUCT_IMAGE,
               store_quantity: 128,
               package_size: '25',
               package_unit: 'GM',
@@ -199,7 +200,7 @@ const getFallbackBestSellers = () => {
               product_name: 'Ind Chska Kanda Las Mas 500gm',
               our_price: 150,
               product_mrp: 175,
-              pcode_img: '/images/default_image.jpg',
+              pcode_img: DEFAULT_PRODUCT_IMAGE,
               store_quantity: 85,
               package_size: '500',
               package_unit: 'GM',
@@ -216,7 +217,7 @@ const getFallbackBestSellers = () => {
               product_name: 'Ind Chska Chaat Masala 100gm',
               our_price: 36,
               product_mrp: 45,
-              pcode_img: '/images/default_image.jpg',
+              pcode_img: DEFAULT_PRODUCT_IMAGE,
               store_quantity: 95,
               package_size: '100',
               package_unit: 'GM',
@@ -252,7 +253,7 @@ const getFallbackTopSellers = () => {
               product_name: 'Ind Chska Kas Methi Mas 25gm',
               our_price: 24,
               product_mrp: 30,
-              pcode_img: '/images/default_image.jpg',
+              pcode_img: DEFAULT_PRODUCT_IMAGE,
               store_quantity: 128,
               package_size: '25',
               package_unit: 'GM',
@@ -271,7 +272,7 @@ const getFallbackTopSellers = () => {
               product_name: 'Ind Chska Kanda Las Mas 500gm',
               our_price: 150,
               product_mrp: 175,
-              pcode_img: '/images/default_image.jpg',
+              pcode_img: DEFAULT_PRODUCT_IMAGE,
               store_quantity: 85,
               package_size: '500',
               package_unit: 'GM',

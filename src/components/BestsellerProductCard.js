@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { Link } from 'react-router-dom';
 import { HeartIcon as HeartOutline, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
@@ -62,7 +63,7 @@ const BestsellerProductCard = ({ product }) => {
 
   const productId = p_code || id || 'unknown';
   const displayName = product_name || 'Product';
-  const displayImage = image_url || pcode_img || '/images/default_image.jpg';
+  const displayImage = image_url || pcode_img || DEFAULT_PRODUCT_IMAGE;
   const displayMrp = product_mrp || 0;
   const displayPrice = our_price || 0;
   const discount = discount_percentage || 0;
@@ -216,7 +217,7 @@ const BestsellerProductCard = ({ product }) => {
             alt={displayName}
             className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-2"
             onError={(e) => {
-              e.target.src = '/images/default_image.jpg';
+              onProductImageError(e);
             }}
           />
           {/* Placeholder for prepared dish image - can be added later */}

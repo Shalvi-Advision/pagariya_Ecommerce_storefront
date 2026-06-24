@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useNavigate } from 'react-router-dom';
 import { XMarkIcon, ChevronRightIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { getActiveDepartments, getActiveCategories, getActiveSubcategories } from '../services/groceryApi';
@@ -94,7 +95,7 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
   };
 
   // Default fallback values
-  const getDefaultImage = () => '/images/default_image.jpg';
+  const getDefaultImage = () => DEFAULT_PRODUCT_IMAGE;
   const getDefaultBgColor = () => '#f3f4f6';
 
   // Load categories for a specific department

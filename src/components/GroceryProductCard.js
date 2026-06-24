@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { Link } from 'react-router-dom';
 import { ShoppingCartIcon, HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
@@ -10,7 +11,6 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   const [selectedWeight, setSelectedWeight] = useState(product?.selectedWeight || safeWeightOptions[0] || '1 kg');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   // Extract product data with safe defaults
   const {
@@ -39,7 +39,7 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   const displayPrice = price || our_price || 0;
   const displayMrp = mrp || product_mrp || 0;
   const displayDiscount = discount || discount_percentage || 0;
-  const displayImage = image_url || pcode_img || image || '/images/default_image.jpg';
+  const displayImage = image_url || pcode_img || image || DEFAULT_PRODUCT_IMAGE;
   const displayPcode = pcode || id || 'unknown';
 
   // Create weight options if not provided
@@ -82,9 +82,8 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   };
 
   const handleImageError = (event) => {
-    console.log('❌ GroceryProductCard image failed to load:', image_url || pcode_img || image);
-    console.log('❌ GroceryProductCard image error event:', event);
-    setImageError(true);
+    onProductImageError(event);
+    setImageLoaded(true);
   };
 
   return (
@@ -98,25 +97,19 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
             console.log('🖼️ GroceryProductCard Product Image clicked - PCode:', displayPcode, 'Product Name:', displayName);
           }}
         >
-          {!imageError ? (
-            <img
-              src={displayImage}
-              alt={displayName}
-              className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
-                imageLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              loading="lazy"
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
-          ) : (
-            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-              <span className="text-2xl text-gray-400">📦</span>
-            </div>
-          )}
+          <img
+            src={displayImage}
+            alt={displayName}
+            className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            loading="lazy"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+          />
 
           {/* Loading placeholder */}
-          {!imageLoaded && !imageError && (
+          {!imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin"></div>
             </div>

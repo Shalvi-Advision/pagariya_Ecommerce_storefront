@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { usePincode } from '../context/PincodeContext';
@@ -506,12 +507,12 @@ const CartPage = () => {
                           <div className="flex gap-3">
                             {/* Product Image */}
                             <img
-                              src={item.image || '/images/default_image.jpg'}
+                              src={item.image || DEFAULT_PRODUCT_IMAGE}
                               alt={item.title}
                               className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
                               style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}
                               onError={(e) => {
-                                e.target.src = '/images/default_image.jpg';
+                                onProductImageError(e);
                               }}
                             />
                             {/* Product Details */}
@@ -576,12 +577,12 @@ const CartPage = () => {
                           {/* Product Image & Details */}
                           <div className="col-span-4 flex items-center gap-3 lg:gap-4">
                             <img
-                              src={item.image || '/images/default_image.jpg'}
+                              src={item.image || DEFAULT_PRODUCT_IMAGE}
                               alt={item.title}
                               className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded-lg flex-shrink-0"
                               style={{ borderColor: COLORS.gray[200], borderWidth: '1px', borderStyle: 'solid' }}
                               onError={(e) => {
-                                e.target.src = '/images/default_image.jpg';
+                                onProductImageError(e);
                               }}
                             />
                             <div className="min-w-0 flex-1">

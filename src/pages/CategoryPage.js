@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCart } from '../context/CartContext';
@@ -1184,14 +1185,14 @@ const CategoryPage = () => {
                         src={departmentImage} 
                         alt={selectedDepartment}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = '<span class="text-lg">📂</span>';
-                        }}
+                        onError={onProductImageError}
                       />
                     ) : (
-                      <span className="text-lg">📂</span>
+                      <img
+                        src={DEFAULT_PRODUCT_IMAGE}
+                        alt={selectedDepartment}
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </div>
                   <h2 
@@ -1636,12 +1637,10 @@ const CategoryPage = () => {
                         </button>
                         
                         <img
-                          src={product.image_url || '/images/default_image.jpg'}
+                          src={product.image_url || DEFAULT_PRODUCT_IMAGE}
                           alt={product.product_name}
                           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
-                          onError={(e) => {
-                            e.target.src = '/images/default_image.jpg';
-                          }}
+                          onError={onProductImageError}
                         />
                 {product.discount_percentage > 0 && (
                   <div 

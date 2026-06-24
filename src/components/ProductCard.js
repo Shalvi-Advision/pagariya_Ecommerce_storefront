@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { Link } from 'react-router-dom';
 import { ShoppingCartIcon, MinusIcon, PlusIcon, XMarkIcon, HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
@@ -72,7 +73,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   const safeDescription = safeValue(description, 'No description available');
   const safeBrandName = safeValue(brand_name, '');
   const safePackageUnit = safeValue(package_unit, 'unit');
-  const safeImage = safeValue(image, fallbackImage || '/images/default_image.jpg');
+  const safeImage = safeValue(image, fallbackImage || DEFAULT_PRODUCT_IMAGE);
   const safePcode = safeValue(pcode, safeId); // Use pcode if available, fallback to id
 
   // Debug: Log the final image URL being used

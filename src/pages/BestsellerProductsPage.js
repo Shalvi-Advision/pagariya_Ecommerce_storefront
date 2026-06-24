@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import BestsellerProductCard from '../components/BestsellerProductCard';
 import { getBestSellers } from '../api/merchandisingApi';
@@ -86,8 +87,8 @@ const BestsellerProductsPage = () => {
               id: item.p_code || item.product_details?.p_code,
               p_code: item.product_details?.p_code || item.p_code,
               product_name: item.product_details?.product_name || '',
-              image_url: item.product_details?.pcode_img || item.product_details?.image_url || '/images/default_image.jpg',
-              pcode_img: item.product_details?.pcode_img || item.product_details?.image_url || '/images/default_image.jpg',
+              image_url: item.product_details?.pcode_img || item.product_details?.image_url || DEFAULT_PRODUCT_IMAGE,
+              pcode_img: item.product_details?.pcode_img || item.product_details?.image_url || DEFAULT_PRODUCT_IMAGE,
               product_mrp: item.product_details?.product_mrp || 0,
               our_price: item.product_details?.our_price || 0,
               discount_percentage: item.product_details?.discount_percentage || 0,

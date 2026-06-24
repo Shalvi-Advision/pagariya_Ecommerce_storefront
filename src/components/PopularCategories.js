@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { Link } from 'react-router-dom';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { getActiveDepartments, getActiveCategories } from '../services/groceryApi';
@@ -50,7 +51,7 @@ const PopularCategories = () => {
 
 
   // Default fallback image
-  const getDefaultImage = () => '/images/default_image.jpg';
+  const getDefaultImage = () => DEFAULT_PRODUCT_IMAGE;
 
   useEffect(() => {
     const fetchRandomCategories = async () => {
@@ -162,25 +163,12 @@ const PopularCategories = () => {
                     >
                       <div className="flex flex-col items-center pt-2 sm:pt-4 pb-2">
                         <div className={`w-20 h-20 sm:w-32 sm:h-32 flex-shrink-0 ${category.color} flex items-center justify-center mb-2 sm:mb-3 transition-all duration-300 shadow-sm relative overflow-hidden rounded-lg sm:rounded-xl`}>
-                          {category.image_link ? (
-                            <img
-                              src={category.image_link}
-                              alt={category.name}
-                              className="w-full h-full object-cover drop-shadow transition-transform duration-300"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                const iconElement = e.target.parentElement.querySelector('.fallback-icon');
-                                if (iconElement) iconElement.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center transition-transform duration-300 rounded-lg sm:rounded-xl ${category.image_link ? 'hidden' : 'flex'}`}
-                          >
-                            <span className={`text-3xl sm:text-5xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
-                              {category.icon}
-                            </span>
-                          </div>
+                          <img
+                            src={category.image_link || DEFAULT_PRODUCT_IMAGE}
+                            alt={category.name}
+                            className="w-full h-full object-cover drop-shadow transition-transform duration-300"
+                            onError={onProductImageError}
+                          />
                         </div>
                         <span className="text-[10px] sm:text-xs font-semibold text-gray-800 text-center leading-tight group-hover:text-primary-500 transition-colors duration-200 px-1.5 sm:px-2 line-clamp-2">
                           {category.name}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getProductDetails } from '../services/api';
 import { useCart } from '../context/CartContext';
@@ -318,35 +319,18 @@ const ProductDetailsPage = () => {
                     ></div>
                   </div>
                 )}
-                {product.pcode_img ? (
-                  <img
-                    src={product.pcode_img}
-                    alt={product.product_name}
-                    className={`w-full ${isMobile ? 'h-56' : 'h-48 sm:h-64 lg:h-80 xl:h-96'} object-contain rounded-lg transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'
-                      }`}
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => setImageLoading(false)}
-                    loading="lazy"
-                  />
-                ) : (
-                  <div
-                    className={`w-full ${isMobile ? 'h-56' : 'h-48 sm:h-64 lg:h-80 xl:h-96'} rounded-lg flex items-center justify-center`}
-                    style={{ backgroundColor: COLORS.gray[100] }}
-                  >
-                    <div className="text-center" style={{ color: COLORS.gray[500] }}>
-                      <svg
-                        className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12 sm:w-16 sm:h-16'} mx-auto mb-2`}
-                        style={{ color: COLORS.gray[400] }}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className={`${isMobile ? 'text-xs' : 'text-xs sm:text-sm'}`}>No Image Available</p>
-                    </div>
-                  </div>
-                )}
+                <img
+                  src={product.pcode_img || product.image_url || DEFAULT_PRODUCT_IMAGE}
+                  alt={product.product_name}
+                  className={`w-full ${isMobile ? 'h-56' : 'h-48 sm:h-64 lg:h-80 xl:h-96'} object-contain rounded-lg transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  onLoad={() => setImageLoading(false)}
+                  onError={(e) => {
+                    onProductImageError(e);
+                    setImageLoading(false);
+                  }}
+                  loading="lazy"
+                />
               </div>
             </Card>
           </div>

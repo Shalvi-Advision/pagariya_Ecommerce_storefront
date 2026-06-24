@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { getPopularCategories } from '../api/merchandisingApi';
 
 const PopularCategoriesAPI = () => {
@@ -266,25 +267,12 @@ const PopularCategoriesAPI = () => {
                     >
                       <div className="flex flex-col items-center justify-center h-full p-4">
                         <div className={`w-16 h-16 ${category.color} flex items-center justify-center mb-3 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md relative overflow-hidden rounded-xl`}>
-                          {category.image_link ? (
-                            <img 
-                              src={category.image_link} 
-                              alt={category.name}
-                              className="w-full h-full object-cover drop-shadow-lg group-hover:scale-110 transition-transform duration-300"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                const iconElement = e.target.parentElement.querySelector('.fallback-icon');
-                                if (iconElement) iconElement.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div 
-                            className={`fallback-icon absolute inset-0 z-10 bg-gradient-to-br from-white to-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 rounded-xl ${category.image_link ? 'hidden' : 'flex'}`}
-                          >
-                            <span className={`text-4xl ${category.iconColor} w-full h-full flex items-center justify-center`}>
-                              {category.icon}
-                            </span>
-                          </div>
+                          <img
+                            src={category.image_link || DEFAULT_PRODUCT_IMAGE}
+                            alt={category.name}
+                            className="w-full h-full object-cover drop-shadow-lg group-hover:scale-110 transition-transform duration-300"
+                            onError={onProductImageError}
+                          />
                         </div>
                         <span className="text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-primary-500 transition-colors duration-200">
                           {category.name}

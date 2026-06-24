@@ -60,6 +60,7 @@ export const APP_CONSTANTS = {
   DEFAULT_STORE_CODE: process.env.REACT_APP_DEFAULT_STORE_CODE || 'PAG001',
   IMAGE_BASE_URL: process.env.REACT_APP_IMAGE_URL || 'https://ecommerceapi-web.onrender.com/uploads',
   LOGO_PATH: '/images/Main_Logo.webp',
+  DEFAULT_PRODUCT_IMAGE: '/images/dehault_image.png',
 
   // Pagination defaults
   DEFAULT_PAGE_SIZE: 20,
@@ -128,6 +129,7 @@ export const FIREBASE_VAPID_KEY = "BKUdXFtph_LHKjzTI3SQAHRmWwQpxNlkI-bVPp8IOdkaF
 // Export commonly used API constants for convenience
 export const { API_BASE_URL, PROJECT_CODE, DEFAULT_STORE_CODE, IMAGE_BASE_URL } = APP_CONSTANTS;
 export const LOGO_URL = `${process.env.PUBLIC_URL || ''}${APP_CONSTANTS.LOGO_PATH}`;
+export const DEFAULT_PRODUCT_IMAGE = APP_CONSTANTS.DEFAULT_PRODUCT_IMAGE;
 
 // Status constants
 export const STATUS = {
