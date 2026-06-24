@@ -182,18 +182,18 @@ function AppContent() {
 
   // Custom fallback UI for API errors
   const apiErrorFallback = (error, reset) => (
-    <div className="p-6 bg-orange-50 border border-orange-100 rounded-lg shadow-sm max-w-2xl mx-auto my-8">
+    <div className="p-6 bg-primary-50 border border-primary-100 rounded-lg shadow-sm max-w-2xl mx-auto my-8">
       <div className="flex items-center gap-3">
-        <div className="text-orange-500 text-2xl">⚠️</div>
-        <h2 className="text-lg font-bold text-orange-800">We're having trouble connecting to our servers</h2>
+        <div className="text-primary-500 text-2xl">⚠️</div>
+        <h2 className="text-lg font-bold text-primary-800">We're having trouble connecting to our servers</h2>
       </div>
-      <p className="mt-2 text-orange-700">
+      <p className="mt-2 text-primary-700">
         Don't worry! You can still browse products, but some features may be limited until the connection is restored.
       </p>
       <div className="mt-4 flex justify-end">
         <button
           onClick={reset}
-          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
           Try Again
         </button>

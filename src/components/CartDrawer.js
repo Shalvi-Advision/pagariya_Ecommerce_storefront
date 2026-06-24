@@ -174,12 +174,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
             if (isBelowMinOrder) {
               return (
-                <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
+                <div className="mb-3 p-2 bg-primary-50 border border-primary-200 rounded text-xs text-primary-800">
                   <p className="flex items-center gap-1 font-medium">
                     <InformationCircleIcon className="w-4 h-4" />
                     Min order: ₹{minOrderAmount}
                   </p>
-                  <p className="pl-5 text-orange-700">
+                  <p className="pl-5 text-primary-700">
                     Add ₹{minOrderAmount - currentTotal} more
                   </p>
                 </div>

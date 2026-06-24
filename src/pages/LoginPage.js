@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextOptimized';
 import { XMarkIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { COLORS } from '../constants/theme';
+import { APP_CONSTANTS, LOGO_URL } from '../constants';
 
 // Helper function to convert hex color to rgba with opacity
 const hexToRgba = (hex, opacity = 1) => {
@@ -105,8 +106,15 @@ const LoginPage = () => {
       >
         <div className="flex flex-col items-center justify-center w-full h-full p-12 relative z-10">
           <div className="max-w-md w-full flex flex-col items-center">
-            {/* Grahak Peth Logo */}
-            
+            {/* Pagariya Mart Logo */}
+            <div className="w-full flex items-center justify-center mb-8">
+              <img
+                src={LOGO_URL}
+                alt={APP_CONSTANTS.APP_NAME}
+                className="h-16 w-auto object-contain"
+                style={{ maxHeight: '80px', maxWidth: '280px' }}
+              />
+            </div>
 
             {/* Basket Image */}
             <div className="w-full flex items-center justify-center mb-6">
@@ -187,13 +195,13 @@ const LoginPage = () => {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold" style={{ color: COLORS.primary[600] }}>Grahak Peth</span>
+                  <span className="text-lg font-bold" style={{ color: COLORS.primary[600] }}>{APP_CONSTANTS.APP_NAME}</span>
                 </div>
               </div>
             ) : (
               <img
-                src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg?v=2`}
-                alt="Grahak Peth"
+                src={LOGO_URL}
+                alt={APP_CONSTANTS.APP_NAME}
                 className="h-12 w-auto object-contain"
                 style={{
                   maxHeight: '60px',

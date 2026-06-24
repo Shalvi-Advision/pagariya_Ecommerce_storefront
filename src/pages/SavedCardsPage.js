@@ -2,6 +2,7 @@ import React from 'react';
 import AccountSidebar from '../components/AccountSidebar';
 import SavedCardIllustration from '../components/SavedCardIllustration';
 import { useResponsive } from '../hooks/useResponsive';
+import { APP_CONSTANTS } from '../constants';
 
 const SavedCardsPage = () => {
   const { isMobile, isTablet, isDesktop } = useResponsive();
@@ -30,7 +31,7 @@ const SavedCardsPage = () => {
               <h1 className={`font-bold text-gray-900 mb-12 text-left ${
                 isMobile ? 'text-2xl' : isTablet ? 'text-3xl' : 'text-4xl md:text-5xl'
               }`}>
-                Card(s) saved with Grahak Peth
+                Card(s) saved with {APP_CONSTANTS.APP_NAME}
               </h1>
               
               {/* Illustration - centered below heading */}

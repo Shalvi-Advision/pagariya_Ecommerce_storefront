@@ -23,7 +23,7 @@ import { getEnabledPaymentModes, mapPaymentModeToUI } from '../api/paymentModesA
 import OrderSuccessModal from '../components/OrderSuccessModal';
 import { apiPost } from '../services/api';
 import cartService from '../services/cartService';
-import { PROJECT_CODE } from '../constants';
+import { PROJECT_CODE, DEFAULT_STORE_CODE } from '../constants';
 import { calculateDeliveryCharges } from '../api/deliveryChargesApi';
 
 const CheckoutPageNew = () => {
@@ -120,7 +120,7 @@ const CheckoutPageNew = () => {
     };
 
     const fetchDeliveryCharges = async (address) => {
-        const storeCode = confirmedLocation?.store?.store_code || 'GRK001';
+        const storeCode = confirmedLocation?.store?.store_code || DEFAULT_STORE_CODE;
         setDeliveryChargeData(prev => ({ ...prev, isLoading: true }));
 
         let lat = address?.latitude;
@@ -1533,7 +1533,7 @@ const CheckoutPageNew = () => {
                                 style={{
                                     width: '100%',
                                     padding: isMobile ? '12px' : '14px',
-                                    background: 'linear-gradient(135deg, #E57D02 0%, #cc6e02 100%)',
+                                    background: `linear-gradient(135deg, ${COLORS.primary[500]} 0%, ${COLORS.primary[600]} 100%)`,
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '12px',
@@ -1801,7 +1801,7 @@ const CheckoutPageNew = () => {
                                     borderRadius: '12px', 
                                     fontSize: isMobile ? '11px' : '12px', 
                                     fontWeight: 600, 
-                                    background: `linear-gradient(135deg, ${colors.primaryLight} 0%, #ffd199 100%)`, 
+                                    background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${COLORS.primary[200]} 100%)`, 
                                     color: colors.primaryDark,
                                     boxShadow: '0 2px 8px rgba(229, 125, 2, 0.1)'
                                 }}>

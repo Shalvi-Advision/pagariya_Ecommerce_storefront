@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { loadRazorpayScript } from '../utils/loadRazorpay';
 import { createRazorpayOrder, verifyRazorpayPayment } from '../api/razorpayApi';
+import { APP_CONSTANTS } from '../constants';
 
 /**
  * Custom hook for Razorpay payment integration
@@ -56,7 +57,7 @@ const useRazorpay = () => {
         key: 'rzp_test_RgWaBOoRN7gWiU',
         amount: orderResponse.amount, // Amount in paise
         currency: orderResponse.currency,
-        name: process.env.REACT_APP_COMPANY_NAME || 'Grahak Peth',
+        name: APP_CONSTANTS.APP_NAME,
         description: 'Order Payment',
         order_id: orderResponse.id,
         prefill: {
@@ -65,7 +66,7 @@ const useRazorpay = () => {
           contact: prefill.contact || '',
         },
         theme: {
-          color: '#E57D02', // Primary orange color
+          color: '#098547',
         },
         modal: {
           backdropclose: false,

@@ -23,12 +23,12 @@ const SavedCardIllustration = () => {
           {/* Left hand holding phone */}
           <div className="relative z-10">
             {/* Hand */}
-            <div className="w-16 h-20 bg-orange-200 rounded-full relative">
+            <div className="w-16 h-20 bg-primary-200 rounded-full relative">
               {/* Fingers */}
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-2 h-3 bg-orange-200 rounded-full"></div>
-              <div className="absolute -top-1 left-1/4 w-2 h-3 bg-orange-200 rounded-full"></div>
-              <div className="absolute -top-1 right-1/4 w-2 h-3 bg-orange-200 rounded-full"></div>
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 h-3 bg-orange-200 rounded-full"></div>
+              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-2 h-3 bg-primary-200 rounded-full"></div>
+              <div className="absolute -top-1 left-1/4 w-2 h-3 bg-primary-200 rounded-full"></div>
+              <div className="absolute -top-1 right-1/4 w-2 h-3 bg-primary-200 rounded-full"></div>
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 h-3 bg-primary-200 rounded-full"></div>
               
               {/* Smartwatch */}
               <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-8 h-2 bg-black rounded-full">
@@ -63,13 +63,13 @@ const SavedCardIllustration = () => {
           
           {/* Right hand pointing */}
           <div className="absolute top-6 right-8 z-10">
-            <div className="w-12 h-16 bg-orange-200 rounded-full relative">
+            <div className="w-12 h-16 bg-primary-200 rounded-full relative">
               {/* Pointing finger */}
-              <div className="absolute -top-1 right-0 w-2 h-4 bg-orange-200 rounded-full transform rotate-12"></div>
+              <div className="absolute -top-1 right-0 w-2 h-4 bg-primary-200 rounded-full transform rotate-12"></div>
               {/* Other fingers */}
-              <div className="absolute -top-1 left-1/4 w-2 h-3 bg-orange-200 rounded-full"></div>
-              <div className="absolute -top-1 right-1/4 w-2 h-3 bg-orange-200 rounded-full"></div>
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 h-3 bg-orange-200 rounded-full"></div>
+              <div className="absolute -top-1 left-1/4 w-2 h-3 bg-primary-200 rounded-full"></div>
+              <div className="absolute -top-1 right-1/4 w-2 h-3 bg-primary-200 rounded-full"></div>
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 h-3 bg-primary-200 rounded-full"></div>
             </div>
           </div>
         </div>

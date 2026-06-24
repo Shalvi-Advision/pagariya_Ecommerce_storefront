@@ -1,47 +1,47 @@
-// Warm Orange & Brown Color Palette for Grahak Peth E-Commerce
+// Pagariya Mart brand color palette (#098547)
 // Tailwind-friendly theme constants
 
 export const COLORS = {
-  // Primary Palette (Warm Orange)
+  // Primary Palette (Pagariya Green)
   primary: {
-    50:  '#fff8f0',   // Lightest warm tint
-    100: '#ffe8cc',
-    200: '#ffd199',
-    300: '#ffb566',
-    400: '#f99b33',
-    500: '#E57D02',   // Main Brand Orange
-    600: '#cc6e02',
-    700: '#b35f02',
-    800: '#994f02',
-    900: '#804001',   // Deep warm orange
+    50:  '#f0faf5',
+    100: '#d1f0e0',
+    200: '#a3e0c1',
+    300: '#6bc99e',
+    400: '#34a876',
+    500: '#098547',   // Main Brand Green
+    600: '#077340',
+    700: '#065f35',
+    800: '#054b2a',
+    900: '#03371f',
   },
 
-  // Secondary (Warm Tan range)
+  // Secondary (complementary green range)
   secondary: {
-    50:  '#fdf8f3',
-    100: '#f8edd9',
-    200: '#f0d9b5',
-    300: '#D4A574',   // Light tan
-    400: '#c49158',
-    500: '#B87B38',   // Main tan
-    600: '#a06a2e',
-    700: '#885a26',
-    800: '#6f4a1f',
-    900: '#573a18',
+    50:  '#f4faf7',
+    100: '#e0f2e9',
+    200: '#b8dfc9',
+    300: '#8fcaa8',
+    400: '#5fb384',
+    500: '#3d9a68',
+    600: '#2f7d54',
+    700: '#266645',
+    800: '#1f5237',
+    900: '#183f2b',
   },
 
-  // Accent (Saddle Brown range)
+  // Accent (deep forest green)
   accent: {
-    50:  '#faf4ee',
-    100: '#f0dfd0',
-    200: '#dbb99a',
-    300: '#A0603A',   // Light accent
-    400: '#8B4513',   // Main saddle brown
-    500: '#7a3c11',
-    600: '#6B350F',   // Dark accent
-    700: '#5a2d0d',
-    800: '#49240a',
-    900: '#381c08',
+    50:  '#eef6f1',
+    100: '#d5e8dc',
+    200: '#a8cfb8',
+    300: '#6fad87',
+    400: '#3d8a5f',
+    500: '#1f6b44',
+    600: '#185638',
+    700: '#13452d',
+    800: '#0e3523',
+    900: '#092619',
   },
 
   // Success (keep green for semantic meaning)
@@ -58,7 +58,7 @@ export const COLORS = {
     900: '#083f2e',
   },
 
-  // Warning (amber - harmonizes with orange palette)
+  // Warning (amber)
   warning: {
     50: '#fffaeb',
     100: '#fef0c7',
@@ -145,7 +145,7 @@ export const SHADOWS = {
   xl: '0 20px 25px rgba(0, 0, 0, 0.12)',
   '2xl': '0 25px 50px rgba(0, 0, 0, 0.15)',
   inner: 'inset 0 2px 4px rgba(0, 0, 0, 0.06)',
-  outline: '0 0 0 3px rgba(229, 125, 2, 0.5)', // orange glow
+  outline: '0 0 0 3px rgba(9, 133, 71, 0.5)',
 };
 
 export const Z_INDEX = {

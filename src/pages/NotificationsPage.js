@@ -10,11 +10,11 @@ const NotificationItem = ({ notification, onRead }) => {
 
     return (
         <div
-            className={`p-4 border-b border-gray-100 transition-colors ${!isRead ? 'bg-orange-50' : 'bg-white'}`}
+            className={`p-4 border-b border-gray-100 transition-colors ${!isRead ? 'bg-primary-50' : 'bg-white'}`}
             onClick={() => !isRead && onRead(notification._id)}
         >
             <div className="flex gap-3">
-                <div className={`p-2 rounded-full h-fit flex-shrink-0 ${!isRead ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`p-2 rounded-full h-fit flex-shrink-0 ${!isRead ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'}`}>
                     <BellIcon className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
@@ -30,7 +30,7 @@ const NotificationItem = ({ notification, onRead }) => {
                         {notification.body}
                     </p>
                     {!isRead && (
-                        <span className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-medium rounded-full">
+                        <span className="inline-block px-2 py-0.5 bg-primary-100 text-primary-700 text-[10px] font-medium rounded-full">
                             New
                         </span>
                     )}
@@ -123,7 +123,7 @@ const NotificationsPage = () => {
                 {notifications.length > 0 && (
                     <button
                         onClick={handleMarkAllRead}
-                        className="text-orange-600 text-sm font-medium hover:text-orange-700 flex items-center gap-1"
+                        className="text-primary-600 text-sm font-medium hover:text-primary-700 flex items-center gap-1"
                     >
                         <CheckIcon className="w-4 h-4" /> Mark all read
                     </button>
@@ -137,7 +137,7 @@ const NotificationsPage = () => {
             >
                 {loading && page === 1 ? (
                     <div className="flex flex-col items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mb-4"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
                         <p className="text-gray-500">Loading notifications...</p>
                     </div>
                 ) : notifications.length === 0 ? (

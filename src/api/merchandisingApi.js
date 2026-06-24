@@ -1,5 +1,5 @@
 // Merchandising API service functions
-import { APP_CONSTANTS } from '../constants';
+import { APP_CONSTANTS, DEFAULT_STORE_CODE } from '../constants';
 
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
@@ -445,7 +445,7 @@ const getFallbackSeasonalCategories = () => {
 export const getBestSellers = async (params = {}) => {
   try {
     const {
-      store_code = 'GRK001'
+      store_code = DEFAULT_STORE_CODE
     } = params;
 
     const url = `${API_BASE_URL}/best-sellers/list`;
@@ -549,7 +549,7 @@ export const getBestSellers = async (params = {}) => {
 export const getTopSellers = async (params = {}) => {
   try {
     const {
-      store_code = 'GRK001'
+      store_code = DEFAULT_STORE_CODE
     } = params;
 
     const url = `${API_BASE_URL}/top-sellers/list`;
@@ -653,7 +653,7 @@ export const getTopSellers = async (params = {}) => {
 export const getPopularCategories = async (params = {}) => {
   try {
     const {
-      store_code = 'GRK001'
+      store_code = DEFAULT_STORE_CODE
     } = params;
 
     const url = `${API_BASE_URL}/popular-categories/list`;
@@ -867,13 +867,13 @@ export const getSeasonalCategories = async (params = {}) => {
         const locationData = localStorage.getItem('confirmedLocation');
         if (locationData) {
           const location = JSON.parse(locationData);
-          store_code = location?.store?.storeCode || location?.store?.store_code || 'GRK001';
+          store_code = location?.store?.storeCode || location?.store?.store_code || DEFAULT_STORE_CODE;
         } else {
-          store_code = 'GRK001';
+          store_code = DEFAULT_STORE_CODE;
         }
       } catch (error) {
         console.warn('Failed to get store_code from localStorage:', error);
-        store_code = 'GRK001';
+        store_code = DEFAULT_STORE_CODE;
       }
     }
 

@@ -49,16 +49,17 @@ export {
 // Common constant combinations for easy use
 export const APP_CONSTANTS = {
   // App-wide constants
-  APP_NAME: 'Grahak Peth',
+  APP_NAME: process.env.REACT_APP_COMPANY_NAME || 'Pagariya Mart',
   APP_VERSION: '1.0.0',
   DEFAULT_CURRENCY: 'USD',
   DEFAULT_LANGUAGE: 'en',
 
   // API constants
-  API_BASE_URL: process.env.REACT_APP_API_URL || "https://ecommerceapi-web.onrender.com/api",
-  PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE || 'RET9575',
-  DEFAULT_STORE_CODE: process.env.REACT_APP_DEFAULT_STORE_CODE || 'GRK001',
+  API_BASE_URL: process.env.REACT_APP_API_URL || "http://localhost:5008/api",
+  PROJECT_CODE: process.env.REACT_APP_PROJECT_CODE || 'RET5677',
+  DEFAULT_STORE_CODE: process.env.REACT_APP_DEFAULT_STORE_CODE || 'PAG001',
   IMAGE_BASE_URL: process.env.REACT_APP_IMAGE_URL || 'https://ecommerceapi-web.onrender.com/uploads',
+  LOGO_PATH: '/images/Main_Logo.webp',
 
   // Pagination defaults
   DEFAULT_PAGE_SIZE: 20,
@@ -126,6 +127,7 @@ export const FIREBASE_VAPID_KEY = "BKUdXFtph_LHKjzTI3SQAHRmWwQpxNlkI-bVPp8IOdkaF
 
 // Export commonly used API constants for convenience
 export const { API_BASE_URL, PROJECT_CODE, DEFAULT_STORE_CODE, IMAGE_BASE_URL } = APP_CONSTANTS;
+export const LOGO_URL = `${process.env.PUBLIC_URL || ''}${APP_CONSTANTS.LOGO_PATH}`;
 
 // Status constants
 export const STATUS = {

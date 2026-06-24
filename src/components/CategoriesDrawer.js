@@ -397,7 +397,7 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
           ) : viewMode === 'departments' || (viewMode === 'departments' && isMobile) ? (
             /* Mobile: Split Screen | Desktop: Departments View */
             isMobile ? (
-              /* Mobile Split Screen Layout - Patel R Mart style */
+              /* Mobile Split Screen Layout - Pagariya Mart style */
               <div className="flex h-full" style={{ background: COLORS.gray[50] }}>
                 {/* Left Side - Departments List */}
                 <div

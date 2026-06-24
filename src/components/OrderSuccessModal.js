@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircleIcon, XMarkIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { COLORS } from '../constants/theme';
 
 const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
             <CheckCircleIcon style={{ 
               width: isMobile ? '36px' : '40px', 
               height: isMobile ? '36px' : '40px', 
-              color: '#E57D02' 
+              color: COLORS.primary[500] 
             }} />
           </div>
           
@@ -186,7 +187,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               <ShoppingBagIcon style={{ 
                 width: isMobile ? '40px' : '48px', 
                 height: isMobile ? '40px' : '48px', 
-                color: '#E57D02' 
+                color: COLORS.primary[500] 
               }} />
             </div>
           </div>
@@ -214,7 +215,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               <span style={{
                 fontSize: isMobile ? '13px' : '14px',
                 fontWeight: 600,
-                color: '#cc6e02'
+                color: COLORS.primary[600]
               }}>
                 Order #{orderNumber}
               </span>
@@ -241,7 +242,7 @@ const OrderSuccessModal = ({ isVisible, onClose, orderNumber }) => {
               style={{
                 flex: 1,
                 padding: isMobile ? '12px' : '14px',
-                background: 'linear-gradient(135deg, #E57D02 0%, #cc6e02 100%)',
+                background: `linear-gradient(135deg, ${COLORS.primary[500]} 0%, ${COLORS.primary[600]} 100%)`,
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',

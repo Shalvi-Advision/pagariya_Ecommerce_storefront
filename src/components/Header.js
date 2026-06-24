@@ -28,6 +28,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useFavorite } from '../context/FavoriteContext';
 import { COLORS } from '../constants/theme';
+import { APP_CONSTANTS, LOGO_URL } from '../constants';
 
 // Helper function to convert hex color to rgba with opacity
 const hexToRgba = (hex, opacity = 1) => {
@@ -384,8 +385,8 @@ const Header = () => {
             <div className="flex-1 flex justify-center absolute left-1/2 transform -translate-x-1/2">
               <Link to="/" className="flex items-center flex-shrink-0">
                 <img
-                  src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg`}
-                  alt="Grahak Peth"
+                  src={LOGO_URL}
+                  alt={APP_CONSTANTS.APP_NAME}
                   className="h-12 sm:h-14 w-auto object-contain"
                   style={{
                     maxHeight: '60px',
@@ -421,7 +422,7 @@ const Header = () => {
                   <BellIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span
-                      className="absolute top-1.5 right-1.5 bg-orange-500 text-white text-[8px] font-bold rounded-full h-2.5 w-2.5 flex items-center justify-center"
+                      className="absolute top-1.5 right-1.5 bg-primary-500 text-white text-[8px] font-bold rounded-full h-2.5 w-2.5 flex items-center justify-center"
                       style={{ backgroundColor: COLORS.secondary[500] }}
                     />
                   )}
@@ -856,8 +857,8 @@ const Header = () => {
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-shrink-0">
               <Link to="/" className="flex items-center">
                 <img
-                  src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg`}
-                  alt="Grahak Peth"
+                  src={LOGO_URL}
+                  alt={APP_CONSTANTS.APP_NAME}
                   className="h-10 sm:h-10 lg:h-14 w-auto object-contain"
                   style={{
                     maxHeight: '50px',
@@ -1235,7 +1236,7 @@ const Header = () => {
                 <BellIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5 sm:w-6 sm:h-6" />
                 {unreadCount > 0 && (
                   <span
-                    className="absolute top-1.5 right-1.5 bg-orange-500 text-white text-[8px] font-bold rounded-full h-2.5 w-2.5 flex items-center justify-center"
+                    className="absolute top-1.5 right-1.5 bg-primary-500 text-white text-[8px] font-bold rounded-full h-2.5 w-2.5 flex items-center justify-center"
                     style={{ backgroundColor: COLORS.secondary[500] }}
                   />
                 )}

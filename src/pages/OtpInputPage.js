@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContextOptimized';
 import { XMarkIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import { COLORS } from '../constants/theme';
+import { APP_CONSTANTS, LOGO_URL } from '../constants';
 
 // Helper function to convert hex color to rgba with opacity
 const hexToRgba = (hex, opacity = 1) => {
@@ -178,7 +179,7 @@ const OtpInputPage = () => {
 
             {/* Message */}
             <h3 className="text-2xl font-bold mb-4" style={{ color: COLORS.gray[800] }}>
-              {isRegistration ? 'Welcome to Grahak Peth!' : 'Secure Verification'}
+              {isRegistration ? `Welcome to ${APP_CONSTANTS.APP_NAME}!` : 'Secure Verification'}
             </h3>
             <p className="text-lg" style={{ color: COLORS.gray[600] }}>
               {isRegistration 
@@ -228,15 +229,12 @@ const OtpInputPage = () => {
                   background: `linear-gradient(to bottom right, ${COLORS.primary[50]}, ${COLORS.success[50]})`
                 }}
               >
-                <span className="text-2xl font-bold" style={{ color: COLORS.primary[600] }}>Grahak</span>
-                <div className="flex flex-col items-start">
-                  <span className="text-lg font-bold leading-none" style={{ color: COLORS.gray[800] }}>Peth</span>
-                </div>
+                <span className="text-2xl font-bold" style={{ color: COLORS.primary[600] }}>{APP_CONSTANTS.APP_NAME}</span>
               </div>
             ) : (
               <img
-                src={`${process.env.PUBLIC_URL}/images/Main_Logo%20copy.jpg?v=2`}
-                alt="Grahak Peth"
+                src={LOGO_URL}
+                alt={APP_CONSTANTS.APP_NAME}
                 className="h-12 w-auto object-contain"
                 style={{
                   maxHeight: '60px',

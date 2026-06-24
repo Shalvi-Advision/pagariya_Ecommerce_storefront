@@ -60,7 +60,7 @@ export const RESPONSIVE_COMPONENT_PATTERNS = {
   // Product card responsive classes
   productCard: {
     container: 'bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 w-full max-w-xs sm:max-w-sm mx-auto',
-    image: 'relative bg-gradient-to-br from-orange-50 to-orange-100 h-32 sm:h-40 flex items-center justify-center p-4 sm:p-6',
+    image: 'relative bg-gradient-to-br from-primary-50 to-primary-100 h-32 sm:h-40 flex items-center justify-center p-4 sm:p-6',
     content: 'p-3 sm:p-4 lg:p-6',
     title: 'text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-1 sm:mb-2 line-clamp-2',
     price: 'text-lg sm:text-xl lg:text-2xl font-bold text-primary-600',

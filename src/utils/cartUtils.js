@@ -1,6 +1,8 @@
 // Cart Utilities
 // Helper functions for cart operations and data transformation
 
+import { DEFAULT_STORE_CODE } from '../constants';
+
 // Transform frontend cart item to API format
 export const transformToApiFormat = (cartItem) => {
   return {
@@ -13,7 +15,7 @@ export const transformToApiFormat = (cartItem) => {
     package_unit: cartItem.package_unit || cartItem.packageSize?.split(' ')[1] || 'GM',
     brand_name: cartItem.brand || cartItem.brand_name || 'Unknown',
     pcode_img: cartItem.image || cartItem.pcode_img || '/images/default_image.jpg',
-    store_code: cartItem.store_code || 'GRK001' // Default store code
+    store_code: cartItem.store_code || DEFAULT_STORE_CODE
   };
 };
 
@@ -262,12 +264,12 @@ export const getStoreCode = () => {
     const locationData = localStorage.getItem('confirmedLocation');
     if (locationData) {
       const location = JSON.parse(locationData);
-      return location?.store?.store_code || 'GRK001';
+      return location?.store?.store_code || DEFAULT_STORE_CODE;
     }
   } catch (error) {
     console.error('Error getting store code:', error);
   }
-  return 'GRK001';
+  return DEFAULT_STORE_CODE;
 };
 
 // Check if store is enabled

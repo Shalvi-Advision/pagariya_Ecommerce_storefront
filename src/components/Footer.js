@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { APP_CONSTANTS, LOGO_URL } from '../constants';
 
 const Footer = () => {
   return (
@@ -8,7 +9,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {/* Company Info */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3 lg:mb-4">Grahak Peth</h3>
+            <img
+              src={LOGO_URL}
+              alt={APP_CONSTANTS.APP_NAME}
+              className="h-12 w-auto object-contain mb-3"
+            />
+            <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3 lg:mb-4">{APP_CONSTANTS.APP_NAME}</h3>
             <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
               Your one-stop destination for quality products at great prices.
               Shop with confidence and enjoy fast, reliable delivery.

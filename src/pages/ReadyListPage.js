@@ -102,7 +102,7 @@ const ReadyListPage = () => {
   // Get storage key for current user
   const getStorageKey = () => {
     const userId = user?.id || user?.mobile_no || 'guest';
-    return `grahak_lists_${userId}`;
+    return `pagariya_lists_${userId}`;
   };
 
   // Load lists from localStorage on mount
@@ -384,7 +384,7 @@ const ReadyListPage = () => {
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
                     <span className="text-4xl">📋</span>
-                    Grahak List
+                    Pagariya List
                   </h1>
                   <p className="text-gray-600">Manage your monthly grocery lists with smart suggestions</p>
                 </div>
@@ -405,7 +405,7 @@ const ReadyListPage = () => {
                   <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <span className="text-5xl">📝</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Grahak List</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Create Your First Pagariya List</h3>
                   <p className="text-gray-600 mb-8 text-lg">
                     Start managing your monthly groceries efficiently. Add frequently purchased items and reorder with just one click!
                   </p>
@@ -509,7 +509,7 @@ const ReadyListPage = () => {
                         </button>
                         <button
                           onClick={handleBuyAll}
-                          className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+                          className="flex items-center gap-2 bg-gradient-to-r from-primary-500 to-primary-700 hover:from-primary-600 hover:to-primary-800 text-white font-semibold px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
                         >
                           <ShoppingCartIcon className="w-5 h-5" />
                           Buy All Items
@@ -593,7 +593,7 @@ const ReadyListPage = () => {
                                     {!item.checked && (
                                       <button
                                         onClick={() => handleBuyItem(item)}
-                                        className="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1"
+                                        className="px-3 py-2 bg-gradient-to-r from-primary-500 to-primary-700 hover:from-primary-600 hover:to-primary-800 text-white text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1"
                                       >
                                         <ShoppingCartIcon className="w-4 h-4" />
                                         Buy
@@ -617,7 +617,7 @@ const ReadyListPage = () => {
 
                       {/* Suggested Items */}
                       {showSuggestions && (
-                        <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 rounded-2xl shadow-lg border border-orange-200 overflow-hidden">
+                        <div className="bg-gradient-to-br from-primary-50 via-primary-100 to-primary-200 rounded-2xl shadow-lg border border-primary-200 overflow-hidden">
                           <div className="p-6">
                             <div className="flex items-center gap-2 mb-4">
                               <SparklesIcon className="w-6 h-6 text-yellow-600" />

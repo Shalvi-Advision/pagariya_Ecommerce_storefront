@@ -10,7 +10,7 @@ const FamousCategories = () => {
 
   // Color mappings for categories
   const colorMappings = [
-    { color: "bg-orange-50", iconColor: "text-orange-600" },
+    { color: "bg-primary-50", iconColor: "text-primary-600" },
     { color: "bg-blue-50", iconColor: "text-blue-600" },
     { color: "bg-green-50", iconColor: "text-green-600" },
     { color: "bg-red-50", iconColor: "text-red-600" },

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getProductsOptimized, searchProductsAPI } from '../api/productsApi';
+import { DEFAULT_STORE_CODE } from '../constants';
 import { useCart } from '../context/CartContext';
 import { useCartDrawer } from '../context/CartDrawerContext';
 import Card from '../components/Card';
@@ -57,12 +58,12 @@ const HomePage = () => {
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        return location?.store?.store_code || 'GRK001';
+        return location?.store?.store_code || DEFAULT_STORE_CODE;
       } catch (error) {
         console.warn('Failed to parse location data:', error);
       }
     }
-    return 'GRK001'; // Default store code
+    return DEFAULT_STORE_CODE;
   };
 
   // Memoize loadProducts function to prevent recreating it on every render
@@ -372,7 +373,7 @@ const HomePage = () => {
       {/* <div className="relative overflow-hidden py-4 sm:py-6 lg:py-8">
         <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 via-rose-50/50 to-red-50/50"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-pink-400/20 to-rose-400/20 rounded-full blur-3xl translate-x-1/4 -translate-y-1/4"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-red-400/20 to-orange-400/20 rounded-full blur-3xl -translate-x-1/4 translate-y-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-primary-400/20 to-primary-600/20 rounded-full blur-3xl -translate-x-1/4 translate-y-1/4"></div>
         <div className="relative container mx-auto px-2 sm:px-4 lg:px-6">
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-2 sm:p-3 lg:p-4 shadow-xl border border-white/60 hover:shadow-2xl transition-all duration-300 overflow-hidden">
             <FestiveBanner />

@@ -337,12 +337,12 @@ const CartPage = () => {
 
           {/* Minimum Order Warning */}
           {isBelowMinOrder && (
-            <div className={`${isMobile ? "mt-3 p-3" : "mt-4 p-3"} bg-orange-50 border border-orange-200 rounded-lg ${isMobile ? "text-sm" : "text-sm"} text-orange-800`}>
+            <div className={`${isMobile ? "mt-3 p-3" : "mt-4 p-3"} bg-primary-50 border border-primary-200 rounded-lg ${isMobile ? "text-sm" : "text-sm"} text-primary-800`}>
               <p className={`font-medium flex items-center ${isMobile ? "gap-2" : "gap-2"}`}>
                 <InformationCircleIcon className={`${isMobile ? "w-5 h-5" : "w-5 h-5"} flex-shrink-0`} />
                 Minimum order amount is ₹{minOrderAmount}
               </p>
-              <p className={`${isMobile ? "mt-1.5 text-xs" : "mt-1 text-xs"} text-orange-700 ${isMobile ? "pl-7" : "pl-7"}`}>
+              <p className={`${isMobile ? "mt-1.5 text-xs" : "mt-1 text-xs"} text-primary-700 ${isMobile ? "pl-7" : "pl-7"}`}>
                 Add items worth ₹{minOrderAmount - currentTotal} more to proceed
               </p>
             </div>

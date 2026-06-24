@@ -5,7 +5,7 @@ const SeasonalCategories = () => {
     {
       name: "Rain Essentials",
       icon: "☔",
-      bgColor: "bg-orange-500",
+      bgColor: "bg-primary-500",
       image: "🧥" // Raincoat representation
     },
     {
@@ -23,7 +23,7 @@ const SeasonalCategories = () => {
     {
       name: "Laundry Care",
       icon: "👕", 
-      bgColor: "bg-orange-600",
+      bgColor: "bg-primary-600",
       image: "📦" // Detergent box
     },
     {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCartIcon, HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
+import { COLORS } from '../constants/theme';
 
 const GroceryProductCard = ({ product, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
@@ -89,7 +90,7 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 w-full max-w-sm mx-auto flex flex-col" style={{ minHeight: '420px' }}>
       {/* Image Container */}
-      <div className="relative bg-gradient-to-br from-orange-50 to-orange-100 h-40 flex items-center justify-center p-6 flex-shrink-0">
+      <div className="relative bg-gradient-to-br from-primary-50 to-primary-100 h-40 flex items-center justify-center p-6 flex-shrink-0">
         <Link
           to={`/product/${displayPcode}?dept_id=${product.dept_id || '2'}&category_id=${product.category_id || '72'}&sub_category_id=${product.sub_category_id || '391'}`}
           className="block w-full h-full flex items-center justify-center z-10"
@@ -117,7 +118,7 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
           {/* Loading placeholder */}
           {!imageLoaded && !imageError && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
           )}
         </Link>
@@ -204,9 +205,9 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
           <button
             onClick={handleAddToCart}
             className="flex-1 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#cc6e02' }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#b35f02'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#cc6e02'; }}
+            style={{ backgroundColor: COLORS.primary[600] }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLORS.primary[700]; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLORS.primary[600]; }}
           >
             <ShoppingCartIcon className="w-4 h-4" />
             ADD TO CART

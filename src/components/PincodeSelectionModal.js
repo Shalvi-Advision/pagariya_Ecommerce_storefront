@@ -3,12 +3,12 @@ import {
   XMarkIcon, 
   MapPinIcon,
   TruckIcon,
-  ShoppingBagIcon,
   TagIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
 import { usePincode } from '../context/PincodeContext';
 import { COLORS } from '../constants/theme';
+import { APP_CONSTANTS, LOGO_URL } from '../constants';
 
 // Helper function to convert hex color to rgba with opacity
 const hexToRgba = (hex, opacity = 1) => {
@@ -335,14 +335,15 @@ const PincodeSelectionModal = ({ isOpen, onClose, onPincodeSelect, isRequired })
             ></div>
 
             <div className="relative z-10">
-              {/* Brand Name */}
+              {/* Brand Logo */}
               <div className="flex items-center gap-2 mb-2">
-                <ShoppingBagIcon
-                  className="w-5 h-5"
-                  style={{ color: COLORS.white }}
+                <img
+                  src={LOGO_URL}
+                  alt={APP_CONSTANTS.APP_NAME}
+                  className="h-8 w-auto object-contain bg-white rounded-md px-1"
                 />
                 <p className="text-sm font-extrabold tracking-wide" style={{ color: COLORS.white }}>
-                  Grahak Peth
+                  {APP_CONSTANTS.APP_NAME}
                 </p>
               </div>
 

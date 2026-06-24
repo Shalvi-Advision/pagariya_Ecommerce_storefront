@@ -5,6 +5,7 @@ import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { useFavorite } from '../context/FavoriteContext';
 import { useToast } from '../context/ToastContext';
 import { createCartItemFromProduct, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
+import { COLORS } from '../constants/theme';
 
 // Utility function to safely render values (with fallbacks)
 const safeValue = (value, defaultValue = '') => {
@@ -222,7 +223,7 @@ const ProductCard = ({ product, onAddToCart }) => {
         {/* Discount Badge with Modern Gradient */}
         {safeDiscountPercentage > 0 && (
           <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 z-20">
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-xl animate-pulse">
+            <div className="bg-gradient-to-r from-primary-500 to-primary-700 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-xl animate-pulse">
               {safeDiscountPercentage}% OFF
             </div>
           </div>
@@ -267,7 +268,7 @@ const ProductCard = ({ product, onAddToCart }) => {
           {!imageLoaded && !imageError && (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
               <div className="text-center">
-                <div className="w-8 h-8 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin mx-auto mb-2"></div>
+                <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mx-auto mb-2"></div>
                 <p className="text-xs text-gray-500">Loading...</p>
               </div>
             </div>
@@ -285,7 +286,7 @@ const ProductCard = ({ product, onAddToCart }) => {
           <div className="space-y-2 sm:space-y-2.5 flex-shrink-0">
             {/* Brand Name with Gradient */}
             {safeBrandName && (
-              <div className="text-xs bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent font-bold uppercase tracking-wider">
+              <div className="text-xs bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent font-bold uppercase tracking-wider">
                 {safeBrandName}
               </div>
             )}
@@ -357,15 +358,15 @@ const ProductCard = ({ product, onAddToCart }) => {
                     ? 'text-white hover:shadow-lg transform hover:scale-105'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
-                style={safeStoreQuantity > 0 && !addingToCart && storeEnabled ? { backgroundColor: '#cc6e02' } : {}}
+                style={safeStoreQuantity > 0 && !addingToCart && storeEnabled ? { backgroundColor: COLORS.primary[600] } : {}}
                 onMouseEnter={(e) => {
                   if (safeStoreQuantity > 0 && !addingToCart && storeEnabled) {
-                    e.currentTarget.style.backgroundColor = '#b35f02';
+                    e.currentTarget.style.backgroundColor = COLORS.primary[700];
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (safeStoreQuantity > 0 && !addingToCart && storeEnabled) {
-                    e.currentTarget.style.backgroundColor = '#cc6e02';
+                    e.currentTarget.style.backgroundColor = COLORS.primary[600];
                   }
                 }}
               >

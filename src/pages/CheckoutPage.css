@@ -2,7 +2,7 @@
 
 .checkout-container {
   height: 100vh;
-  background: linear-gradient(180deg, #E57D02 0%, #cc6e02 100%);
+  background: linear-gradient(180deg, #098547 0%, #077340 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -19,7 +19,7 @@
 
 /* Header Section */
 .checkout-header {
-  background: linear-gradient(180deg, #E57D02 0%, #cc6e02 100%);
+  background: linear-gradient(180deg, #098547 0%, #077340 100%);
   padding: 16px 20px;
   display: flex;
   align-items: center;
@@ -64,7 +64,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: linear-gradient(180deg, #cc6e02 0%, #b35f02 100%);
+  background: linear-gradient(180deg, #077340 0%, #065f35 100%);
   flex-shrink: 0;
   position: fixed;
   top: 180px;
@@ -92,12 +92,12 @@
 
 .step-circle.active {
   background: white;
-  color: #E57D02;
+  color: #098547;
 }
 
 .step-circle.completed {
   background: white;
-  color: #E57D02;
+  color: #098547;
 }
 
 .step-circle.pending {
@@ -153,7 +153,7 @@
 .info-banner .icon {
   width: 24px;
   height: 24px;
-  background: #E57D02;
+  background: #098547;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -163,14 +163,14 @@
 }
 
 .info-banner .text h4 {
-  color: #b35f02;
+  color: #065f35;
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 2px 0;
 }
 
 .info-banner .text p {
-  color: #E57D02;
+  color: #098547;
   font-size: 13px;
   margin: 0;
 }
@@ -217,14 +217,14 @@
 }
 
 .delivery-mode-card.selected {
-  border-color: #E57D02;
+  border-color: #098547;
   background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
 }
 
 .delivery-mode-card .icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #E57D02 0%, #cc6e02 100%);
+  background: linear-gradient(135deg, #098547 0%, #077340 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -262,14 +262,14 @@
 }
 
 .delivery-mode-card.selected .radio {
-  border-color: #E57D02;
+  border-color: #098547;
 }
 
 .delivery-mode-card.selected .radio::after {
   content: '';
   width: 12px;
   height: 12px;
-  background: #E57D02;
+  background: #098547;
   border-radius: 50%;
 }
 
@@ -289,7 +289,7 @@
 }
 
 .address-card.selected {
-  border-color: #E57D02;
+  border-color: #098547;
   background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
 }
 
@@ -302,7 +302,7 @@
 .address-card .icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #E57D02 0%, #cc6e02 100%);
+  background: linear-gradient(135deg, #098547 0%, #077340 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -338,7 +338,7 @@
 .address-card .default-badge {
   display: inline-block;
   background: linear-gradient(135deg, #ffe8cc 0%, #ffd199 100%);
-  color: #b35f02;
+  color: #065f35;
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -359,14 +359,14 @@
 }
 
 .address-card.selected .radio {
-  border-color: #E57D02;
+  border-color: #098547;
 }
 
 .address-card.selected .radio::after {
   content: '';
   width: 12px;
   height: 12px;
-  background: #E57D02;
+  background: #098547;
   border-radius: 50%;
 }
 
@@ -383,13 +383,13 @@
   cursor: pointer;
   transition: all 0.2s ease;
   width: 100%;
-  color: #E57D02;
+  color: #098547;
   font-size: 15px;
   font-weight: 600;
 }
 
 .add-address-btn:hover {
-  border-color: #E57D02;
+  border-color: #098547;
   background: #fff8f0;
 }
 
@@ -428,8 +428,8 @@
 }
 
 .time-slot-tab.active {
-  background: linear-gradient(135deg, #E57D02 0%, #cc6e02 100%);
-  border-color: #E57D02;
+  background: linear-gradient(135deg, #098547 0%, #077340 100%);
+  border-color: #098547;
   color: white;
 }
 
@@ -453,7 +453,7 @@
 }
 
 .time-slot-card.selected {
-  border-color: #E57D02;
+  border-color: #098547;
   background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
 }
 
@@ -471,7 +471,7 @@
 
 .time-slot-card .availability {
   font-size: 12px;
-  color: #E57D02;
+  color: #098547;
   font-weight: 500;
 }
 
@@ -512,11 +512,11 @@
 }
 
 .order-summary-row .value.green {
-  color: #E57D02;
+  color: #098547;
 }
 
 .order-summary-row .value.free {
-  color: #E57D02;
+  color: #098547;
   font-weight: 600;
 }
 
@@ -529,7 +529,7 @@
 .order-summary-row.total .value {
   font-size: 20px;
   font-weight: 700;
-  color: #E57D02;
+  color: #098547;
 }
 
 .free-delivery-badge {
@@ -537,7 +537,7 @@
   align-items: center;
   gap: 6px;
   background: #fff8f0;
-  color: #E57D02;
+  color: #098547;
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -560,7 +560,7 @@
 .continue-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #E57D02 0%, #cc6e02 100%);
+  background: linear-gradient(135deg, #098547 0%, #077340 100%);
   border: none;
   border-radius: 14px;
   color: white;
@@ -605,7 +605,7 @@
 }
 
 .payment-method-card.selected {
-  border-color: #E57D02;
+  border-color: #098547;
   background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
 }
 
@@ -645,7 +645,7 @@
 .order-summary-section .header h3 {
   font-size: 14px;
   font-weight: 700;
-  color: #E57D02;
+  color: #098547;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -687,7 +687,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #e4e4e7;
-  border-top-color: #E57D02;
+  border-top-color: #098547;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -734,7 +734,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #E57D02;
+  color: #098547;
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 16px;
@@ -742,7 +742,7 @@
 }
 
 .view-order-link:hover {
-  color: #cc6e02;
+  color: #077340;
 }
 
 /* Responsive adjustments */
@@ -1015,11 +1015,11 @@
 }
 
 .sheet-summary .summary-row .value.green {
-  color: #E57D02;
+  color: #098547;
 }
 
 .sheet-summary .summary-row .value.free {
-  color: #E57D02;
+  color: #098547;
   font-weight: 600;
 }
 
@@ -1038,7 +1038,7 @@
 .sheet-summary .summary-row.total .value {
   font-size: 18px;
   font-weight: 700;
-  color: #E57D02;
+  color: #098547;
 }
 
 /* Badges in Bottom Sheet */
@@ -1061,7 +1061,7 @@
 
 .sheet-badge.success {
   background: linear-gradient(135deg, #fff8f0 0%, #ffe8cc 100%);
-  color: #b35f02;
+  color: #065f35;
 }
 
 .sheet-badge.savings {

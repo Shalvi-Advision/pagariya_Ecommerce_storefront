@@ -8,6 +8,7 @@ import { getFavorites } from '../api/favoritesApi';
 import { getProductDetailsByPcode } from '../api/productsApi';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { APP_CONSTANTS, DEFAULT_STORE_CODE } from '../constants';
 
 const FavoritesPage = () => {
   const { isFavorite, toggleFavorite } = useFavorite();
@@ -25,13 +26,13 @@ const FavoritesPage = () => {
     if (locationData) {
       try {
         const location = JSON.parse(locationData);
-        return location?.store?.store_code || location?.store?.storeCode || 'GRK001';
+        return location?.store?.store_code || location?.store?.storeCode || DEFAULT_STORE_CODE;
       } catch (error) {
         console.error('Error parsing location data:', error);
-        return 'GRK001';
+        return DEFAULT_STORE_CODE;
       }
     }
-    return 'GRK001';
+    return DEFAULT_STORE_CODE;
   };
 
   // Fetch favorite products from API
@@ -241,7 +242,7 @@ const FavoritesPage = () => {
                   }}
                 />
                 {product.discount_percentage > 0 && (
-                  <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded font-semibold z-10">
+                  <div className="absolute top-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded font-semibold z-10">
                     ₹ {product.discount_percentage} OFF
                   </div>
                 )}
@@ -251,11 +252,11 @@ const FavoritesPage = () => {
               <div className="p-3 border-t border-gray-100">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">Grahak Peth</span></p>
+                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">{APP_CONSTANTS.APP_NAME}</span></p>
                     <p className="text-xs text-gray-400 line-through">₹ {product.product_mrp}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">Grahak Peth</span></p>
+                    <p className="text-xs text-gray-500 mb-1">MRP <span className="text-gray-400">{APP_CONSTANTS.APP_NAME}</span></p>
                     <p className="text-base font-bold text-gray-900">₹ {product.our_price}</p>
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getStoresByPincode } from '../services/api';
 import { usePincode } from '../context/PincodeContext';
 import Loading from '../components/Loading';
+import { APP_CONSTANTS } from '../constants';
 
 const ContactUsPage = () => {
   const { confirmedLocation } = usePincode();
@@ -117,8 +118,8 @@ const ContactUsPage = () => {
 
               <div className="p-8">
                 <div className="flex items-start gap-4 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -230,7 +231,7 @@ const ContactUsPage = () => {
                 {storeInfo.contact?.whatsapp && storeInfo.contact.whatsapp !== 'undefined' && (
                   <button
                     onClick={() => {
-                      const message = encodeURIComponent("Hello, I have a query regarding Grahak Peth.");
+                      const message = encodeURIComponent(`Hello, I have a query regarding ${APP_CONSTANTS.APP_NAME}.`);
                       window.open(`https://wa.me/${storeInfo.contact.whatsapp.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
                     }}
                     className="w-full flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 transition-all duration-300 group"

@@ -1,5 +1,5 @@
 // Banner API service functions
-import { APP_CONSTANTS } from '../constants';
+import { APP_CONSTANTS, DEFAULT_STORE_CODE } from '../constants';
 
 const API_BASE_URL = APP_CONSTANTS.API_BASE_URL;
 
@@ -9,12 +9,12 @@ const getStoreCode = () => {
     const locationData = localStorage.getItem('confirmedLocation');
     if (locationData) {
       const location = JSON.parse(locationData);
-      return location?.store?.store_code || 'GRK001';
+      return location?.store?.store_code || DEFAULT_STORE_CODE;
     }
   } catch (error) {
     console.error('Error getting store code:', error);
   }
-  return 'GRK001';
+  return DEFAULT_STORE_CODE;
 };
 
 // Offline storage utilities for banners

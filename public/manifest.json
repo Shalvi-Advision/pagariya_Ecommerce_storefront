@@ -1,7 +1,7 @@
 {
-  "short_name": "Shalvi E-Commerce",
-  "name": "Shalvi E-Commerce - Modern Shopping Experience",
-  "description": "A modern React e-commerce application with PWA capabilities",
+  "short_name": "Pagariya Mart",
+  "name": "Pagariya Mart - Online Grocery Shopping",
+  "description": "Pagariya Mart - your neighborhood grocery store, now online",
   "icons": [
     {
       "src": "favicon.ico",
@@ -9,19 +9,19 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.svg",
-      "type": "image/svg+xml",
+      "src": "images/Main_Logo.webp",
+      "type": "image/webp",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.svg",
-      "type": "image/svg+xml",
+      "src": "images/Main_Logo.webp",
+      "type": "image/webp",
       "sizes": "512x512"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#098547",
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
