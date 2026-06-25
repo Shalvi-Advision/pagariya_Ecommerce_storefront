@@ -79,6 +79,9 @@ const CheckoutPageNew = () => {
     const [deliveryChargeData, setDeliveryChargeData] = useState({
         distance_km: 0,
         delivery_charge: 0,
+        distance_charge: 0,
+        handling_fee: 0,
+        package_fee: 0,
         free_delivery: false,
         delivery_available: true,
         is_road_distance: false,
@@ -147,7 +150,10 @@ const CheckoutPageNew = () => {
             if (result.success && result.data) {
                 setDeliveryChargeData({
                     distance_km: result.data.distance_km || 0,
-                    delivery_charge: result.data.delivery_charge || 0,
+                    delivery_charge: result.data.delivery_charge || result.data.total_charges || 0,
+                    distance_charge: result.data.distance_charge || 0,
+                    handling_fee: result.data.handling_fee || 0,
+                    package_fee: result.data.package_fee || 0,
                     free_delivery: result.data.free_delivery || false,
                     delivery_available: result.data.delivery_available !== false,
                     is_road_distance: result.data.is_road_distance || false,
@@ -389,7 +395,9 @@ const CheckoutPageNew = () => {
     }, [sessionStartTime, isSessionExpired]);
 
     const totalSavings = calcTotalSavings(items);
-    const orderTotal = roundMoney(totalPrice + (deliveryChargeData.delivery_charge || 0));
+    const totalDeliveryFees = deliveryChargeData.delivery_charge || 0;
+    const orderTotal = roundMoney(totalPrice + totalDeliveryFees);
+    const hasExtraFees = (deliveryChargeData.handling_fee || 0) > 0 || (deliveryChargeData.package_fee || 0) > 0;
 
     // Helper function to get delivery options from store (handles both formatted and raw API formats)
     const getDeliveryOptions = (store) => {
@@ -555,7 +563,7 @@ const CheckoutPageNew = () => {
                 payment_mode_id: paymentModeId,
                 order_notes: orderNotes,
                 payment_details: paymentDetails,
-                delivery_charges: deliveryChargeData.delivery_charge || 0,
+                delivery_charges: totalDeliveryFees,
                 delivery_distance: deliveryChargeData.distance_km || 0,
             };
 
@@ -1285,17 +1293,49 @@ const CheckoutPageNew = () => {
                                     </span>
                                 </div>
                             )}
-                            <div className="flex justify-between items-center py-1">
-                                <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
-                                    <TruckIcon className="w-3.5 h-3.5" />
-                                    Delivery Fee
-                                </span>
-                                <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
-                                    deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'text-green-600' : 'text-gray-900'
-                                }`}>
-                                    {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : formatRupee(deliveryChargeData.delivery_charge)}
-                                </span>
-                            </div>
+                            {hasExtraFees ? (
+                                <>
+                                    <div className="flex justify-between items-center py-1">
+                                        <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                            <TruckIcon className="w-3.5 h-3.5" />
+                                            Distance charge
+                                        </span>
+                                        <span className={`font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'} ${deliveryChargeData.free_delivery ? 'text-green-600' : 'text-gray-900'}`}>
+                                            {deliveryChargeData.free_delivery ? 'FREE' : formatRupee(deliveryChargeData.distance_charge || 0)}
+                                        </span>
+                                    </div>
+                                    {(deliveryChargeData.handling_fee || 0) > 0 && (
+                                        <div className="flex justify-between items-center py-1">
+                                            <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>Handling fee</span>
+                                            <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>{formatRupee(deliveryChargeData.handling_fee)}</span>
+                                        </div>
+                                    )}
+                                    {(deliveryChargeData.package_fee || 0) > 0 && (
+                                        <div className="flex justify-between items-center py-1">
+                                            <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>Package fee</span>
+                                            <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>{formatRupee(deliveryChargeData.package_fee)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-center py-1">
+                                        <span className={`font-semibold text-gray-700 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>Total delivery fees</span>
+                                        <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${totalDeliveryFees === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                            {totalDeliveryFees === 0 ? 'FREE' : formatRupee(totalDeliveryFees)}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex justify-between items-center py-1">
+                                    <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                        <TruckIcon className="w-3.5 h-3.5" />
+                                        Delivery Fee
+                                    </span>
+                                    <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
+                                        deliveryChargeData.free_delivery || totalDeliveryFees === 0 ? 'text-green-600' : 'text-gray-900'
+                                    }`}>
+                                        {deliveryChargeData.free_delivery || totalDeliveryFees === 0 ? 'FREE' : formatRupee(totalDeliveryFees)}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center py-1">
                                 <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                     <CurrencyDollarIcon className="w-3.5 h-3.5" />
@@ -1313,7 +1353,7 @@ const CheckoutPageNew = () => {
                                     {formatRupee(orderTotal)}
                                 </span>
                             </div>
-                            {(deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0) && deliveryChargeData.distance_km > 0 && (
+                            {(deliveryChargeData.free_delivery && totalDeliveryFees === 0) && deliveryChargeData.distance_km > 0 && (
                                 <div className="flex items-center gap-1.5 sm:gap-2 bg-green-50 text-green-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold mt-2 sm:mt-3">
                                     <CheckCircleIcon className="w-3.5 h-3.5" />
                                     Free delivery for this order
@@ -1429,20 +1469,52 @@ const CheckoutPageNew = () => {
                                 </span>
                             </div>
                         )}
-                        <div className="flex justify-between items-center py-1">
-                            <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
-                                <TruckIcon className="w-3.5 h-3.5" />
-                                Delivery Fee:
-                            </span>
-                            <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
-                                deliveryChargeData.isLoading ? 'text-gray-400' :
-                                deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'text-green-600' : 'text-gray-900'
-                            }`}>
-                                {deliveryChargeData.isLoading ? 'Calculating...' :
-                                 deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' :
-                                 formatRupee(deliveryChargeData.delivery_charge)}
-                            </span>
-                        </div>
+                        {hasExtraFees ? (
+                            <>
+                                <div className="flex justify-between items-center py-1">
+                                    <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                        <TruckIcon className="w-3.5 h-3.5" />
+                                        Distance charge:
+                                    </span>
+                                    <span className={`font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'} ${deliveryChargeData.free_delivery ? 'text-green-600' : 'text-gray-900'}`}>
+                                        {deliveryChargeData.isLoading ? 'Calculating...' : deliveryChargeData.free_delivery ? 'FREE' : formatRupee(deliveryChargeData.distance_charge || 0)}
+                                    </span>
+                                </div>
+                                {(deliveryChargeData.handling_fee || 0) > 0 && (
+                                    <div className="flex justify-between items-center py-1">
+                                        <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>Handling fee:</span>
+                                        <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>{formatRupee(deliveryChargeData.handling_fee)}</span>
+                                    </div>
+                                )}
+                                {(deliveryChargeData.package_fee || 0) > 0 && (
+                                    <div className="flex justify-between items-center py-1">
+                                        <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>Package fee:</span>
+                                        <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>{formatRupee(deliveryChargeData.package_fee)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center py-1">
+                                    <span className={`font-semibold text-gray-700 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>Total delivery fees:</span>
+                                    <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${totalDeliveryFees === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                        {deliveryChargeData.isLoading ? 'Calculating...' : totalDeliveryFees === 0 ? 'FREE' : formatRupee(totalDeliveryFees)}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex justify-between items-center py-1">
+                                <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
+                                    <TruckIcon className="w-3.5 h-3.5" />
+                                    Delivery Fee:
+                                </span>
+                                <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
+                                    deliveryChargeData.isLoading ? 'text-gray-400' :
+                                    deliveryChargeData.free_delivery || totalDeliveryFees === 0 ? 'text-green-600' : 'text-gray-900'
+                                }`}>
+                                    {deliveryChargeData.isLoading ? 'Calculating...' :
+                                     deliveryChargeData.free_delivery || totalDeliveryFees === 0 ? 'FREE' :
+                                     formatRupee(totalDeliveryFees)}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center py-1">
                             <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                 <CurrencyDollarIcon className="w-3.5 h-3.5" />
@@ -1460,7 +1532,7 @@ const CheckoutPageNew = () => {
                                 {formatRupee(orderTotal)}
                             </span>
                         </div>
-                        {deliveryChargeData.free_delivery && deliveryChargeData.distance_km > 0 && (
+                        {deliveryChargeData.free_delivery && totalDeliveryFees === 0 && deliveryChargeData.distance_km > 0 && (
                             <div className="flex items-center justify-center gap-1.5 mt-2 py-1.5 bg-green-50 rounded-lg">
                                 <span className="text-green-600 text-[11px] font-medium flex items-center gap-1">
                                     <CheckCircleSolid className="w-3.5 h-3.5" />
@@ -1817,15 +1889,47 @@ const CheckoutPageNew = () => {
                                     </span>
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>{deliveryChargeData.distance_km > 0 ? `${deliveryChargeData.distance_km} km` : '--'}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
-                                        <TruckIcon style={{ width: '14px', height: '14px' }} />
-                                        Delivery Fee
-                                    </span>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? '#16a34a' : colors.text.primary, fontWeight: 700 }}>
-                                        {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : formatRupee(deliveryChargeData.delivery_charge)}
-                                    </span>
-                                </div>
+                                {hasExtraFees ? (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
+                                                <TruckIcon style={{ width: '14px', height: '14px' }} />
+                                                Distance charge
+                                            </span>
+                                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: deliveryChargeData.free_delivery ? '#16a34a' : colors.text.primary, fontWeight: 600 }}>
+                                                {deliveryChargeData.free_delivery ? 'FREE' : formatRupee(deliveryChargeData.distance_charge || 0)}
+                                            </span>
+                                        </div>
+                                        {(deliveryChargeData.handling_fee || 0) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
+                                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>Handling fee</span>
+                                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>{formatRupee(deliveryChargeData.handling_fee)}</span>
+                                            </div>
+                                        )}
+                                        {(deliveryChargeData.package_fee || 0) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
+                                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>Package fee</span>
+                                                <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>{formatRupee(deliveryChargeData.package_fee)}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
+                                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary, fontWeight: 700 }}>Total delivery fees</span>
+                                            <span style={{ fontSize: isMobile ? '12px' : '13px', color: totalDeliveryFees === 0 ? '#16a34a' : colors.text.primary, fontWeight: 700 }}>
+                                                {totalDeliveryFees === 0 ? 'FREE' : formatRupee(totalDeliveryFees)}
+                                            </span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
+                                            <TruckIcon style={{ width: '14px', height: '14px' }} />
+                                            Delivery Fee
+                                        </span>
+                                        <span style={{ fontSize: isMobile ? '12px' : '13px', color: deliveryChargeData.free_delivery || totalDeliveryFees === 0 ? '#16a34a' : colors.text.primary, fontWeight: 700 }}>
+                                            {deliveryChargeData.free_delivery || totalDeliveryFees === 0 ? 'FREE' : formatRupee(totalDeliveryFees)}
+                                        </span>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
                                         <CurrencyDollarIcon style={{ width: '14px', height: '14px' }} />
