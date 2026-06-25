@@ -3,8 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import AddressMapPicker from './AddressMapPicker';
 import { hasValidCoords } from '../utils/geocoding';
 import { updateAddress, transformAddressToAPI } from '../api/addressApi';
-import { validateLocationForSessionPincode, normalizePincode } from '../utils/addressPincodeValidation';
-import { usePincode } from '../context/PincodeContext';
+import { resolvePincodeForLocation, normalizePincode } from '../utils/addressPincodeValidation';
 import { COLORS } from '../constants/theme';
 
 const ConfirmAddressLocationModal = ({
@@ -14,10 +13,9 @@ const ConfirmAddressLocationModal = ({
   onClose,
   onConfirmed,
 }) => {
-  const { getCurrentPincode } = usePincode();
-  const getLockedPincode = () =>
-    normalizePincode(getCurrentPincode() || address?.pinCode);
-
+  const [addressPinCode, setAddressPinCode] = useState(
+    () => normalizePincode(address?.pinCode)
+  );
   const [coords, setCoords] = useState({
     latitude: address?.latitude || '',
     longitude: address?.longitude || '',
@@ -31,13 +29,12 @@ const ConfirmAddressLocationModal = ({
           latitude: String(address.latitude),
           longitude: String(address.longitude),
           locationLabel: address?.area_id || '',
+          pinCode: normalizePincode(address?.pinCode),
         }
       : null
   );
 
   const handleLocationChange = async ({ latitude, longitude, locationLabel, detectedPinCode }) => {
-    const lockedPinCode = getLockedPincode();
-
     if (!detectedPinCode) {
       setCoords({
         latitude: String(latitude),
@@ -48,11 +45,16 @@ const ConfirmAddressLocationModal = ({
       return;
     }
 
-    const validation = await validateLocationForSessionPincode(detectedPinCode, lockedPinCode);
-    if (!validation.ok) {
-      setError(validation.message);
+    const result = await resolvePincodeForLocation(detectedPinCode, addressPinCode);
+    if (!result.ok) {
+      setError(result.message);
       if (lastValidLocationRef.current) {
-        setCoords(lastValidLocationRef.current);
+        setCoords({
+          latitude: lastValidLocationRef.current.latitude,
+          longitude: lastValidLocationRef.current.longitude,
+          locationLabel: lastValidLocationRef.current.locationLabel,
+        });
+        setAddressPinCode(lastValidLocationRef.current.pinCode || addressPinCode);
       } else if (hasValidCoords(storeLat, storeLng)) {
         setCoords({
           latitude: String(storeLat),
@@ -67,9 +69,11 @@ const ConfirmAddressLocationModal = ({
       latitude: String(latitude),
       longitude: String(longitude),
       locationLabel: locationLabel || '',
+      pinCode: result.pinCode,
     };
     lastValidLocationRef.current = update;
     setCoords(update);
+    setAddressPinCode(result.pinCode);
     if (error) setError('');
   };
 
@@ -82,10 +86,9 @@ const ConfirmAddressLocationModal = ({
     setSaving(true);
     setError('');
     try {
-      const lockedPinCode = getLockedPincode();
       const apiData = transformAddressToAPI({
         ...address,
-        pinCode: lockedPinCode || address.pinCode,
+        pinCode: addressPinCode || address.pinCode,
         latitude: String(coords.latitude),
         longitude: String(coords.longitude),
         area_id: coords.locationLabel || address.area_id || '',
@@ -99,7 +102,7 @@ const ConfirmAddressLocationModal = ({
 
       onConfirmed?.({
         ...address,
-        pinCode: lockedPinCode || address.pinCode,
+        pinCode: addressPinCode || address.pinCode,
         latitude: String(coords.latitude),
         longitude: String(coords.longitude),
         area_id: coords.locationLabel || address.area_id || '',
@@ -130,11 +133,11 @@ const ConfirmAddressLocationModal = ({
 
         <div className="p-4 space-y-3">
           <p className="text-sm" style={{ color: COLORS.gray[700] }}>
-            {address?.addressLine1}, {address?.city} - {getLockedPincode() || address?.pinCode}
+            {address?.addressLine1}, {address?.city} - {addressPinCode || address?.pinCode}
           </p>
 
           <AddressMapPicker
-            pinCode={getLockedPincode() || address?.pinCode}
+            pinCode={addressPinCode || address?.pinCode}
             storeLat={storeLat}
             storeLng={storeLng}
             latitude={coords.latitude}

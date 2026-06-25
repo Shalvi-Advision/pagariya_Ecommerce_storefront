@@ -17,7 +17,7 @@ import {
 import AddressMapPicker from '../components/AddressMapPicker';
 import AddressSearchAutocomplete from '../components/AddressSearchAutocomplete';
 import { hasValidCoords } from '../utils/geocoding';
-import { validateLocationForSessionPincode, normalizePincode } from '../utils/addressPincodeValidation';
+import { resolvePincodeForLocation, normalizePincode } from '../utils/addressPincodeValidation';
 
 const emptyFormData = (pinCode = '') => ({
   name: '',
@@ -67,16 +67,17 @@ const AddressPage = () => {
     navigate(location.pathname, { replace: true, state: { fromCheckout: true } });
   }, [location.state?.openAddModal, location.pathname, navigate, getCurrentPincode]);
 
-  // Initialize pincode from context when confirmed location changes
+  // Keep list view pincode in sync with session (not while add/edit modal is open)
   useEffect(() => {
+    if (showAddModal) return;
     const currentPincode = getCurrentPincode();
     if (currentPincode) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        pinCode: currentPincode
+        pinCode: currentPincode,
       }));
     }
-  }, [confirmedLocation, getCurrentPincode]);
+  }, [confirmedLocation, getCurrentPincode, showAddModal]);
 
   
   useEffect(() => {
@@ -152,14 +153,13 @@ const AddressPage = () => {
     setShowAddModal(true);
   };
 
-  const getLockedPincode = () => normalizePincode(getCurrentPincode() || formData.pinCode);
+  const getAddressPincode = () => normalizePincode(formData.pinCode);
 
-  const applyLocationUpdate = (update) => {
-    const lockedPinCode = getLockedPincode();
+  const applyLocationUpdate = (update, pinCode = getAddressPincode()) => {
     setFormData((prev) => ({
       ...prev,
       ...update,
-      pinCode: lockedPinCode || prev.pinCode,
+      pinCode: pinCode || prev.pinCode,
     }));
     if (errors.location) {
       setErrors((prev) => ({ ...prev, location: '' }));
@@ -168,21 +168,25 @@ const AddressPage = () => {
   };
 
   const validateAndApplyLocation = async (detectedPinCode, applyFn) => {
-    const lockedPinCode = getLockedPincode();
-    if (detectedPinCode) {
-      const validation = await validateLocationForSessionPincode(detectedPinCode, lockedPinCode);
-      if (!validation.ok) {
-        setErrors((prev) => ({ ...prev, location: validation.message }));
-        setApiError(validation.message);
-        return false;
-      }
+    const currentPinCode = getAddressPincode();
+    if (!detectedPinCode) {
+      applyFn(currentPinCode);
+      return { ok: true, pinCode: currentPinCode };
     }
-    applyFn();
-    return true;
+
+    const result = await resolvePincodeForLocation(detectedPinCode, currentPinCode);
+    if (!result.ok) {
+      setErrors((prev) => ({ ...prev, location: result.message }));
+      setApiError(result.message);
+      return result;
+    }
+
+    applyFn(result.pinCode);
+    return result;
   };
 
   const handleLocationChange = async ({ latitude, longitude, locationLabel, detectedPinCode }) => {
-    const lockedPinCode = getLockedPincode();
+    const currentPinCode = getAddressPincode();
 
     if (!detectedPinCode) {
       setFormData((prev) => ({
@@ -191,20 +195,19 @@ const AddressPage = () => {
         longitude: String(longitude),
         locationLabel: locationLabel || prev.locationLabel,
         area_id: locationLabel || prev.area_id,
-        pinCode: lockedPinCode || prev.pinCode,
       }));
       return;
     }
 
-    const validation = await validateLocationForSessionPincode(detectedPinCode, lockedPinCode);
-    if (!validation.ok) {
-      setErrors((prev) => ({ ...prev, location: validation.message }));
-      setApiError(validation.message);
+    const result = await resolvePincodeForLocation(detectedPinCode, currentPinCode);
+    if (!result.ok) {
+      setErrors((prev) => ({ ...prev, location: result.message }));
+      setApiError(result.message);
       if (lastValidLocationRef.current) {
         setFormData((prev) => ({
           ...prev,
           ...lastValidLocationRef.current,
-          pinCode: lockedPinCode || prev.pinCode,
+          pinCode: lastValidLocationRef.current.pinCode || prev.pinCode,
         }));
       } else if (hasValidCoords(storeLat, storeLng)) {
         setFormData((prev) => ({
@@ -213,7 +216,7 @@ const AddressPage = () => {
           longitude: String(storeLng),
           locationLabel: '',
           area_id: '',
-          pinCode: lockedPinCode || prev.pinCode,
+          pinCode: currentPinCode || prev.pinCode,
         }));
       }
       return;
@@ -224,33 +227,36 @@ const AddressPage = () => {
       longitude: String(longitude),
       locationLabel: locationLabel || '',
       area_id: locationLabel || '',
+      pinCode: result.pinCode,
     };
     lastValidLocationRef.current = update;
-    applyLocationUpdate(update);
+    applyLocationUpdate(update, result.pinCode);
   };
 
   const handleSearchSelect = async (item) => {
-    const lockedPinCode = getLockedPincode();
     const detectedPin = normalizePincode(item.pinCode);
-
-    const ok = await validateAndApplyLocation(detectedPin, () => {
-      applyLocationUpdate({
-        addressLine1: item.addressLine1 || '',
-        city: item.city || '',
-        latitude: String(item.lat),
-        longitude: String(item.lng),
-        locationLabel: item.label,
-        area_id: item.label,
-      });
+    const result = await validateAndApplyLocation(detectedPin, (resolvedPinCode) => {
+      applyLocationUpdate(
+        {
+          addressLine1: item.addressLine1 || '',
+          city: item.city || '',
+          latitude: String(item.lat),
+          longitude: String(item.lng),
+          locationLabel: item.label,
+          area_id: item.label,
+        },
+        resolvedPinCode
+      );
     });
 
-    if (!ok) return;
+    if (!result.ok) return;
 
     lastValidLocationRef.current = {
       latitude: String(item.lat),
       longitude: String(item.lng),
       locationLabel: item.label,
       area_id: item.label,
+      pinCode: result.pinCode,
     };
   };
 
@@ -274,7 +280,7 @@ const AddressPage = () => {
       addressLine1: address.addressLine1,
       addressLine2: address.addressLine2 || '',
       city: address.city,
-      pinCode: currentPincode || address.pinCode,
+      pinCode: address.pinCode || currentPincode,
       isDefault: address.isDefault,
       latitude: address.latitude || '',
       longitude: address.longitude || '',
@@ -289,6 +295,7 @@ const AddressPage = () => {
         longitude: String(address.longitude),
         locationLabel: address.area_id || '',
         area_id: address.area_id || '',
+        pinCode: normalizePincode(address.pinCode),
       };
     } else {
       lastValidLocationRef.current = null;
@@ -348,10 +355,10 @@ const AddressPage = () => {
       setSubmitLoading(true);
       setApiError('');
 
-      // Transform form data to API format — pincode always locked to session
+      // Transform form data to API format — pincode from map/search resolution
       const apiData = transformAddressToAPI({
         ...formData,
-        pinCode: getLockedPincode() || formData.pinCode,
+        pinCode: getAddressPincode() || formData.pinCode,
       });
 
       if (editingAddress) {
@@ -821,7 +828,7 @@ const AddressPage = () => {
                 <div>
                   <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-1.5" style={{ color: COLORS.gray[700] }}>
                     PIN Code <span style={{ color: COLORS.error[500] }}>*</span>
-                    <span className="text-[10px] sm:text-xs ml-1 sm:ml-2" style={{ color: COLORS.gray[500] }}>(Fixed)</span>
+                    <span className="text-[10px] sm:text-xs ml-1 sm:ml-2" style={{ color: COLORS.gray[500] }}>(Auto)</span>
                   </label>
                   <input
                     type="text"
@@ -838,7 +845,7 @@ const AddressPage = () => {
                     placeholder="6-digit PIN"
                   />
                   <p className="text-[10px] sm:text-xs mt-1" style={{ color: COLORS.gray[500] }}>
-                    PIN code is fixed to your selected delivery area ({getLockedPincode() || formData.pinCode})
+                    PIN updates automatically when you pick a serviceable delivery area on the map
                   </p>
                 </div>
               </div>
