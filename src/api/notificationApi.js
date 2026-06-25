@@ -19,7 +19,12 @@ export const getUserNotifications = async (page = 1, limit = 20) => {
         const response = await axios.get(`${API_URL}?page=${page}&limit=${limit}`, getHeaders());
         return response.data;
     } catch (error) {
-        throw error.response?.data?.message || 'Failed to fetch notifications';
+        const status = error.response?.status;
+        const message = error.response?.data?.message || 'Failed to fetch notifications';
+        const authError = new Error(message);
+        authError.status = status;
+        authError.isAuthError = status === 401;
+        throw authError;
     }
 };
 

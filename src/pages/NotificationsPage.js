@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, BellIcon, CheckIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, BellIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { getUserNotifications, markNotificationRead, markAllNotificationsRead } from '../api/notificationApi';
 import { useToast } from '../context/ToastContext';
-import ApiErrorBoundary from '../components/ApiErrorBoundary';
+import { useAuth } from '../context/AuthContextOptimized';
 
 const NotificationItem = ({ notification, onRead }) => {
     const isRead = notification.isRead;
@@ -42,16 +42,24 @@ const NotificationItem = ({ notification, onRead }) => {
 
 const NotificationsPage = () => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const { showSuccess, showError } = useToast();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const [loginRequired, setLoginRequired] = useState(false);
 
-    const fetchNotifications = async (pageNum = 1, isRefresh = false) => {
+    const fetchNotifications = useCallback(async (pageNum = 1, isRefresh = false) => {
+        if (!isAuthenticated) {
+            setLoginRequired(true);
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
+            setLoginRequired(false);
             const response = await getUserNotifications(pageNum, 20);
 
             if (isRefresh || pageNum === 1) {
@@ -60,20 +68,23 @@ const NotificationsPage = () => {
                 setNotifications(prev => [...prev, ...response.data]);
             }
 
-            setHasMore(response.data.length === 20); // If we got full page, assume more
-            setLoading(false);
-            setRefreshing(false);
+            setHasMore(response.data.length === 20);
         } catch (error) {
             console.error('Error fetching notifications:', error);
-            showError('Failed to load notifications');
+            if (error.isAuthError) {
+                setLoginRequired(true);
+                setNotifications([]);
+            } else {
+                showError('Failed to load notifications');
+            }
+        } finally {
             setLoading(false);
-            setRefreshing(false);
         }
-    };
+    }, [isAuthenticated, showError]);
 
     useEffect(() => {
         fetchNotifications();
-    }, []);
+    }, [fetchNotifications]);
 
     const handleMarkAllRead = async () => {
         try {
@@ -139,6 +150,23 @@ const NotificationsPage = () => {
                     <div className="flex flex-col items-center justify-center h-64">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
                         <p className="text-gray-500">Loading notifications...</p>
+                    </div>
+                ) : loginRequired ? (
+                    <div className="flex flex-col items-center justify-center h-[70vh] px-4 text-center">
+                        <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mb-4">
+                            <BellIcon className="w-8 h-8 text-primary-500" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Please log in to see notifications</h3>
+                        <p className="text-gray-500 max-w-xs mb-6">
+                            Sign in to view order updates, offers, and alerts meant for your account.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/login', { state: { from: '/notifications' } })}
+                            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                        >
+                            Log in
+                        </button>
                     </div>
                 ) : notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[70vh] px-4 text-center">
