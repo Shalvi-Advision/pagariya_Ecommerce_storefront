@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AccountSidebar from '../components/AccountSidebar';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
@@ -15,6 +16,9 @@ import {
 } from '../api/addressApi';
 
 const AddressPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fromCheckout = Boolean(location.state?.fromCheckout);
   const { getCurrentPincode, confirmedLocation } = usePincode();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +42,26 @@ const AddressPage = () => {
   useEffect(() => {
     loadAddresses();
   }, []);
+
+  // Open add modal when redirected from checkout
+  useEffect(() => {
+    if (!location.state?.openAddModal) return;
+    setEditingAddress(null);
+    const currentPincode = getCurrentPincode();
+    setFormData({
+      name: '',
+      email: '',
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      pinCode: currentPincode || '',
+      isDefault: false,
+    });
+    setErrors({});
+    setApiError('');
+    setShowAddModal(true);
+    navigate(location.pathname, { replace: true, state: { fromCheckout: true } });
+  }, [location.state?.openAddModal, location.pathname, navigate, getCurrentPincode]);
 
   // Initialize pincode from context when confirmed location changes
   useEffect(() => {
@@ -244,6 +268,11 @@ const AddressPage = () => {
         
         await addAddress(apiData);
         setSuccessMessage('Address added successfully');
+
+        if (fromCheckout) {
+          navigate('/checkout', { state: { returnStep: 2 } });
+          return;
+        }
       }
 
       // Reload addresses

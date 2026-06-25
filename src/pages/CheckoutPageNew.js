@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     ClipboardDocumentListIcon, 
     MapPinIcon, 
     TruckIcon, 
     CurrencyDollarIcon,
     CheckCircleIcon,
-    BanknotesIcon
+    BanknotesIcon,
+    CreditCardIcon,
+    ExclamationTriangleIcon,
+    BuildingStorefrontIcon,
+    HomeIcon,
+    PlusIcon,
 } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContextOptimized';
 import { useOrders } from '../context/OrderContext';
@@ -25,6 +31,7 @@ import { apiPost } from '../services/api';
 import cartService from '../services/cartService';
 import { PROJECT_CODE, DEFAULT_STORE_CODE } from '../constants';
 import { calculateDeliveryCharges } from '../api/deliveryChargesApi';
+import { calcTotalSavings, formatRupee, roundMoney } from '../utils/formatMoney';
 
 const CheckoutPageNew = () => {
     const { items, totalItems, totalPrice, clearCart, clearUserCart } = useCart();
@@ -33,6 +40,7 @@ const CheckoutPageNew = () => {
     const { getCurrentPincode, confirmedLocation } = usePincode();
     const { showError, showSuccess } = useToast();
     const navigate = useNavigate();
+    const location = useLocation();
     const { isMobile } = useResponsive();
     const { processPayment, loading: razorpayLoading } = useRazorpay();
 
@@ -203,23 +211,62 @@ const CheckoutPageNew = () => {
         }
     };
 
+    const selectAddress = useCallback((addr) => {
+        const selectedAddr = {
+            id: addr.id,
+            name: addr.name,
+            address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}`,
+            addressLine1: addr.addressLine1,
+            city: addr.city,
+            pinCode: addr.pinCode,
+            latitude: addr.latitude,
+            longitude: addr.longitude,
+        };
+        setCheckoutData(prev => ({ ...prev, selectedAddress: selectedAddr }));
+        fetchDeliveryCharges(selectedAddr);
+    }, []);
+
+    const loadAddresses = useCallback(async () => {
+        setIsLoadingAddresses(true);
+        setAddressesError(null);
+        try {
+            const response = await getAddresses();
+            if (response.success && response.data) {
+                const addresses = response.data.map(transformAddressFromAPI);
+                setSavedAddresses(addresses);
+                return addresses;
+            }
+        } catch (error) {
+            setAddressesError('Failed to load addresses.');
+        } finally {
+            setIsLoadingAddresses(false);
+        }
+        return [];
+    }, []);
+
+    const goToAddAddress = () => {
+        navigate('/address', { state: { fromCheckout: true, openAddModal: true } });
+    };
+
     // Load addresses
     useEffect(() => {
-        const loadAddresses = async () => {
-            setIsLoadingAddresses(true);
-            try {
-                const response = await getAddresses();
-                if (response.success && response.data) {
-                    setSavedAddresses(response.data.map(transformAddressFromAPI));
-                }
-            } catch (error) {
-                setAddressesError('Failed to load addresses.');
-            } finally {
-                setIsLoadingAddresses(false);
-            }
-        };
         loadAddresses();
-    }, []);
+    }, [loadAddresses]);
+
+    // Return to address step after adding address from checkout
+    useEffect(() => {
+        const returnStep = location.state?.returnStep;
+        if (!returnStep) return;
+
+        setCurrentStep(returnStep);
+        loadAddresses().then((addresses) => {
+            if (returnStep === 2 && addresses.length > 0) {
+                const defaultAddr = addresses.find((a) => a.isDefault) || addresses[addresses.length - 1];
+                selectAddress(defaultAddr);
+            }
+        });
+        navigate(location.pathname, { replace: true, state: {} });
+    }, [location.state?.returnStep, loadAddresses, navigate, location.pathname, selectAddress]);
 
     // Load delivery slots
     useEffect(() => {
@@ -355,10 +402,8 @@ const CheckoutPageNew = () => {
         return () => clearInterval(interval);
     }, [sessionStartTime, isSessionExpired]);
 
-    // Calculate totals
-    const totalSavings = items.reduce((total, item) => {
-        return total + (Math.round((Number(item.price) || 0) * 0.2) * (Number(item.quantity) || 1));
-    }, 0);
+    const totalSavings = calcTotalSavings(items);
+    const orderTotal = roundMoney(totalPrice + (deliveryChargeData.delivery_charge || 0));
 
     // Helper function to get delivery options from store (handles both formatted and raw API formats)
     const getDeliveryOptions = (store) => {
@@ -405,10 +450,17 @@ const CheckoutPageNew = () => {
 
     const getPaymentMethodDetails = (mode) => {
         const map = {
-            'POD': { value: 'cod', icon: '💵', name: 'Cash on Delivery', desc: 'Pay when you receive' },
-            'Online Payment': { value: 'card', icon: '💳', name: 'Online Payment', desc: 'Cards, UPI, Netbanking' },
+            'POD': { value: 'cod', iconType: 'cod', name: 'Cash on Delivery', desc: 'Pay when you receive' },
+            'Online Payment': { value: 'card', iconType: 'card', name: 'Online Payment', desc: 'Cards, UPI, Netbanking' },
         };
-        return map[mode] || { value: 'cod', icon: '💳', name: mode, desc: '' };
+        return map[mode] || { value: 'cod', iconType: 'card', name: mode, desc: '' };
+    };
+
+    const renderPaymentIcon = (iconType, className = 'w-6 h-6 text-primary-500') => {
+        if (iconType === 'cod') {
+            return <BanknotesIcon className={className} />;
+        }
+        return <CreditCardIcon className={className} />;
     };
 
     const handleContinue = () => {
@@ -741,7 +793,9 @@ const CheckoutPageNew = () => {
                                     }`}
                                     onClick={() => setCheckoutData(prev => ({ ...prev, deliveryMode: 'home' }))}
                                 >
-                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-primary-500 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] flex-shrink-0">🏠</div>
+                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-primary-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                                        <HomeIcon className="w-6 h-6 sm:w-7 sm:h-7" />
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
                                             isMobile ? 'text-[15px]' : 'text-base'
@@ -781,7 +835,9 @@ const CheckoutPageNew = () => {
                                     }`}
                                     onClick={() => setCheckoutData(prev => ({ ...prev, deliveryMode: 'pickup' }))}
                                 >
-                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-primary-500 rounded-xl flex items-center justify-center text-white text-xl sm:text-[22px] flex-shrink-0">🏪</div>
+                                    <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-primary-500 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                                        <BuildingStorefrontIcon className="w-6 h-6 sm:w-7 sm:h-7" />
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
                                             isMobile ? 'text-[15px]' : 'text-base'
@@ -843,7 +899,7 @@ const CheckoutPageNew = () => {
                                 ) : storesError ? (
                                     <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
                                         <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
-                                            ⚠️
+                                        <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 text-amber-500" />
                                         </div>
                                         <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
                                             isMobile ? 'text-base' : 'text-lg'
@@ -859,7 +915,7 @@ const CheckoutPageNew = () => {
                                 ) : pickupStores.length === 0 ? (
                                     <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
                                         <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
-                                            🏪
+                                        <BuildingStorefrontIcon className="w-10 h-10 sm:w-12 sm:h-12 text-primary-500" />
                                         </div>
                                         <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
                                             isMobile ? 'text-base' : 'text-lg'
@@ -894,7 +950,7 @@ const CheckoutPageNew = () => {
                                                     <div className={`bg-primary-500 rounded-xl flex items-center justify-center text-white flex-shrink-0 ${
                                                         isMobile ? 'w-10 h-10 text-lg' : 'w-11 h-11 text-xl'
                                                     }`}>
-                                                        🏪
+                                                    <BuildingStorefrontIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
@@ -964,18 +1020,26 @@ const CheckoutPageNew = () => {
                                 ) : savedAddresses.length === 0 ? (
                                     <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
                                         <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
-                                            📍
+                                        <MapPinIcon className="w-10 h-10 sm:w-12 sm:h-12 text-primary-500" />
                                         </div>
                                         <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
                                             isMobile ? 'text-base' : 'text-lg'
                                         }`}>
                                             No saved addresses
                                         </h4>
-                                        <p className={`text-gray-600 m-0 leading-relaxed ${
+                                        <p className={`text-gray-600 m-0 mb-4 leading-relaxed ${
                                             isMobile ? 'text-sm' : 'text-[15px]'
                                         }`}>
                                             Add an address to continue
                                         </p>
+                                        <button
+                                            type="button"
+                                            onClick={goToAddAddress}
+                                            className="inline-flex items-center justify-center gap-2 bg-primary-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm hover:bg-primary-600 transition-colors"
+                                        >
+                                            <PlusIcon className="w-4 h-4" />
+                                            ADD ADDRESS
+                                        </button>
                                     </div>
                                 ) : (
                                     savedAddresses.map((addr) => {
@@ -990,26 +1054,13 @@ const CheckoutPageNew = () => {
                                                 } ${
                                                     isMobile ? 'p-3' : 'p-4'
                                                 }`}
-                                                onClick={() => {
-                                                    const selectedAddr = {
-                                                        id: addr.id,
-                                                        name: addr.name,
-                                                        address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}`,
-                                                        addressLine1: addr.addressLine1,
-                                                        city: addr.city,
-                                                        pinCode: addr.pinCode,
-                                                        latitude: addr.latitude,
-                                                        longitude: addr.longitude
-                                                    };
-                                                    setCheckoutData(prev => ({ ...prev, selectedAddress: selectedAddr }));
-                                                    fetchDeliveryCharges(selectedAddr);
-                                                }}
+                                                onClick={() => selectAddress(addr)}
                                             >
                                                 <div className="flex items-start gap-3 sm:gap-4">
                                                     <div className={`bg-primary-500 rounded-xl flex items-center justify-center text-white flex-shrink-0 ${
                                                         isMobile ? 'w-10 h-10 text-lg' : 'w-11 h-11 text-xl'
                                                     }`}>
-                                                        📍
+                                                    <MapPinIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className={`font-bold text-gray-900 mb-1 tracking-tight ${
@@ -1053,10 +1104,12 @@ const CheckoutPageNew = () => {
                                 )}
 
                                 <button 
+                                    type="button"
                                     className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-3 sm:p-4 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-all duration-300 w-full text-primary-500 text-[13px] sm:text-sm font-bold mt-2 hover:border-primary-500 hover:bg-primary-50 hover:-translate-y-0.5 hover:shadow-md"
-                                    onClick={() => navigate('/address')}
+                                    onClick={goToAddAddress}
                                 >
-                                    + ADD NEW ADDRESS
+                                    <PlusIcon className="w-4 h-4" />
+                                    ADD NEW ADDRESS
                                 </button>
                             </>
                         )}
@@ -1090,8 +1143,8 @@ const CheckoutPageNew = () => {
                             </div>
                         ) : slotsErrorMessage ? (
                             <div className="text-center py-6 sm:py-8 px-4 bg-gray-50 rounded-[20px] border border-dashed border-gray-200">
-                                <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl sm:text-[32px] shadow-md`}>
-                                    ⚠️
+                                <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md`}>
+                                    <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 text-amber-500" />
                                 </div>
                                 <h4 className={`font-bold text-gray-900 mb-2 tracking-tight ${
                                     isMobile ? 'text-base' : 'text-lg'
@@ -1214,7 +1267,7 @@ const CheckoutPageNew = () => {
                                 <span className={`text-gray-900 font-semibold ${
                                     isMobile ? 'text-xs' : 'text-[13px]'
                                 }`}>
-                                    ₹{totalPrice.toFixed(2)}
+                                    {formatRupee(totalPrice)}
                                 </span>
                             </div>
                             {deliveryChargeData.distance_km > 0 && (
@@ -1236,7 +1289,7 @@ const CheckoutPageNew = () => {
                                 <span className={`font-bold ${isMobile ? 'text-xs' : 'text-[13px]'} ${
                                     deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'text-green-600' : 'text-gray-900'
                                 }`}>
-                                    {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : `₹${deliveryChargeData.delivery_charge.toFixed(2)}`}
+                                    {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : formatRupee(deliveryChargeData.delivery_charge)}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center py-1">
@@ -1245,7 +1298,7 @@ const CheckoutPageNew = () => {
                                     Savings
                                 </span>
                                 <span className={`text-green-600 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
-                                    ₹{totalSavings.toFixed(2)}
+                                    {formatRupee(totalSavings)}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-t-2 border-gray-200 mt-2 sm:mt-3 pt-2 sm:pt-3">
@@ -1253,7 +1306,7 @@ const CheckoutPageNew = () => {
                                     TOTAL
                                 </span>
                                 <span className={`font-extrabold text-primary-500 ${isMobile ? 'text-lg' : 'text-[22px]'}`}>
-                                    ₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}
+                                    {formatRupee(orderTotal)}
                                 </span>
                             </div>
                             {(deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0) && deliveryChargeData.distance_km > 0 && (
@@ -1279,7 +1332,7 @@ const CheckoutPageNew = () => {
 
                         <div className="bg-white rounded-2xl p-3 sm:p-4 mb-2 border border-gray-200 shadow-sm">
                             <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-gray-100">
-                                <span className="text-base sm:text-lg">💳</span>
+                                <CreditCardIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-500" />
                                 <h3 className="text-xs sm:text-[13px] font-extrabold text-primary-500 m-0 uppercase tracking-wider">
                                     PAYMENT METHOD
                                 </h3>
@@ -1314,7 +1367,7 @@ const CheckoutPageNew = () => {
                                                 <div className={`bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0 ${
                                                     isMobile ? 'w-11 h-11 text-xl' : 'w-12 h-12 text-[22px]'
                                                 }`}>
-                                                    {details.icon}
+                                                    {renderPaymentIcon(details.iconType, isMobile ? 'w-6 h-6 text-primary-500' : 'w-7 h-7 text-primary-500')}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className={`m-0 font-bold text-gray-900 tracking-tight ${
@@ -1358,13 +1411,14 @@ const CheckoutPageNew = () => {
                                 Order Subtotal
                             </span>
                             <span className={`text-gray-900 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
-                                ₹{totalPrice.toFixed(2)}
+                                {formatRupee(totalPrice)}
                             </span>
                         </div>
                         {deliveryChargeData.distance_km > 0 && (
                             <div className="flex justify-between items-center py-1">
                                 <span className={`flex items-center gap-1.5 text-gray-600 ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
-                                    🚗 Distance:
+                                    <TruckIcon className="w-3.5 h-3.5" />
+                                    Distance:
                                 </span>
                                 <span className={`text-gray-700 font-medium ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
                                     {deliveryChargeData.distance_km} km
@@ -1382,7 +1436,7 @@ const CheckoutPageNew = () => {
                             }`}>
                                 {deliveryChargeData.isLoading ? 'Calculating...' :
                                  deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' :
-                                 `₹${deliveryChargeData.delivery_charge.toFixed(2)}`}
+                                 formatRupee(deliveryChargeData.delivery_charge)}
                             </span>
                         </div>
                         <div className="flex justify-between items-center py-1">
@@ -1391,7 +1445,7 @@ const CheckoutPageNew = () => {
                                 You Save:
                             </span>
                             <span className={`text-green-600 font-semibold ${isMobile ? 'text-xs' : 'text-[13px]'}`}>
-                                ₹{totalSavings.toFixed(2)}
+                                {formatRupee(totalSavings)}
                             </span>
                         </div>
                         <div className="flex justify-between items-center py-1 border-t-2 border-gray-200 mt-2 sm:mt-3 pt-2 sm:pt-3">
@@ -1399,12 +1453,15 @@ const CheckoutPageNew = () => {
                                 Total
                             </span>
                             <span className={`font-extrabold text-primary-500 ${isMobile ? 'text-lg' : 'text-[22px]'}`}>
-                                ₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}
+                                {formatRupee(orderTotal)}
                             </span>
                         </div>
                         {deliveryChargeData.free_delivery && deliveryChargeData.distance_km > 0 && (
                             <div className="flex items-center justify-center gap-1.5 mt-2 py-1.5 bg-green-50 rounded-lg">
-                                <span className="text-green-600 text-[11px] font-medium">✅ Free delivery for this order</span>
+                                <span className="text-green-600 text-[11px] font-medium flex items-center gap-1">
+                                    <CheckCircleSolid className="w-3.5 h-3.5" />
+                                    Free delivery for this order
+                                </span>
                             </div>
                         )}
                     </div>
@@ -1420,7 +1477,7 @@ const CheckoutPageNew = () => {
                 {isMobile && (
                     <div className="flex items-center justify-between mb-2 px-1">
                         <span className="text-xs text-gray-500">{totalItems} items</span>
-                        <span className="text-sm font-bold text-gray-900">₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatRupee(orderTotal)}</span>
                     </div>
                 )}
                 <button
@@ -1725,7 +1782,7 @@ const CheckoutPageNew = () => {
                                                 color: colors.text.primary, 
                                                 margin: `0 0 ${spacing.xs} 0` 
                                             }}>
-                                                ₹{(itemPrice * itemQty).toFixed(2)}
+                                                {formatRupee(roundMoney(itemPrice * itemQty))}
                                             </p>
                                             <p style={{ 
                                                 fontSize: isMobile ? '11px' : '12px', 
@@ -1747,7 +1804,7 @@ const CheckoutPageNew = () => {
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>Subtotal</span>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>₹{totalPrice.toFixed(2)}</span>
+                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: colors.text.primary, fontWeight: 600 }}>{formatRupee(totalPrice)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: isMobile ? '12px' : '13px', color: colors.text.secondary }}>
@@ -1762,7 +1819,7 @@ const CheckoutPageNew = () => {
                                         Delivery Fee
                                     </span>
                                     <span style={{ fontSize: isMobile ? '12px' : '13px', color: deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? '#16a34a' : colors.text.primary, fontWeight: 700 }}>
-                                        {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : `₹${deliveryChargeData.delivery_charge.toFixed(2)}`}
+                                        {deliveryChargeData.free_delivery || deliveryChargeData.delivery_charge === 0 ? 'FREE' : formatRupee(deliveryChargeData.delivery_charge)}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${spacing.xs} 0` }}>
@@ -1770,7 +1827,7 @@ const CheckoutPageNew = () => {
                                         <CurrencyDollarIcon style={{ width: '14px', height: '14px' }} />
                                         Savings
                                     </span>
-                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#16a34a', fontWeight: 600 }}>₹{totalSavings.toFixed(2)}</span>
+                                    <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#16a34a', fontWeight: 600 }}>{formatRupee(totalSavings)}</span>
                                 </div>
                                 <div style={{
                                     display: 'flex',
@@ -1782,7 +1839,7 @@ const CheckoutPageNew = () => {
                                     borderTop: `2px dashed ${colors.border}`
                                 }}>
                                     <span style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 800, color: colors.text.primary }}>Total</span>
-                                    <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 800, color: colors.primary }}>₹{(totalPrice + (deliveryChargeData.delivery_charge || 0)).toFixed(2)}</span>
+                                    <span style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: 800, color: colors.primary }}>{formatRupee(orderTotal)}</span>
                                 </div>
                             </div>
 
@@ -1821,7 +1878,7 @@ const CheckoutPageNew = () => {
                                     boxShadow: '0 2px 8px rgba(245, 158, 11, 0.1)'
                                 }}>
                                     <BanknotesIcon style={{ width: isMobile ? '14px' : '16px', height: isMobile ? '14px' : '16px' }} />
-                                    You saved ₹{totalSavings.toFixed(2)} on this order!
+                                    You saved {formatRupee(totalSavings)} on this order!
                                 </div>
                             </div>
                         </div>

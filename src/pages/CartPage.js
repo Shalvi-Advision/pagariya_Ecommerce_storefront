@@ -22,6 +22,12 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolid, TagIcon } from '@heroicons/react/24/solid';
+import {
+  calcItemUnitSaving,
+  calcTotalSavings,
+  formatRupee,
+  roundMoney,
+} from '../utils/formatMoney';
 
 const CartPage = () => {
   const {
@@ -67,13 +73,7 @@ const CartPage = () => {
   // Calculate discount from selected offer
   const offerDiscount = selectedOffer?.unlocked ? (selectedOffer.effective_discount || 0) : 0;
 
-  // Calculate savings from MRP vs selling price
-  const totalSavings = items.reduce((total, item) => {
-    const mrp = Number(item.product_mrp || item.mrp || 0);
-    const price = Number(item.price || item.our_price || 0);
-    const saving = mrp > price ? (mrp - price) * item.quantity : 0;
-    return total + saving;
-  }, 0);
+  const totalSavings = calcTotalSavings(items);
 
   const handleOfferSelect = useCallback((offer) => {
     setSelectedOffer(offer);
@@ -292,8 +292,8 @@ const CartPage = () => {
   const renderCheckoutSection = (isMobile = false, hideButton = false) => {
     const store = confirmedLocation?.store;
     const minAmountRaw = store?.minOrderAmount || store?.min_order_amount;
-    const minOrderAmount = parseFloat(minAmountRaw || 0);
-    const currentTotal = parseFloat(totalPrice || 0);
+    const minOrderAmount = roundMoney(minAmountRaw || 0);
+    const currentTotal = roundMoney(totalPrice || 0);
     const isBelowMinOrder = minOrderAmount > 0 && currentTotal < minOrderAmount;
 
     return (
@@ -304,7 +304,7 @@ const CartPage = () => {
             {/* Cart Total */}
             <div className={`flex justify-between items-center ${isMobile ? "py-1" : "py-2"} border-b`} style={{ borderColor: COLORS.gray[200] }}>
               <span className={`font-bold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.gray[900] }}>Cart Total</span>
-              <span className={`font-bold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.gray[900] }}>₹{totalPrice}</span>
+              <span className={`font-bold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.gray[900] }}>{formatRupee(totalPrice)}</span>
             </div>
 
             {/* Delivery Charge */}
@@ -320,7 +320,7 @@ const CartPage = () => {
             {totalSavings > 0 && (
               <div className={`flex justify-between items-center ${isMobile ? "py-1" : "py-2"} border-b`} style={{ borderColor: COLORS.gray[200] }}>
                 <span className={`${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.gray[700] }}>Savings</span>
-                <span className={`font-semibold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.success[600] }}>-₹{totalSavings}</span>
+                <span className={`font-semibold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.success[600] }}>-{formatRupee(totalSavings)}</span>
               </div>
             )}
 
@@ -331,7 +331,7 @@ const CartPage = () => {
                   <TagIcon className={`${isMobile ? "w-3 h-3" : "w-4 h-4"}`} style={{ color: COLORS.success[600] }} />
                   <span className={`${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.success[700] }}>Offer Discount</span>
                 </div>
-                <span className={`font-semibold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.success[600] }}>-₹{offerDiscount}</span>
+                <span className={`font-semibold ${isMobile ? "text-xs" : "text-sm sm:text-base"}`} style={{ color: COLORS.success[600] }}>-{formatRupee(offerDiscount)}</span>
               </div>
             )}
           </div>
@@ -341,10 +341,10 @@ const CartPage = () => {
             <div className={`${isMobile ? "mt-3 p-3" : "mt-4 p-3"} bg-primary-50 border border-primary-200 rounded-lg ${isMobile ? "text-sm" : "text-sm"} text-primary-800`}>
               <p className={`font-medium flex items-center ${isMobile ? "gap-2" : "gap-2"}`}>
                 <InformationCircleIcon className={`${isMobile ? "w-5 h-5" : "w-5 h-5"} flex-shrink-0`} />
-                Minimum order amount is ₹{minOrderAmount}
+                Minimum order amount is {formatRupee(minOrderAmount)}
               </p>
               <p className={`${isMobile ? "mt-1.5 text-xs" : "mt-1 text-xs"} text-primary-700 ${isMobile ? "pl-7" : "pl-7"}`}>
-                Add items worth ₹{minOrderAmount - currentTotal} more to proceed
+                Add items worth {formatRupee(roundMoney(minOrderAmount - currentTotal))} more to proceed
               </p>
             </div>
           )}
@@ -481,9 +481,8 @@ const CartPage = () => {
                   }}
                 >
                   {items.map((item, index) => {
-                    const itemPrice = Number(item.price) || 0;
-                    const itemMrp = Number(item.product_mrp || item.mrp || 0);
-                    const itemSavings = itemMrp > itemPrice ? Math.round(itemMrp - itemPrice) : 0;
+                    const itemPrice = roundMoney(item.price || 0);
+                    const itemSavings = calcItemUnitSaving(item);
                     const variant = item.quantity > 1 ? `${item.quantity} units` : '1 unit';
 
                     return (
@@ -536,10 +535,10 @@ const CartPage = () => {
                               <div className="flex items-center justify-between mt-2">
                                 <div>
                                   <span className="text-sm font-bold" style={{ color: COLORS.gray[900] }}>
-                                    You Pay ₹{itemPrice}
+                                    You Pay {formatRupee(itemPrice)}
                                   </span>
                                   <p className="text-xs mt-0.5" style={{ color: COLORS.success[600] }}>
-                                    You Save ₹{itemSavings}
+                                    You Save {formatRupee(itemSavings)}
                                   </p>
                                 </div>
                                 <div className="flex flex-col items-end">
@@ -598,14 +597,14 @@ const CartPage = () => {
                           {/* You Pay */}
                           <div className="col-span-2 text-center">
                             <span className="text-xs lg:text-sm font-semibold" style={{ color: COLORS.gray[900] }}>
-                              ₹{itemPrice}
+                              {formatRupee(itemPrice)}
                             </span>
                           </div>
 
                           {/* You Save */}
                           <div className="col-span-2 text-center">
                             <span className="text-xs lg:text-sm font-semibold" style={{ color: COLORS.success[600] }}>
-                              ₹{itemSavings}
+                              {formatRupee(itemSavings)}
                             </span>
                           </div>
 

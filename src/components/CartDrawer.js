@@ -9,24 +9,22 @@ import {
   MinusIcon,
   PlusIcon,
   TrashIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ShoppingCartIcon,
 } from '@heroicons/react/24/outline';
+import {
+  calcItemUnitSaving,
+  calcTotalSavings,
+  formatRupee,
+  roundMoney,
+} from '../utils/formatMoney';
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } = useCart();
   const { confirmedLocation } = usePincode();
   const { isMobile } = useResponsive();
 
-  // Calculate savings (assuming 20% discount for demo purposes)
-  const calculateSavings = (price) => {
-    return Math.round(price * 0.2);
-  };
-
-  const totalSavings = items.reduce((total, item) => {
-    return total + (calculateSavings(item.price) * item.quantity);
-  }, 0);
-
-  const originalTotal = totalPrice + totalSavings;
+  const totalSavings = calcTotalSavings(items);
 
   if (!isOpen) return null;
 
@@ -61,11 +59,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
           <div className="flex gap-2 sm:gap-3 flex-shrink-0">
             <div className="text-right">
               <p className="text-xs text-gray-500">Savings</p>
-              <p className="text-sm sm:text-lg font-bold text-gray-900">₹{totalSavings}</p>
+              <p className="text-sm sm:text-lg font-bold text-gray-900">{formatRupee(totalSavings)}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500">Total</p>
-              <p className="text-sm sm:text-lg font-bold text-gray-900">₹{totalPrice}</p>
+              <p className="text-sm sm:text-lg font-bold text-gray-900">{formatRupee(totalPrice)}</p>
             </div>
           </div>
         </div>
@@ -75,15 +73,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
           {items.length === 0 ? (
             <div className="text-center py-8 sm:py-12">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <span className="text-xl sm:text-2xl">🛒</span>
+                <ShoppingCartIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
               </div>
               <p className="text-gray-500 text-base sm:text-lg mb-2">Your cart is empty</p>
               <p className="text-gray-400 text-xs sm:text-sm">Add some items to get started!</p>
             </div>
           ) : (
             items.map((item) => {
-              const itemSavings = calculateSavings(item.price);
-              const originalPrice = item.price + itemSavings;
+              const itemSavings = calcItemUnitSaving(item);
 
               return (
                 <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm">
@@ -109,10 +106,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                       <div className="flex items-center gap-2 sm:gap-3 mb-2">
                         <div>
                           <span className="text-xs text-gray-500">You Pay</span>
-                          <p className="font-bold text-gray-900 text-sm sm:text-base">₹{item.price}</p>
+                          <p className="font-bold text-gray-900 text-sm sm:text-base">{formatRupee(item.price)}</p>
                         </div>
                         <div className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                          Save ₹{itemSavings}
+                          Save {formatRupee(itemSavings)}
                         </div>
                       </div>
 
@@ -169,8 +166,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
           {(() => {
             const store = confirmedLocation?.store;
             const minAmountRaw = store?.minOrderAmount || store?.min_order_amount;
-            const minOrderAmount = parseFloat(minAmountRaw || 0);
-            const currentTotal = parseFloat(totalPrice || 0);
+            const minOrderAmount = roundMoney(minAmountRaw || 0);
+            const currentTotal = roundMoney(totalPrice || 0);
             const isBelowMinOrder = items.length > 0 && minOrderAmount > 0 && currentTotal < minOrderAmount;
 
             if (isBelowMinOrder) {
@@ -178,10 +175,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 <div className="mb-3 p-2 bg-primary-50 border border-primary-200 rounded text-xs text-primary-800">
                   <p className="flex items-center gap-1 font-medium">
                     <InformationCircleIcon className="w-4 h-4" />
-                    Min order: ₹{minOrderAmount}
+                    Min order: {formatRupee(minOrderAmount)}
                   </p>
                   <p className="pl-5 text-primary-700">
-                    Add ₹{minOrderAmount - currentTotal} more
+                    Add {formatRupee(roundMoney(minOrderAmount - currentTotal))} more
                   </p>
                 </div>
               );
