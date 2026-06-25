@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { DEFAULT_PRODUCT_IMAGE, onProductImageError } from '../utils/imageUtils';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
@@ -96,6 +96,9 @@ const CategoryPage = () => {
   const [storeEnabled, setStoreEnabled] = useState(true);
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const productsRequestRef = useRef(0);
+  const selectedCategoryId = selectedCategory?.idcategory_master ?? null;
+  const selectedSubcategoryId = selectedSubcategory?.idsub_category_master ?? null;
 
   // Check store status on mount and when location changes
   useEffect(() => {
@@ -257,9 +260,8 @@ const CategoryPage = () => {
   }, [categoryName, location.state, applyInitialCategorySelection]);
 
   // Load subcategories for a department and category
-  const loadSubcategories = useCallback(async (deptId, categoryId) => {
+  const loadSubcategories = useCallback(async (deptId, categoryId, categoryName = 'Products') => {
     try {
-      // Don't set loading state - only affects subcategories list, not whole page
       const locationData = localStorage.getItem('confirmedLocation');
       const storeCode = locationData ? JSON.parse(locationData)?.store?.storeCode || JSON.parse(locationData)?.store?.store_code : null;
 
@@ -268,56 +270,35 @@ const CategoryPage = () => {
         return;
       }
 
-      // Create "All Products" sentinel that will always be first
-      const allProductsSentinel = createAllProductsSentinel(
-        categoryId,
-        selectedCategory?.category_name || 'Products'
-      );
-
+      const allProductsSentinel = createAllProductsSentinel(categoryId, categoryName);
       const response = await groceryApiService.getActiveSubcategories(deptId, categoryId);
-      if (response.success && response.data && response.data.length > 0) {
-        // Always prepend "All Products" sentinel to the subcategories list
-        const subcategoriesWithAll = [allProductsSentinel, ...response.data];
-        setSubcategories(subcategoriesWithAll);
+      const subcategoriesWithAll = response.success && response.data?.length > 0
+        ? [allProductsSentinel, ...response.data]
+        : [allProductsSentinel];
 
-        const resolveSubcategorySelection = () => {
-          if (subSubCategorySlug) {
-            const fromUrl = findItemBySlug(subcategoriesWithAll, subSubCategorySlug, 'sub_category_name');
-            if (fromUrl) {
-              return fromUrl;
-            }
-          }
+      setSubcategories(subcategoriesWithAll);
 
-          if (selectedSubcategory) {
-            const stillExists = subcategoriesWithAll.find(
-              (sub) => sub.idsub_category_master === selectedSubcategory.idsub_category_master
-            );
-            if (stillExists) {
-              return stillExists;
-            }
-          }
-
-          return allProductsSentinel;
-        };
-
-        const subcategoryToSelect = resolveSubcategorySelection();
-        setSelectedSubcategory(subcategoryToSelect);
-      } else {
-        // Only "All Products" sentinel if no real subcategories exist
-        console.log('No subcategories found, using All Products sentinel only');
-        setSubcategories([allProductsSentinel]);
-        setSelectedSubcategory(allProductsSentinel);
+      let subcategoryToSelect = allProductsSentinel;
+      if (subSubCategorySlug) {
+        const fromUrl = findItemBySlug(subcategoriesWithAll, subSubCategorySlug, 'sub_category_name');
+        if (fromUrl) {
+          subcategoryToSelect = fromUrl;
+        }
       }
+
+      setSelectedSubcategory((current) => {
+        if (current?.idsub_category_master === subcategoryToSelect.idsub_category_master) {
+          return current;
+        }
+        return subcategoryToSelect;
+      });
     } catch (err) {
       console.error('Error loading subcategories:', err);
-      const allProductsSentinel = createAllProductsSentinel(
-        categoryId,
-        selectedCategory?.category_name || 'Products'
-      );
+      const allProductsSentinel = createAllProductsSentinel(categoryId, categoryName);
       setSubcategories([allProductsSentinel]);
       setSelectedSubcategory(allProductsSentinel);
     }
-  }, [selectedCategory, selectedSubcategory, subSubCategorySlug]);
+  }, [subSubCategorySlug]);
 
   // Load department and categories on component mount
   useEffect(() => {
@@ -326,13 +307,15 @@ const CategoryPage = () => {
     }
   }, [categoryName, loadDepartmentData]);
 
-  // Load subcategories when both selectedCategory and departmentId are available
+  // Load subcategories when category changes (keyed on id, not object reference)
   useEffect(() => {
-    if (selectedCategory && departmentId) {
-      console.log('🔄 Auto-loading subcategories for category:', selectedCategory.category_name, 'departmentId:', departmentId);
-      loadSubcategories(departmentId, selectedCategory.idcategory_master);
+    if (!selectedCategoryId || !departmentId) {
+      return;
     }
-  }, [selectedCategory, departmentId, loadSubcategories]);
+    setSelectedSubcategory(null);
+    setSubcategories([]);
+    loadSubcategories(departmentId, selectedCategoryId, selectedCategory?.category_name || 'Products');
+  }, [selectedCategoryId, departmentId, loadSubcategories, selectedCategory?.category_name]);
 
   // Sync sidebar selection when URL changes (browser back/forward or direct links)
   useEffect(() => {
@@ -348,38 +331,24 @@ const CategoryPage = () => {
     if (selectedCategory?.idcategory_master !== categoryFromUrl.idcategory_master) {
       setSelectedCategory(categoryFromUrl);
       setProducts([]);
-      setProductsLoading(true);
       setCurrentPage(1);
     }
   }, [subCategorySlug, categories, loading, selectedCategory?.idcategory_master]);
 
   useEffect(() => {
-    if (subcategories.length === 0 || loading) {
+    if (subcategories.length === 0 || loading || !subSubCategorySlug) {
       return;
     }
 
-    let targetSubcategory = null;
-    if (subSubCategorySlug) {
-      targetSubcategory = findItemBySlug(subcategories, subSubCategorySlug, 'sub_category_name');
-    } else if (subCategorySlug) {
-      targetSubcategory = subcategories.find((sub) => sub.idsub_category_master === 'all-products');
-    }
-
+    const targetSubcategory = findItemBySlug(subcategories, subSubCategorySlug, 'sub_category_name');
     if (
       targetSubcategory &&
-      selectedSubcategory?.idsub_category_master !== targetSubcategory.idsub_category_master
+      selectedSubcategoryId !== targetSubcategory.idsub_category_master
     ) {
       setSelectedSubcategory(targetSubcategory);
-      setProductsLoading(true);
       setCurrentPage(1);
     }
-  }, [
-    subSubCategorySlug,
-    subCategorySlug,
-    subcategories,
-    loading,
-    selectedSubcategory?.idsub_category_master,
-  ]);
+  }, [subSubCategorySlug, subcategories, loading, selectedSubcategoryId]);
 
   // Keep the address bar in sync after the initial department-only landing
   useEffect(() => {
@@ -402,211 +371,118 @@ const CategoryPage = () => {
     navigate,
   ]);
 
-  // Memoized loadProducts function to prevent recreating on every render
-  const loadProducts = useCallback(async () => {
-    try {
-      setProductsLoading(true); // Only show loading in products section
-      setError(null);
+  // Load products once per category/subcategory selection (primitive ids only)
+  useEffect(() => {
+    if (!departmentId || !selectedCategoryId || !selectedSubcategoryId) {
+      return;
+    }
 
-      const locationData = localStorage.getItem('confirmedLocation');
-      const storeCode = locationData ? JSON.parse(locationData)?.store?.storeCode || JSON.parse(locationData)?.store?.store_code : null;
+    const requestId = ++productsRequestRef.current;
+    let cancelled = false;
 
-      console.log('🏪 CategoryPage loadProducts - storeCode:', storeCode);
-      console.log('🏪 CategoryPage loadProducts - locationData:', locationData);
+    const loadProducts = async () => {
+      try {
+        setProductsLoading(true);
+        setError(null);
 
-      if (!storeCode) {
-        setError('Please select a store to view products');
-        setProductsLoading(false);
-        return;
-      }
+        const locationData = localStorage.getItem('confirmedLocation');
+        const storeCode = locationData
+          ? JSON.parse(locationData)?.store?.storeCode || JSON.parse(locationData)?.store?.store_code
+          : null;
 
-      if (!departmentId || !selectedCategory || !selectedSubcategory) {
-        setProducts([]);
-        setProductsLoading(false);
-        return;
-      }
-
-      // Check if this is a special subcategory (all-products sentinel or old fallback)
-      const isAllProductsSentinel = selectedSubcategory.idsub_category_master === 'all-products';
-      const isFallbackSubcategory = selectedSubcategory.idsub_category_master === 'fallback';
-      const isAggregatedView = isAllProductsSentinel || isFallbackSubcategory;
-
-      if (!isAggregatedView) {
-        // Try the new hierarchy-based endpoint first for specific subcategories
-        const response = await groceryApiService.getProducts(
-          storeCode,
-          departmentId,
-          selectedCategory.idcategory_master,
-          selectedSubcategory.idsub_category_master
-        );
-
-        if (response.success && response.data && response.data.length > 0) {
-          // New API returned products
-          setProducts(response.data);
-          setUsingFallbackData(false);
+        if (!storeCode) {
+          if (!cancelled && requestId === productsRequestRef.current) {
+            setError('Please select a store to view products');
+            setProducts([]);
+            setProductsLoading(false);
+          }
           return;
         }
-      }
 
-      // For "All Products" sentinel or fallback, use search endpoint with category-level filters
-      if (isAllProductsSentinel) {
-        console.log('Using category-level search for All Products');
+        const isAllProductsSentinel = selectedSubcategoryId === 'all-products';
+        const isFallbackSubcategory = selectedSubcategoryId === 'fallback';
+        const isAggregatedView = isAllProductsSentinel || isFallbackSubcategory;
 
-        // Call search endpoint WITHOUT sub_category_id to get all products in category
-        const categoryResponse = await groceryApiService.searchProducts(
-          'a', // Generic search term to get products
-          storeCode,
-          {
-            dept_id: departmentId,
-            category_id: selectedCategory.idcategory_master
-            // Explicitly NOT including sub_category_id to get all category products
+        if (!isAggregatedView) {
+          const response = await groceryApiService.getProducts(
+            storeCode,
+            departmentId,
+            selectedCategoryId,
+            selectedSubcategoryId
+          );
+
+          if (cancelled || requestId !== productsRequestRef.current) {
+            return;
           }
-        );
 
-        if (categoryResponse && categoryResponse.data) {
-          // Deduplicate products based on p_code or _id
-          const uniqueProducts = categoryResponse.data.filter((product, index, self) => {
-            const identifier = product.p_code || product._id;
-            return identifier && index === self.findIndex(p => (p.p_code || p._id) === identifier);
+          if (response.success && response.data?.length > 0) {
+            setProducts(response.data);
+            setUsingFallbackData(false);
+            return;
+          }
+        }
+
+        if (isAllProductsSentinel) {
+          const categoryResponse = await groceryApiService.searchProducts('a', storeCode, {
+            dept_id: departmentId,
+            category_id: selectedCategoryId,
           });
 
-          setProducts(uniqueProducts);
-          setUsingFallbackData(true);
-          return;
+          if (cancelled || requestId !== productsRequestRef.current) {
+            return;
+          }
+
+          if (categoryResponse?.data) {
+            const uniqueProducts = categoryResponse.data.filter((product, index, self) => {
+              const identifier = product.p_code || product._id;
+              return identifier && index === self.findIndex((p) => (p.p_code || p._id) === identifier);
+            });
+            setProducts(uniqueProducts);
+            setUsingFallbackData(true);
+            return;
+          }
         }
-      }
 
-      // Fallback to old API (either because hierarchy API failed or it's the old fallback subcategory)
-      console.log('Using fallback API for products');
-
-      // Use search endpoint as fallback with a generic search term
-      const fallbackResponse = await groceryApiService.searchProducts(
-        'a', // Generic search term to get products
-        storeCode,
-        {
+        const fallbackResponse = await groceryApiService.searchProducts('a', storeCode, {
           dept_id: departmentId,
-          category_id: selectedCategory.idcategory_master,
-          sub_category_id: isFallbackSubcategory ? "391" : selectedSubcategory.idsub_category_master
-        }
-      );
-
-      if (fallbackResponse && fallbackResponse.data) {
-        // Deduplicate products
-        const uniqueProducts = fallbackResponse.data.filter((product, index, self) => {
-          const identifier = product.p_code || product._id;
-          return identifier && index === self.findIndex(p => (p.p_code || p._id) === identifier);
+          category_id: selectedCategoryId,
+          sub_category_id: isFallbackSubcategory ? '391' : selectedSubcategoryId,
         });
 
-        setProducts(uniqueProducts);
-        setUsingFallbackData(true);
-      } else {
-        // If no products found, show mock data for demonstration
-        console.log('No products found in API, showing mock data');
-        const mockProducts = [
-          {
-            id: 'mock1',
-            p_code: '2390',
-            product_name: 'DOMEX LIME TOILET CLEANER 1 LTR',
-            product_description: 'Effective toilet cleaner with lime fragrance',
-            package_size: '1',
-            package_unit: 'LTR',
-            product_mrp: 245,
-            our_price: 185,
-            brand_name: 'DOMEX',
-            store_code: storeCode,
-            pcode_status: 'Y',
-            dept_id: departmentId,
-            category_id: selectedCategory.idcategory_master,
-            sub_category_id: selectedSubcategory.idsub_category_master,
-            store_quantity: 50,
-            max_quantity_allowed: 10,
-            pcode_img: 'https://patelrmart.com/mgmt_panel/sites/default/files/products/2390.webp'
-          },
-          {
-            id: 'mock2',
-            p_code: '2391',
-            product_name: 'DOMEX OCEAN TOILET CLEANER 1LTR',
-            product_description: 'Ocean fresh toilet cleaner',
-            package_size: '1',
-            package_unit: 'LTR',
-            product_mrp: 245,
-            our_price: 185,
-            brand_name: 'DOMEX',
-            store_code: storeCode,
-            pcode_status: 'Y',
-            dept_id: departmentId,
-            category_id: selectedCategory.idcategory_master,
-            sub_category_id: selectedSubcategory.idsub_category_master,
-            store_quantity: 30,
-            max_quantity_allowed: 10,
-            pcode_img: 'https://patelrmart.com/mgmt_panel/sites/default/files/products/2391.webp'
-          }
-        ];
-        setProducts(mockProducts);
-        setUsingFallbackData(true);
-      }
-    } catch (err) {
-      console.error('Error loading products:', err);
-      
-      // Try fallback API on error
-      try {
-        console.log('Primary API failed, trying fallback API');
-        const fallbackResponse = await groceryApiService.searchProducts(
-          'a', // Generic search term
-          storeCode,
-          {
-            dept_id: departmentId || "2",
-            category_id: selectedCategory?.idcategory_master || "72",
-            sub_category_id: selectedSubcategory?.idsub_category_master || "391"
-          }
-        );
+        if (cancelled || requestId !== productsRequestRef.current) {
+          return;
+        }
 
-        if (fallbackResponse && fallbackResponse.data) {
-          setProducts(fallbackResponse.data);
+        if (fallbackResponse?.data) {
+          const uniqueProducts = fallbackResponse.data.filter((product, index, self) => {
+            const identifier = product.p_code || product._id;
+            return identifier && index === self.findIndex((p) => (p.p_code || p._id) === identifier);
+          });
+          setProducts(uniqueProducts);
           setUsingFallbackData(true);
         } else {
-          // Show mock data on complete failure
-          console.log('All APIs failed, showing mock data');
-          const mockProducts = [
-            {
-              id: 'mock1',
-              p_code: '2390',
-              product_name: 'DOMEX LIME TOILET CLEANER 1 LTR',
-              product_description: 'Effective toilet cleaner with lime fragrance',
-              package_size: '1',
-              package_unit: 'LTR',
-              product_mrp: 245,
-              our_price: 185,
-              brand_name: 'DOMEX',
-              store_code: storeCode,
-              pcode_status: 'Y',
-              dept_id: departmentId || "2",
-              category_id: selectedCategory?.idcategory_master || "72",
-              sub_category_id: selectedSubcategory?.idsub_category_master || "391",
-              store_quantity: 50,
-              max_quantity_allowed: 10,
-              pcode_img: 'https://patelrmart.com/mgmt_panel/sites/default/files/products/2390.webp'
-            }
-          ];
-          setProducts(mockProducts);
-          setUsingFallbackData(true);
+          setProducts([]);
+          setUsingFallbackData(false);
         }
-      } catch (fallbackErr) {
-        console.error('Fallback API also failed:', fallbackErr);
-        setError('Failed to load products');
-        setProducts([]);
+      } catch (err) {
+        console.error('Error loading products:', err);
+        if (!cancelled && requestId === productsRequestRef.current) {
+          setError('Failed to load products');
+          setProducts([]);
+        }
+      } finally {
+        if (!cancelled && requestId === productsRequestRef.current) {
+          setProductsLoading(false);
+        }
       }
-    } finally {
-      setProductsLoading(false); // Only affects products section
-    }
-  }, [departmentId, selectedCategory, selectedSubcategory]);
-  
-  // Load products when subcategory changes
-  useEffect(() => {
-    if (selectedSubcategory) {
-      loadProducts();
-    }
-  }, [selectedSubcategory, loadProducts]);
+    };
+
+    loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [departmentId, selectedCategoryId, selectedSubcategoryId]);
 
   // Filter products based on additional filters and sorting
   const filteredProducts = useMemo(() => {
@@ -651,33 +527,37 @@ const CategoryPage = () => {
     return brands.sort();
   }, [filteredProducts]);
 
-  // Handle category selection - subcategories will be loaded automatically via useEffect
+  // Handle category selection — subcategories/products load via effects keyed on ids
   const handleCategorySelect = useCallback((category) => {
+    if (selectedCategory?.idcategory_master === category.idcategory_master) {
+      return;
+    }
+
     setSelectedCategory(category);
-    const allProductsSentinel = createAllProductsSentinel(
-      category.idcategory_master,
-      category.category_name
-    );
-    setSelectedSubcategory(allProductsSentinel);
-    setProductsLoading(true);
     setProducts([]);
     setCurrentPage(1);
 
     if (selectedDepartment) {
+      const allProductsSentinel = createAllProductsSentinel(
+        category.idcategory_master,
+        category.category_name
+      );
       navigate(buildCategoryPath(selectedDepartment, category, allProductsSentinel));
     }
-  }, [navigate, selectedDepartment]);
+  }, [navigate, selectedDepartment, selectedCategory?.idcategory_master]);
 
-  // Handle subcategory selection - load products only when subcategory is clicked
   const handleSubcategorySelect = useCallback((subcategory) => {
+    if (selectedSubcategory?.idsub_category_master === subcategory.idsub_category_master) {
+      return;
+    }
+
     setSelectedSubcategory(subcategory);
-    setProductsLoading(true);
     setCurrentPage(1);
 
     if (selectedDepartment && selectedCategory) {
       navigate(buildCategoryPath(selectedDepartment, selectedCategory, subcategory));
     }
-  }, [navigate, selectedDepartment, selectedCategory]);
+  }, [navigate, selectedDepartment, selectedCategory, selectedSubcategory?.idsub_category_master]);
 
   // Auto-select first category when categories are loaded and no category is selected
   useEffect(() => {

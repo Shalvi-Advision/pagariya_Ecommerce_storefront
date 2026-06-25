@@ -172,6 +172,18 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
     loadDepartments();
   }, [isOpen, isMobile]);
 
+  // Load categories for the selected department (never during render)
+  useEffect(() => {
+    if (!isOpen || !selectedDepartment?.department_id) {
+      return;
+    }
+
+    const departmentId = selectedDepartment.department_id;
+    if (!categories[departmentId] && !categoriesLoading[departmentId]) {
+      loadCategoriesForDepartment(departmentId);
+    }
+  }, [isOpen, selectedDepartment, categories, categoriesLoading, loadCategoriesForDepartment]);
+
   if (!isOpen) return null;
 
   return (
@@ -411,10 +423,6 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
                       const departmentImage = department.image_link || getDefaultImage();
                       const isSelected = selectedDepartment?.department_id === departmentId;
 
-                      if (!categories[departmentId] && !categoriesLoading[departmentId]) {
-                        loadCategoriesForDepartment(departmentId);
-                      }
-
                       return (
                         <button
                           key={index}
@@ -558,11 +566,6 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
                     const departmentId = department.department_id;
                     const departmentName = department.department_name;
                     const departmentImage = department.image_link || getDefaultImage();
-
-                    // Load categories if not already loaded (preload for better UX)
-                    if (!categories[departmentId] && !categoriesLoading[departmentId]) {
-                      loadCategoriesForDepartment(departmentId);
-                    }
 
                     return (
                       <button
