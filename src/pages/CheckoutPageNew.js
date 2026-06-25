@@ -32,6 +32,8 @@ import cartService from '../services/cartService';
 import { PROJECT_CODE, DEFAULT_STORE_CODE } from '../constants';
 import { calculateDeliveryCharges } from '../api/deliveryChargesApi';
 import { calcTotalSavings, formatRupee, roundMoney } from '../utils/formatMoney';
+import { hasValidCoords } from '../utils/geocoding';
+import ConfirmAddressLocationModal from '../components/ConfirmAddressLocationModal';
 
 const CheckoutPageNew = () => {
     const { items, totalItems, totalPrice, clearCart, clearUserCart } = useCart();
@@ -65,6 +67,7 @@ const CheckoutPageNew = () => {
     const [selectedDateTab, setSelectedDateTab] = useState(0);
     const [orderNotes, setOrderNotes] = useState('');
     const [showOrderDetails, setShowOrderDetails] = useState(false);
+    const [confirmAddressTarget, setConfirmAddressTarget] = useState(null);
     
     // Session timeout state
     const [sessionStartTime, setSessionStartTime] = useState(null);
@@ -78,6 +81,7 @@ const CheckoutPageNew = () => {
         delivery_charge: 0,
         free_delivery: false,
         delivery_available: true,
+        is_road_distance: false,
         reason: '',
         isLoading: false
     });
@@ -93,63 +97,44 @@ const CheckoutPageNew = () => {
         paymentMethod: 'cod',
     }));
 
-    // Fetch pickup stores
-    // Fetch delivery charges when address is selected
-    // Geocode address using Nominatim (free, no API key)
-    const geocodeAddress = async (address) => {
-        const query = [address.addressLine1, address.city, address.pinCode, 'India']
-            .filter(Boolean).join(', ');
-        try {
-            const resp = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
-                { headers: { 'User-Agent': 'ShalviEcommerce/1.0' } }
-            );
-            const data = await resp.json();
-            if (data && data.length > 0) {
-                return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
-            }
-        } catch (e) {
-            console.warn('Nominatim geocoding failed:', e.message);
-        }
-        // Fallback: try with just pincode
-        try {
-            const resp = await fetch(
-                `https://nominatim.openstreetmap.org/search?postalcode=${address.pinCode}&country=India&format=json&limit=1`,
-                { headers: { 'User-Agent': 'ShalviEcommerce/1.0' } }
-            );
-            const data = await resp.json();
-            if (data && data.length > 0) {
-                return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
-            }
-        } catch (e) {
-            console.warn('Pincode geocoding failed:', e.message);
-        }
-        return null;
+    const storeLat = confirmedLocation?.store?.latitude || confirmedLocation?.store?.store_latitude;
+    const storeLng = confirmedLocation?.store?.longitude || confirmedLocation?.store?.store_longitude;
+
+    const buildSelectedAddress = (addr) => ({
+        id: addr.id,
+        name: addr.name,
+        address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}`,
+        addressLine1: addr.addressLine1,
+        addressLine2: addr.addressLine2,
+        city: addr.city,
+        pinCode: addr.pinCode,
+        latitude: addr.latitude,
+        longitude: addr.longitude,
+        mongoId: addr.mongoId,
+        idaddress_book: addr.idaddress_book,
+        area_id: addr.area_id,
+    });
+
+    const applySelectedAddress = (addr) => {
+        const selectedAddr = buildSelectedAddress(addr);
+        setCheckoutData(prev => ({ ...prev, selectedAddress: selectedAddr }));
+        fetchDeliveryCharges(selectedAddr);
     };
 
     const fetchDeliveryCharges = async (address) => {
         const storeCode = confirmedLocation?.store?.store_code || DEFAULT_STORE_CODE;
         setDeliveryChargeData(prev => ({ ...prev, isLoading: true }));
 
-        let lat = address?.latitude;
-        let lon = address?.longitude;
+        const lat = parseFloat(address?.latitude);
+        const lon = parseFloat(address?.longitude);
 
-        // If address has no coordinates, geocode it
-        if (!lat || !lon || lat === '' || lon === '' || lat === '0' || lon === '0') {
-            console.log('Address has no coordinates, geocoding...');
-            const coords = await geocodeAddress(address);
-            if (coords) {
-                lat = coords.latitude;
-                lon = coords.longitude;
-                console.log(`Geocoded to: ${lat}, ${lon}`);
-            } else {
-                console.warn('Geocoding failed, cannot calculate delivery charges');
-                setDeliveryChargeData(prev => ({
-                    ...prev, delivery_charge: 0, free_delivery: false,
-                    distance_km: 0, isLoading: false, reason: 'Unable to determine location'
-                }));
-                return;
-            }
+        if (!hasValidCoords(lat, lon)) {
+            setDeliveryChargeData(prev => ({
+                ...prev, delivery_charge: 0, free_delivery: false,
+                distance_km: 0, isLoading: false,
+                reason: 'Please confirm delivery location on the map',
+            }));
+            return;
         }
 
         try {
@@ -165,6 +150,7 @@ const CheckoutPageNew = () => {
                     delivery_charge: result.data.delivery_charge || 0,
                     free_delivery: result.data.free_delivery || false,
                     delivery_available: result.data.delivery_available !== false,
+                    is_road_distance: result.data.is_road_distance || false,
                     reason: result.data.reason || '',
                     isLoading: false
                 });
@@ -212,19 +198,19 @@ const CheckoutPageNew = () => {
     };
 
     const selectAddress = useCallback((addr) => {
-        const selectedAddr = {
-            id: addr.id,
-            name: addr.name,
-            address: `${addr.addressLine1}, ${addr.city} ${addr.pinCode}`,
-            addressLine1: addr.addressLine1,
-            city: addr.city,
-            pinCode: addr.pinCode,
-            latitude: addr.latitude,
-            longitude: addr.longitude,
-        };
-        setCheckoutData(prev => ({ ...prev, selectedAddress: selectedAddr }));
-        fetchDeliveryCharges(selectedAddr);
+        if (!hasValidCoords(addr.latitude, addr.longitude)) {
+            setConfirmAddressTarget(addr);
+            return;
+        }
+        applySelectedAddress(addr);
     }, []);
+
+    const handleAddressLocationConfirmed = (updatedAddr) => {
+        setConfirmAddressTarget(null);
+        setSavedAddresses((prev) => prev.map((a) => (a.id === updatedAddr.id ? updatedAddr : a)));
+        applySelectedAddress(updatedAddr);
+        showSuccess('Delivery location confirmed');
+    };
 
     const loadAddresses = useCallback(async () => {
         setIsLoadingAddresses(true);
@@ -472,8 +458,21 @@ const CheckoutPageNew = () => {
         if (currentStep === 1) {
             if (checkoutData.deliveryMode) setCurrentStep(2);
         } else if (currentStep === 2) {
-            if (checkoutData.deliveryMode === 'home' && checkoutData.selectedAddress) setCurrentStep(3);
-            else if (checkoutData.deliveryMode === 'pickup' && checkoutData.selectedPickupPoint) setCurrentStep(3);
+            if (checkoutData.deliveryMode === 'home') {
+                if (!checkoutData.selectedAddress) {
+                    showError('Please select a delivery address');
+                    return;
+                }
+                if (!hasValidCoords(checkoutData.selectedAddress.latitude, checkoutData.selectedAddress.longitude)) {
+                    const match = savedAddresses.find((a) => a.id === checkoutData.selectedAddress.id);
+                    if (match) setConfirmAddressTarget(match);
+                    showError('Please confirm your delivery location on the map');
+                    return;
+                }
+                setCurrentStep(3);
+            } else if (checkoutData.deliveryMode === 'pickup' && checkoutData.selectedPickupPoint) {
+                setCurrentStep(3);
+            }
         } else if (currentStep === 3) {
             if (checkoutData.selectedTimeSlot) setCurrentStep(4);
         }
@@ -1081,6 +1080,11 @@ const CheckoutPageNew = () => {
                                                         {addr.isDefault && (
                                                             <span className="inline-block bg-primary-100 text-primary-700 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded mt-1 uppercase tracking-wider">
                                                                 Default Address
+                                                            </span>
+                                                        )}
+                                                        {!hasValidCoords(addr.latitude, addr.longitude) && (
+                                                            <span className="inline-block bg-amber-100 text-amber-800 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded mt-1 ml-1">
+                                                                Confirm location
                                                             </span>
                                                         )}
                                                     </div>
@@ -1885,6 +1889,17 @@ const CheckoutPageNew = () => {
                     </div>
                 </div>
             )}
+
+        {/* Confirm address location (legacy addresses without map pin) */}
+        {confirmAddressTarget && (
+            <ConfirmAddressLocationModal
+                address={confirmAddressTarget}
+                storeLat={storeLat}
+                storeLng={storeLng}
+                onClose={() => setConfirmAddressTarget(null)}
+                onConfirmed={handleAddressLocationConfirmed}
+            />
+        )}
 
         {/* Order Success Modal */}
         <OrderSuccessModal

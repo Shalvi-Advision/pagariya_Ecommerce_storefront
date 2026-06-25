@@ -14,6 +14,23 @@ import {
   transformAddressFromAPI,
   transformAddressToAPI 
 } from '../api/addressApi';
+import AddressMapPicker from '../components/AddressMapPicker';
+import AddressSearchAutocomplete from '../components/AddressSearchAutocomplete';
+import { hasValidCoords } from '../utils/geocoding';
+
+const emptyFormData = (pinCode = '') => ({
+  name: '',
+  email: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  pinCode,
+  isDefault: false,
+  latitude: '',
+  longitude: '',
+  locationLabel: '',
+  area_id: '',
+});
 
 const AddressPage = () => {
   const navigate = useNavigate();
@@ -25,15 +42,7 @@ const AddressPage = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    pinCode: '',
-    isDefault: false
-  });
+  const [formData, setFormData] = useState(emptyFormData());
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -48,15 +57,7 @@ const AddressPage = () => {
     if (!location.state?.openAddModal) return;
     setEditingAddress(null);
     const currentPincode = getCurrentPincode();
-    setFormData({
-      name: '',
-      email: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      pinCode: currentPincode || '',
-      isDefault: false,
-    });
+    setFormData(emptyFormData(currentPincode || ''));
     setErrors({});
     setApiError('');
     setShowAddModal(true);
@@ -130,6 +131,9 @@ const AddressPage = () => {
     // PIN code validation is not needed as it's automatically set from context
     if (!formData.pinCode.trim()) newErrors.pinCode = 'PIN code is required';
     if (formData.pinCode && !/^\d{6}$/.test(formData.pinCode.replace(/\s/g, ''))) newErrors.pinCode = 'PIN code must be 6 digits';
+    if (!hasValidCoords(formData.latitude, formData.longitude)) {
+      newErrors.location = 'Please confirm your delivery location on the map';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -138,19 +142,43 @@ const AddressPage = () => {
   const handleAddAddress = () => {
     setEditingAddress(null);
     const currentPincode = getCurrentPincode();
-    setFormData({
-      name: '',
-      email: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      pinCode: currentPincode || '',
-      isDefault: false
-    });
+    setFormData(emptyFormData(currentPincode || ''));
     setErrors({});
     setApiError('');
     setShowAddModal(true);
   };
+
+  const handleLocationChange = ({ latitude, longitude, locationLabel }) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: String(latitude),
+      longitude: String(longitude),
+      locationLabel: locationLabel || prev.locationLabel,
+      area_id: locationLabel || prev.area_id,
+    }));
+    if (errors.location) {
+      setErrors((prev) => ({ ...prev, location: '' }));
+    }
+  };
+
+  const handleSearchSelect = (item) => {
+    setFormData((prev) => ({
+      ...prev,
+      addressLine1: item.addressLine1 || prev.addressLine1,
+      city: item.city || prev.city,
+      pinCode: item.pinCode || prev.pinCode,
+      latitude: String(item.lat),
+      longitude: String(item.lng),
+      locationLabel: item.label,
+      area_id: item.label,
+    }));
+    if (errors.location) {
+      setErrors((prev) => ({ ...prev, location: '' }));
+    }
+  };
+
+  const storeLat = confirmedLocation?.store?.latitude || confirmedLocation?.store?.store_latitude;
+  const storeLng = confirmedLocation?.store?.longitude || confirmedLocation?.store?.store_longitude;
 
   const handleEditAddress = (address) => {
     // Store the original address data to preserve all IDs
@@ -162,8 +190,12 @@ const AddressPage = () => {
       addressLine1: address.addressLine1,
       addressLine2: address.addressLine2 || '',
       city: address.city,
-      pinCode: currentPincode || address.pinCode, // Use current pincode from context, fallback to address pincode
-      isDefault: address.isDefault
+      pinCode: currentPincode || address.pinCode,
+      isDefault: address.isDefault,
+      latitude: address.latitude || '',
+      longitude: address.longitude || '',
+      locationLabel: address.area_id || '',
+      area_id: address.area_id || '',
     });
     setErrors({});
     setApiError('');
@@ -282,15 +314,7 @@ const AddressPage = () => {
       setShowAddModal(false);
       setEditingAddress(null);
       const currentPincode = getCurrentPincode();
-      setFormData({
-        name: '',
-        email: '',
-        addressLine1: '',
-        addressLine2: '',
-        city: '',
-        pinCode: currentPincode || '',
-        isDefault: false
-      });
+      setFormData(emptyFormData(currentPincode || ''));
     } catch (error) {
       console.error('Failed to save address:', error);
       setApiError(error.message || 'Failed to save address. Please try again.');
@@ -421,6 +445,16 @@ const AddressPage = () => {
                       <p className="text-xs sm:text-sm mt-1" style={{ color: COLORS.gray[600] }}>
                         {address.city} - {address.pinCode}
                       </p>
+                      {hasValidCoords(address.latitude, address.longitude) ? (
+                        <span className="inline-flex items-center mt-2 text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: COLORS.success[50], color: COLORS.success[700] }}>
+                          <CheckCircleIcon className="w-3 h-3 mr-1" />
+                          Location confirmed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center mt-2 text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: COLORS.warning?.[50] || '#fffbeb', color: '#b45309' }}>
+                          Location needs confirmation
+                        </span>
+                      )}
                     </div>
 
                     {/* Action Buttons */}
@@ -576,6 +610,27 @@ const AddressPage = () => {
                 {errors.email && <p className="text-xs sm:text-sm mt-1" style={{ color: COLORS.error[500] }}>{errors.email}</p>}
               </div>
 
+              {/* Search + map location */}
+              <AddressSearchAutocomplete
+                pinCode={formData.pinCode}
+                biasLat={hasValidCoords(formData.latitude, formData.longitude) ? parseFloat(formData.latitude) : storeLat}
+                biasLng={hasValidCoords(formData.latitude, formData.longitude) ? parseFloat(formData.longitude) : storeLng}
+                onSelect={handleSearchSelect}
+              />
+
+              <AddressMapPicker
+                pinCode={formData.pinCode}
+                storeLat={storeLat}
+                storeLng={storeLng}
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                locationLabel={formData.locationLabel}
+                onLocationChange={handleLocationChange}
+              />
+              {errors.location && (
+                <p className="text-xs sm:text-sm" style={{ color: COLORS.error[500] }}>{errors.location}</p>
+              )}
+
               {/* Address Line 1 */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-1.5" style={{ color: COLORS.gray[700] }}>
@@ -610,7 +665,7 @@ const AddressPage = () => {
               {/* Address Line 2 */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-1.5" style={{ color: COLORS.gray[700] }}>
-                  Address Line 2 (Optional)
+                  Landmark / Flat / Floor (Optional)
                 </label>
                 <input
                   type="text"
@@ -629,7 +684,7 @@ const AddressPage = () => {
                     e.currentTarget.style.borderColor = COLORS.gray[300];
                     e.currentTarget.style.boxShadow = 'none';
                   }}
-                  placeholder="Road name, Area, Colony"
+                  placeholder="Flat no., Floor, Landmark near gate"
                 />
               </div>
 

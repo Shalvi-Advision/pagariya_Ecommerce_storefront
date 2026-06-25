@@ -39,6 +39,20 @@ const getMobileNumber = () => {
   return '';
 };
 
+const resolveEmailId = (email) => {
+  if (email && String(email).trim()) return String(email).trim();
+  try {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      if (user?.email) return String(user.email).trim();
+    }
+  } catch (_) { /* ignore */ }
+  const mobile = getMobileNumber();
+  if (mobile) return `${mobile}@pagariyamart.local`;
+  return 'customer@pagariyamart.local';
+};
+
 /**
  * Get all addresses for the authenticated user
  * @returns {Promise<Object>} - Address list response
@@ -514,7 +528,7 @@ export const transformAddressFromAPI = (apiAddress) => {
 export const transformAddressToAPI = (uiAddress) => {
   return {
     full_name: uiAddress.name,
-    email_id: uiAddress.email || '',
+    email_id: resolveEmailId(uiAddress.email),
     delivery_addr_line_1: uiAddress.addressLine1,
     delivery_addr_line_2: uiAddress.addressLine2 || '',
     delivery_addr_city: uiAddress.city,
