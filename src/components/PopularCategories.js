@@ -98,6 +98,7 @@ const PopularCategories = () => {
           const departmentName = category.department_name;
           const icon = iconMappings[departmentName] || iconMappings['DEFAULT'];
           const departmentSlug = departmentName.toLowerCase().replace(/\s+/g, '-');
+          const categorySlug = category.category_name.toLowerCase().replace(/\s+/g, '-');
           const categoryId = category.idcategory_master || category.category_id;
 
           return {
@@ -107,11 +108,7 @@ const PopularCategories = () => {
             image_link: category.image_link || null,
             color: colorMapping.color,
             iconColor: colorMapping.iconColor,
-            link: `/category/${departmentSlug}`,
-            navigationState: {
-              selectedCategoryName: category.category_name,
-              selectedCategoryId: categoryId,
-            },
+            link: `/category/${departmentSlug}/${categorySlug}`,
           };
         });
         
@@ -160,9 +157,7 @@ const PopularCategories = () => {
               <div className="flex gap-3 sm:gap-6 overflow-x-auto scrollbar-hide pb-2 sm:pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {categories.map((category, index) => {
                   const CategoryComponent = category.link ? Link : 'div';
-                  const categoryProps = category.link
-                    ? { to: category.link, state: category.navigationState }
-                    : {};
+                  const categoryProps = category.link ? { to: category.link } : {};
 
                   return (
                     <CategoryComponent

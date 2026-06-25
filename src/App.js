@@ -223,7 +223,7 @@ function AppContent() {
                 <Route path="/ready-list" element={<ReadyListPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/saved-list" element={<SavedListPage />} />
-                <Route path="/category/:categoryName" element={<CategoryPage />} />
+                <Route path="/category/:categoryName/:subCategorySlug?/:subSubCategorySlug?" element={<CategoryPage />} />
                 <Route path="/category" element={<CategoryPage />} />
                 <Route path="/test-category" element={<TestCategoryPage />} />
                 <Route path="/favorites" element={<FavoritesPage />} />

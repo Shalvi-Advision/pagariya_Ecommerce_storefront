@@ -13,6 +13,30 @@ import groceryApiService from '../services/groceryApi';
 import { createCartItemFromProduct, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
 import { COLORS } from '../constants/theme';
 
+const toSlug = (name) => (name || '').toLowerCase().replace(/\s+/g, '-');
+
+const findItemBySlug = (items, slug, nameKey) =>
+  items.find((item) => toSlug(item[nameKey]) === slug);
+
+const buildCategoryPath = (departmentName, category, subcategory) => {
+  const parts = [`/category/${toSlug(departmentName)}`];
+  if (category) {
+    parts.push(toSlug(category.category_name));
+    if (subcategory && subcategory.idsub_category_master !== 'all-products') {
+      parts.push(toSlug(subcategory.sub_category_name));
+    }
+  }
+  return parts.join('/');
+};
+
+const createAllProductsSentinel = (categoryId, categoryName = 'Products') => ({
+  id: 'all-products',
+  idsub_category_master: 'all-products',
+  sub_category_name: 'All Products',
+  category_id: categoryId,
+  main_category_name: categoryName,
+});
+
 // Helper function to convert hex color to rgba with opacity
 const hexToRgba = (hex, opacity = 1) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -24,7 +48,7 @@ const hexToRgba = (hex, opacity = 1) => {
 };
 
 const CategoryPage = () => {
-  const { categoryName } = useParams();
+  const { categoryName, subCategorySlug, subSubCategorySlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { isMobile, isTablet, isDesktop } = useResponsive();
@@ -119,10 +143,38 @@ const CategoryPage = () => {
     setShowQuantitySelector(newShowQuantitySelector);
   }, [cartItems]);
 
-  // Convert category slug back to department name
+  // Convert department slug back to display name
   const getDepartmentNameFromSlug = (slug) => {
     return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
+
+  const resolveInitialCategory = useCallback((categoryList) => {
+    if (location.state?.selectedCategoryName) {
+      const fromState = categoryList.find(
+        (cat) => cat.category_name === location.state.selectedCategoryName ||
+          cat.idcategory_master === location.state.selectedCategoryId
+      );
+      if (fromState) {
+        return fromState;
+      }
+    }
+
+    if (subCategorySlug) {
+      const fromUrl = findItemBySlug(categoryList, subCategorySlug, 'category_name');
+      if (fromUrl) {
+        return fromUrl;
+      }
+    }
+
+    return categoryList.length > 0 ? categoryList[0] : null;
+  }, [location.state, subCategorySlug]);
+
+  const applyInitialCategorySelection = useCallback((categoryList) => {
+    const categoryToSelect = resolveInitialCategory(categoryList);
+    if (categoryToSelect) {
+      setSelectedCategory(categoryToSelect);
+    }
+  }, [resolveInitialCategory]);
 
   // Memoized function to load department data
   const loadDepartmentData = useCallback(async () => {
@@ -145,9 +197,11 @@ const CategoryPage = () => {
           const department = departmentsResponse.data.find(
             dept => dept.department_name.toLowerCase() === departmentName.toLowerCase()
           );
-          if (department && department.image_link) {
-            setDepartmentImage(department.image_link);
+          if (department) {
             setDepartmentId(department.department_id);
+            if (department.image_link) {
+              setDepartmentImage(department.image_link);
+            }
           }
         }
       } catch (e) {
@@ -166,21 +220,7 @@ const CategoryPage = () => {
           const parsedCategories = JSON.parse(cachedCategories);
           setCategories(parsedCategories);
           console.log('Using cached categories data for', departmentName);
-
-          // Auto-select category if coming from drawer navigation
-          if (location.state?.selectedCategoryName && parsedCategories) {
-            const categoryToSelect = parsedCategories.find(
-              cat => cat.category_name === location.state.selectedCategoryName ||
-                     cat.idcategory_master === location.state.selectedCategoryId
-            );
-            if (categoryToSelect) {
-              setSelectedCategory(categoryToSelect);
-            }
-          } else if (parsedCategories && parsedCategories.length > 0) {
-            // Auto-select first category if no specific category was requested
-            console.log('✅ Auto-selecting first category from cache:', parsedCategories[0].category_name);
-            setSelectedCategory(parsedCategories[0]);
-          }
+          applyInitialCategorySelection(parsedCategories);
 
           setLoading(false);
           return;
@@ -194,22 +234,7 @@ const CategoryPage = () => {
       const response = await groceryApiService.getActiveCategoriesByDepartmentName(departmentName);
       if (response.success) {
         setCategories(response.data);
-
-        // Auto-select category if coming from drawer navigation
-        if (location.state?.selectedCategoryName && response.data) {
-          const categoryToSelect = response.data.find(
-            cat => cat.category_name === location.state.selectedCategoryName ||
-                   cat.idcategory_master === location.state.selectedCategoryId
-          );
-          if (categoryToSelect) {
-            setSelectedCategory(categoryToSelect);
-            // Load subcategories for this category - will be handled by useEffect after departmentId is set
-          }
-        } else if (response.data && response.data.length > 0) {
-          // Auto-select first category if no specific category was requested
-          console.log('✅ Auto-selecting first category:', response.data[0].category_name);
-          setSelectedCategory(response.data[0]);
-        }
+        applyInitialCategorySelection(response.data);
 
         // Cache the categories
         try {
@@ -229,7 +254,7 @@ const CategoryPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [categoryName, location.state]);
+  }, [categoryName, location.state, applyInitialCategorySelection]);
 
   // Load subcategories for a department and category
   const loadSubcategories = useCallback(async (deptId, categoryId) => {
@@ -244,13 +269,10 @@ const CategoryPage = () => {
       }
 
       // Create "All Products" sentinel that will always be first
-      const allProductsSentinel = {
-        id: 'all-products',
-        idsub_category_master: 'all-products',
-        sub_category_name: 'All Products',
-        category_id: categoryId,
-        main_category_name: selectedCategory?.category_name || 'Products'
-      };
+      const allProductsSentinel = createAllProductsSentinel(
+        categoryId,
+        selectedCategory?.category_name || 'Products'
+      );
 
       const response = await groceryApiService.getActiveSubcategories(deptId, categoryId);
       if (response.success && response.data && response.data.length > 0) {
@@ -258,44 +280,44 @@ const CategoryPage = () => {
         const subcategoriesWithAll = [allProductsSentinel, ...response.data];
         setSubcategories(subcategoriesWithAll);
 
-        // Preserve current selection if it exists and is still valid, otherwise default to "All Products"
-        if (selectedSubcategory) {
-          const stillExists = subcategoriesWithAll.find(
-            sub => sub.idsub_category_master === selectedSubcategory.idsub_category_master
-          );
-          if (stillExists) {
-            console.log('✅ Preserving selected subcategory:', selectedSubcategory.sub_category_name);
-            // Keep the current selection
-          } else {
-            console.log('✅ Previous selection no longer exists, defaulting to All Products');
-            setSelectedSubcategory(allProductsSentinel);
+        const resolveSubcategorySelection = () => {
+          if (subSubCategorySlug) {
+            const fromUrl = findItemBySlug(subcategoriesWithAll, subSubCategorySlug, 'sub_category_name');
+            if (fromUrl) {
+              return fromUrl;
+            }
           }
-        } else {
-          console.log('✅ Auto-selecting All Products sentinel');
-          setSelectedSubcategory(allProductsSentinel);
-        }
+
+          if (selectedSubcategory) {
+            const stillExists = subcategoriesWithAll.find(
+              (sub) => sub.idsub_category_master === selectedSubcategory.idsub_category_master
+            );
+            if (stillExists) {
+              return stillExists;
+            }
+          }
+
+          return allProductsSentinel;
+        };
+
+        const subcategoryToSelect = resolveSubcategorySelection();
+        setSelectedSubcategory(subcategoryToSelect);
       } else {
         // Only "All Products" sentinel if no real subcategories exist
         console.log('No subcategories found, using All Products sentinel only');
         setSubcategories([allProductsSentinel]);
-        console.log('✅ Auto-selecting All Products sentinel');
         setSelectedSubcategory(allProductsSentinel);
       }
     } catch (err) {
       console.error('Error loading subcategories:', err);
-      // Create "All Products" sentinel on error
-      const allProductsSentinel = {
-        id: 'all-products',
-        idsub_category_master: 'all-products',
-        sub_category_name: 'All Products',
-        category_id: categoryId,
-        main_category_name: selectedCategory?.category_name || 'Products'
-      };
+      const allProductsSentinel = createAllProductsSentinel(
+        categoryId,
+        selectedCategory?.category_name || 'Products'
+      );
       setSubcategories([allProductsSentinel]);
-      console.log('✅ Auto-selecting All Products sentinel after error');
       setSelectedSubcategory(allProductsSentinel);
     }
-  }, [selectedCategory, selectedSubcategory]);
+  }, [selectedCategory, selectedSubcategory, subSubCategorySlug]);
 
   // Load department and categories on component mount
   useEffect(() => {
@@ -311,6 +333,74 @@ const CategoryPage = () => {
       loadSubcategories(departmentId, selectedCategory.idcategory_master);
     }
   }, [selectedCategory, departmentId, loadSubcategories]);
+
+  // Sync sidebar selection when URL changes (browser back/forward or direct links)
+  useEffect(() => {
+    if (!subCategorySlug || categories.length === 0 || loading) {
+      return;
+    }
+
+    const categoryFromUrl = findItemBySlug(categories, subCategorySlug, 'category_name');
+    if (!categoryFromUrl) {
+      return;
+    }
+
+    if (selectedCategory?.idcategory_master !== categoryFromUrl.idcategory_master) {
+      setSelectedCategory(categoryFromUrl);
+      setProducts([]);
+      setProductsLoading(true);
+      setCurrentPage(1);
+    }
+  }, [subCategorySlug, categories, loading, selectedCategory?.idcategory_master]);
+
+  useEffect(() => {
+    if (subcategories.length === 0 || loading) {
+      return;
+    }
+
+    let targetSubcategory = null;
+    if (subSubCategorySlug) {
+      targetSubcategory = findItemBySlug(subcategories, subSubCategorySlug, 'sub_category_name');
+    } else if (subCategorySlug) {
+      targetSubcategory = subcategories.find((sub) => sub.idsub_category_master === 'all-products');
+    }
+
+    if (
+      targetSubcategory &&
+      selectedSubcategory?.idsub_category_master !== targetSubcategory.idsub_category_master
+    ) {
+      setSelectedSubcategory(targetSubcategory);
+      setProductsLoading(true);
+      setCurrentPage(1);
+    }
+  }, [
+    subSubCategorySlug,
+    subCategorySlug,
+    subcategories,
+    loading,
+    selectedSubcategory?.idsub_category_master,
+  ]);
+
+  // Keep the address bar in sync after the initial department-only landing
+  useEffect(() => {
+    if (loading || !selectedDepartment || !selectedCategory || !selectedSubcategory) {
+      return;
+    }
+
+    const expectedPath = buildCategoryPath(selectedDepartment, selectedCategory, selectedSubcategory);
+    const departmentOnlyPath = `/category/${toSlug(selectedDepartment)}`;
+
+    if (location.pathname === departmentOnlyPath && location.pathname !== expectedPath) {
+      navigate(expectedPath, { replace: true });
+    }
+  }, [
+    loading,
+    selectedDepartment,
+    selectedCategory,
+    selectedSubcategory,
+    location.pathname,
+    navigate,
+  ]);
 
   // Memoized loadProducts function to prevent recreating on every render
   const loadProducts = useCallback(async () => {
@@ -564,36 +654,38 @@ const CategoryPage = () => {
   // Handle category selection - subcategories will be loaded automatically via useEffect
   const handleCategorySelect = useCallback((category) => {
     setSelectedCategory(category);
-    // Set to "All Products" sentinel - loadSubcategories will update with actual sentinel
-    const allProductsSentinel = {
-      id: 'all-products',
-      idsub_category_master: 'all-products',
-      sub_category_name: 'All Products',
-      category_id: category.idcategory_master,
-      main_category_name: category.category_name
-    };
-    setSelectedSubcategory(allProductsSentinel); // Default to "All Products" sentinel
-    setProductsLoading(true); // Set loading state to show loader instead of "No products found"
-    setProducts([]); // Clear products - wait for subcategory selection
-    setCurrentPage(1); // Reset to first page when category changes
-    // Subcategories will be loaded automatically via useEffect when both selectedCategory and departmentId are available
-  }, []);
+    const allProductsSentinel = createAllProductsSentinel(
+      category.idcategory_master,
+      category.category_name
+    );
+    setSelectedSubcategory(allProductsSentinel);
+    setProductsLoading(true);
+    setProducts([]);
+    setCurrentPage(1);
+
+    if (selectedDepartment) {
+      navigate(buildCategoryPath(selectedDepartment, category, allProductsSentinel));
+    }
+  }, [navigate, selectedDepartment]);
 
   // Handle subcategory selection - load products only when subcategory is clicked
   const handleSubcategorySelect = useCallback((subcategory) => {
     setSelectedSubcategory(subcategory);
-    setProductsLoading(true); // Set loading state to show loader instead of "No products found"
-    setCurrentPage(1); // Reset to first page
-    // Products will load automatically via useEffect
-  }, []);
+    setProductsLoading(true);
+    setCurrentPage(1);
+
+    if (selectedDepartment && selectedCategory) {
+      navigate(buildCategoryPath(selectedDepartment, selectedCategory, subcategory));
+    }
+  }, [navigate, selectedDepartment, selectedCategory]);
 
   // Auto-select first category when categories are loaded and no category is selected
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
+    if (categories.length > 0 && !selectedCategory && !subCategorySlug) {
       console.log('✅ Auto-selecting first category:', categories[0].category_name);
       handleCategorySelect(categories[0]);
     }
-  }, [categories, selectedCategory, handleCategorySelect]);
+  }, [categories, selectedCategory, subCategorySlug, handleCategorySelect]);
 
   // Handle pagination
   const handlePageChange = (newPage) => {

@@ -33,16 +33,10 @@ const CategoriesDrawer = ({ isOpen, onClose }) => {
   const [viewMode, setViewMode] = useState('departments'); // 'departments' | 'categories'
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   
-  const handleCategoryClick = (categoryName, departmentName, categoryData) => {
-    // Navigate to department page (CategoryPage) with department slug
+  const handleCategoryClick = (categoryName, departmentName) => {
     const departmentSlug = departmentName.toLowerCase().replace(/\s+/g, '-');
-    // Pass category info via state so CategoryPage can auto-select it
-    navigate(`/category/${departmentSlug}`, {
-      state: {
-        selectedCategoryName: categoryName,
-        selectedCategoryId: categoryData?.idcategory_master
-      }
-    });
+    const categorySlug = categoryName.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/category/${departmentSlug}/${categorySlug}`);
     onClose();
   };
 
