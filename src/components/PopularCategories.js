@@ -77,7 +77,12 @@ const PopularCategories = () => {
           const categoriesResponse = await getActiveCategories(department.department_id);
           
           if (categoriesResponse.success && categoriesResponse.data && categoriesResponse.data.length > 0) {
-            allCategories = [...allCategories, ...categoriesResponse.data];
+            const categoriesWithDepartment = categoriesResponse.data.map((category) => ({
+              ...category,
+              department_name: department.department_name,
+              department_id: department.department_id,
+            }));
+            allCategories = [...allCategories, ...categoriesWithDepartment];
           }
         }
         
@@ -86,25 +91,27 @@ const PopularCategories = () => {
         const randomCategories = shuffledCategories.slice(0, 8);
         
         // Format categories with UI properties
-        const formattedCategories = randomCategories.map((category, index) => {
+        const formattedCategories = randomCategories
+          .filter((category) => category.department_name)
+          .map((category, index) => {
           const colorMapping = colorMappings[index % colorMappings.length];
-
-          // Get department name for this category to determine icon
-          const department = departmentsResponse.data.find(dept =>
-            dept.department_id === (category.dept_id || category.department_id)
-          );
-
-          const departmentName = department ? department.department_name : 'DEFAULT';
+          const departmentName = category.department_name;
           const icon = iconMappings[departmentName] || iconMappings['DEFAULT'];
+          const departmentSlug = departmentName.toLowerCase().replace(/\s+/g, '-');
+          const categoryId = category.idcategory_master || category.category_id;
 
           return {
-            id: category.idcategory_master || category.category_id,
+            id: categoryId,
             name: category.category_name,
             icon: icon,
             image_link: category.image_link || null,
             color: colorMapping.color,
             iconColor: colorMapping.iconColor,
-            link: `/category/${category.category_name.toLowerCase().replace(/\s+/g, '-')}`
+            link: `/category/${departmentSlug}`,
+            navigationState: {
+              selectedCategoryName: category.category_name,
+              selectedCategoryId: categoryId,
+            },
           };
         });
         
@@ -153,7 +160,9 @@ const PopularCategories = () => {
               <div className="flex gap-3 sm:gap-6 overflow-x-auto scrollbar-hide pb-2 sm:pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {categories.map((category, index) => {
                   const CategoryComponent = category.link ? Link : 'div';
-                  const categoryProps = category.link ? { to: category.link } : {};
+                  const categoryProps = category.link
+                    ? { to: category.link, state: category.navigationState }
+                    : {};
 
                   return (
                     <CategoryComponent
