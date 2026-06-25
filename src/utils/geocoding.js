@@ -75,35 +75,76 @@ export const reverseGeocode = async (lat, lng) => {
 };
 
 /** Search addresses via Photon (Komoot / OSM). */
-export const searchPhoton = async (query, { lat, lng } = {}) => {
+export const searchPhoton = async (query, { lat, lng, pinCode } = {}) => {
   if (!query || query.trim().length < 3) return [];
   try {
-    let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6&lang=en`;
-    if (lat != null && lng != null) {
+    let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8&lang=en`;
+    // Bias to India
+    url += '&bbox=68.1,6.5,97.4,37.1';
+    if (lat != null && lng != null && hasValidCoords(lat, lng)) {
       url += `&lat=${lat}&lon=${lng}`;
     }
     const resp = await fetch(url);
     const data = await resp.json();
     if (!data?.features?.length) return [];
 
-    return data.features.map((f) => {
-      const [lng, lat] = f.geometry.coordinates;
-      const p = f.properties || {};
-      const line1 = [p.housenumber, p.street].filter(Boolean).join(' ') || p.name || '';
-      return {
-        id: `${lat}-${lng}-${p.osm_id || ''}`,
-        label: [line1, p.city || p.district, p.postcode].filter(Boolean).join(', '),
-        addressLine1: line1,
-        city: p.city || p.district || p.county || '',
-        pinCode: p.postcode || '',
-        lat,
-        lng,
-      };
-    });
+    return data.features.map((f) => formatSearchResult(f));
   } catch (e) {
     console.warn('Photon search failed:', e.message);
   }
   return [];
+};
+
+const formatNominatimResult = (item) => ({
+  id: `nom-${item.place_id}`,
+  label: item.display_name,
+  addressLine1: [item.address?.house_number, item.address?.road || item.address?.neighbourhood || item.name]
+    .filter(Boolean).join(' ') || item.display_name.split(',')[0],
+  city: item.address?.city || item.address?.town || item.address?.village || item.address?.suburb || item.address?.county || '',
+  pinCode: item.address?.postcode || '',
+  lat: parseFloat(item.lat),
+  lng: parseFloat(item.lon),
+});
+
+const formatSearchResult = (f) => {
+  const [lng, lat] = f.geometry.coordinates;
+  const p = f.properties || {};
+  const line1 = [p.housenumber, p.street].filter(Boolean).join(' ') || p.name || '';
+  const city = p.city || p.district || p.county || p.state || '';
+  return {
+    id: `ph-${lat}-${lng}-${p.osm_id || ''}`,
+    label: [line1, city, p.postcode].filter(Boolean).join(', ') || p.name || 'Selected location',
+    addressLine1: line1 || p.name || '',
+    city,
+    pinCode: p.postcode || '',
+    lat,
+    lng,
+  };
+};
+
+/** Nominatim fallback when Photon has no hits. */
+export const searchNominatim = async (query, { pinCode } = {}) => {
+  if (!query || query.trim().length < 3) return [];
+  const q = pinCode ? `${query}, ${pinCode}, India` : `${query}, India`;
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&countrycodes=in&addressdetails=1`,
+      { headers: NOMINATIM_HEADERS }
+    );
+    const data = await resp.json();
+    if (!Array.isArray(data) || !data.length) return [];
+    return data.map(formatNominatimResult);
+  } catch (e) {
+    console.warn('Nominatim search failed:', e.message);
+  }
+  return [];
+};
+
+/** Combined address search — Photon first, Nominatim fallback. */
+export const searchAddresses = async (query, options = {}) => {
+  const photon = await searchPhoton(query, options);
+  if (photon.length > 0) return photon;
+  return searchNominatim(query, options);
 };
 
 /** Resolve initial map center from pincode, store, or saved coords. */

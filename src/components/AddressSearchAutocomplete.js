@@ -1,15 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { searchPhoton } from '../utils/geocoding';
+import { searchAddresses } from '../utils/geocoding';
 import { COLORS } from '../constants/theme';
 
-const AddressSearchAutocomplete = ({ pinCode, biasLat, biasLng, onSelect, disabled }) => {
-  const [query, setQuery] = useState('');
+const AddressSearchAutocomplete = ({
+  pinCode,
+  biasLat,
+  biasLng,
+  onSelect,
+  disabled,
+  value = '',
+  onChangeQuery,
+}) => {
+  const [query, setQuery] = useState(value);
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
   const timerRef = useRef(null);
   const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    setQuery(value || '');
+  }, [value]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -26,22 +39,34 @@ const AddressSearchAutocomplete = ({ pinCode, biasLat, biasLng, onSelect, disabl
     if (!query || query.trim().length < 3) {
       setResults([]);
       setOpen(false);
+      setSearched(false);
       return;
     }
 
     timerRef.current = setTimeout(async () => {
       setSearching(true);
-      const searchQuery = pinCode ? `${query}, ${pinCode}, India` : query;
-      const items = await searchPhoton(searchQuery, { lat: biasLat, lng: biasLng });
+      setSearched(false);
+      const items = await searchAddresses(query.trim(), {
+        lat: biasLat,
+        lng: biasLng,
+        pinCode,
+      });
       setResults(items);
-      setOpen(items.length > 0);
+      setOpen(true);
+      setSearched(true);
       setSearching(false);
-    }, 350);
+    }, 400);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [query, pinCode, biasLat, biasLng]);
+
+  const handleInputChange = (e) => {
+    const next = e.target.value;
+    setQuery(next);
+    onChangeQuery?.(next);
+  };
 
   const handleSelect = (item) => {
     setQuery(item.label);
@@ -63,11 +88,12 @@ const AddressSearchAutocomplete = ({ pinCode, biasLat, biasLng, onSelect, disabl
           type="text"
           value={query}
           disabled={disabled}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onChange={handleInputChange}
+          onFocus={() => (results.length > 0 || searched) && setOpen(true)}
           className="w-full pl-9 pr-3 py-2.5 sm:py-2 border rounded-lg focus:outline-none text-sm min-h-[44px] sm:min-h-0"
           style={{ borderColor: COLORS.gray[300] }}
-          placeholder="Search area, society, street..."
+          placeholder="Search area, society, street, landmark..."
+          autoComplete="off"
         />
         {searching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -78,15 +104,16 @@ const AddressSearchAutocomplete = ({ pinCode, biasLat, biasLng, onSelect, disabl
 
       {open && results.length > 0 && (
         <ul
-          className="absolute z-[600] w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          className="absolute z-[600] w-full mt-1 bg-white border rounded-lg shadow-lg max-h-52 overflow-y-auto"
           style={{ borderColor: COLORS.gray[200] }}
         >
           {results.map((item) => (
             <li key={item.id}>
               <button
                 type="button"
-                className="w-full text-left px-3 py-2.5 text-xs sm:text-sm hover:bg-gray-50 border-b last:border-b-0"
+                className="w-full text-left px-3 py-2.5 text-xs sm:text-sm hover:bg-primary-50 border-b last:border-b-0 transition-colors"
                 style={{ color: COLORS.gray[800], borderColor: COLORS.gray[100] }}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(item)}
               >
                 {item.label}
@@ -94,6 +121,21 @@ const AddressSearchAutocomplete = ({ pinCode, biasLat, biasLng, onSelect, disabl
             </li>
           ))}
         </ul>
+      )}
+
+      {open && searched && !searching && results.length === 0 && query.trim().length >= 3 && (
+        <div
+          className="absolute z-[600] w-full mt-1 bg-white border rounded-lg shadow-lg px-3 py-3 text-xs sm:text-sm"
+          style={{ borderColor: COLORS.gray[200], color: COLORS.gray[500] }}
+        >
+          No addresses found. Try a nearby landmark or drag the pin on the map.
+        </div>
+      )}
+
+      {query.trim().length > 0 && query.trim().length < 3 && (
+        <p className="text-[10px] sm:text-xs mt-1" style={{ color: COLORS.gray[400] }}>
+          Type at least 3 characters to search
+        </p>
       )}
     </div>
   );

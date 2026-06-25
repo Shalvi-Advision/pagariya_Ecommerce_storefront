@@ -38,6 +38,7 @@ const AddressMapPicker = ({
   const markerRef = useRef(null);
   const onChangeRef = useRef(onLocationChange);
   const reverseTimerRef = useRef(null);
+  const skipNextExternalSync = useRef(false);
   const [loading, setLoading] = useState(true);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState('');
@@ -56,9 +57,40 @@ const AddressMapPicker = ({
     }, 600);
   }, []);
 
+  const attachMarkerDrag = useCallback((marker) => {
+    marker.off('dragend');
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng();
+      skipNextExternalSync.current = true;
+      onChangeRef.current?.({ latitude: pos.lat, longitude: pos.lng, locationLabel: label });
+      scheduleReverseGeocode(pos.lat, pos.lng);
+    });
+  }, [label, scheduleReverseGeocode]);
+
+  const placePin = useCallback((lat, lng, { pan = true, zoom = 17, reverse = true, external = false } = {}) => {
+    if (!mapRef.current || !hasValidCoords(lat, lng)) return;
+    if (!external) skipNextExternalSync.current = true;
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng([lat, lng]);
+    } else {
+      markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
+      attachMarkerDrag(markerRef.current);
+    }
+
+    if (pan) {
+      mapRef.current.flyTo([lat, lng], zoom, { duration: 0.6 });
+    }
+
+    if (!external) {
+      onChangeRef.current?.({ latitude: lat, longitude: lng, locationLabel: label });
+      if (reverse) scheduleReverseGeocode(lat, lng);
+    }
+  }, [attachMarkerDrag, label, scheduleReverseGeocode]);
+
+  // Initialize map once
   useEffect(() => {
     let cancelled = false;
-    const onChange = onChangeRef;
 
     const init = async () => {
       setLoading(true);
@@ -70,54 +102,32 @@ const AddressMapPicker = ({
         savedLng: longitude,
       });
 
-      if (cancelled || !mapContainerRef.current) return;
-
-      if (!mapRef.current) {
-        mapRef.current = L.map(mapContainerRef.current, {
-          center: [center.lat, center.lng],
-          zoom: hasValidCoords(latitude, longitude) ? 16 : 14,
-          zoomControl: true,
-          scrollWheelZoom: true,
-        });
-
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap',
-          maxZoom: 19,
-        }).addTo(mapRef.current);
-
-        mapRef.current.on('click', (e) => {
-          const { lat, lng } = e.latlng;
-          if (markerRef.current) {
-            markerRef.current.setLatLng([lat, lng]);
-          } else {
-            markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-            markerRef.current.on('dragend', () => {
-              const pos = markerRef.current.getLatLng();
-              onChange.current?.({ latitude: pos.lat, longitude: pos.lng, locationLabel: '' });
-              scheduleReverseGeocode(pos.lat, pos.lng);
-            });
-          }
-          onChange.current?.({ latitude: lat, longitude: lng, locationLabel: '' });
-          scheduleReverseGeocode(lat, lng);
-        });
+      if (cancelled || !mapContainerRef.current || mapRef.current) {
+        setLoading(false);
+        return;
       }
 
       const startLat = hasValidCoords(latitude, longitude) ? parseFloat(latitude) : center.lat;
       const startLng = hasValidCoords(latitude, longitude) ? parseFloat(longitude) : center.lng;
 
-      if (markerRef.current) {
-        markerRef.current.setLatLng([startLat, startLng]);
-      } else {
-        markerRef.current = L.marker([startLat, startLng], { draggable: true }).addTo(mapRef.current);
-        markerRef.current.on('dragend', () => {
-          const pos = markerRef.current.getLatLng();
-          onChange.current?.({ latitude: pos.lat, longitude: pos.lng, locationLabel: '' });
-          scheduleReverseGeocode(pos.lat, pos.lng);
-        });
-      }
+      mapRef.current = L.map(mapContainerRef.current, {
+        center: [startLat, startLng],
+        zoom: hasValidCoords(latitude, longitude) ? 16 : 14,
+        zoomControl: true,
+        scrollWheelZoom: true,
+      });
 
-      mapRef.current.setView([startLat, startLng], hasValidCoords(latitude, longitude) ? 16 : 14);
-      onChange.current?.({ latitude: startLat, longitude: startLng, locationLabel: locationLabel || '' });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 19,
+      }).addTo(mapRef.current);
+
+      markerRef.current = L.marker([startLat, startLng], { draggable: true }).addTo(mapRef.current);
+      attachMarkerDrag(markerRef.current);
+
+      mapRef.current.on('click', (e) => {
+        placePin(e.latlng.lat, e.latlng.lng, { pan: false });
+      });
 
       if (locationLabel) {
         setLabel(locationLabel);
@@ -125,8 +135,10 @@ const AddressMapPicker = ({
         const rev = await reverseGeocode(startLat, startLng);
         if (!cancelled && rev) {
           setLabel(rev);
-          onChange.current?.({ latitude: startLat, longitude: startLng, locationLabel: rev });
+          onChangeRef.current?.({ latitude: startLat, longitude: startLng, locationLabel: rev });
         }
+      } else {
+        onChangeRef.current?.({ latitude: startLat, longitude: startLng, locationLabel: '' });
       }
 
       setLoading(false);
@@ -137,16 +149,28 @@ const AddressMapPicker = ({
     return () => {
       cancelled = true;
       if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+      }
     };
-  }, [pinCode, storeLat, storeLng, latitude, longitude, locationLabel, scheduleReverseGeocode]);
+  }, [pinCode, attachMarkerDrag, placePin, latitude, longitude, locationLabel, storeLat, storeLng]);
 
-  useEffect(() => () => {
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-      markerRef.current = null;
+  // Sync map when search / parent updates coordinates
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (skipNextExternalSync.current) {
+      skipNextExternalSync.current = false;
+      return;
     }
-  }, []);
+    if (!hasValidCoords(latitude, longitude)) return;
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    placePin(lat, lng, { pan: true, zoom: 17, reverse: false, external: true });
+    if (locationLabel) setLabel(locationLabel);
+  }, [latitude, longitude, locationLabel, placePin]);
 
   const handleUseMyLocation = async () => {
     setGeoLoading(true);
@@ -157,16 +181,7 @@ const AddressMapPicker = ({
         setGeoError('Could not get a valid location. Please place the pin manually.');
         return;
       }
-      if (mapRef.current) {
-        if (markerRef.current) {
-          markerRef.current.setLatLng([pos.lat, pos.lng]);
-        } else {
-          markerRef.current = L.marker([pos.lat, pos.lng], { draggable: true }).addTo(mapRef.current);
-        }
-        mapRef.current.setView([pos.lat, pos.lng], 16);
-        onChangeRef.current?.({ latitude: pos.lat, longitude: pos.lng, locationLabel: '' });
-        scheduleReverseGeocode(pos.lat, pos.lng);
-      }
+      placePin(pos.lat, pos.lng);
     } catch (err) {
       setGeoError(
         err.code === 1
@@ -186,7 +201,7 @@ const AddressMapPicker = ({
             Delivery location <span style={{ color: COLORS.error[500] }}>*</span>
           </p>
           <p className="text-[10px] sm:text-xs mt-0.5" style={{ color: COLORS.gray[500] }}>
-            Drag the pin to your building gate or society entrance
+            Search above or drag the pin to your building gate
           </p>
         </div>
         <button

@@ -180,6 +180,13 @@ const AddressPage = () => {
   const storeLat = confirmedLocation?.store?.latitude || confirmedLocation?.store?.store_latitude;
   const storeLng = confirmedLocation?.store?.longitude || confirmedLocation?.store?.store_longitude;
 
+  const searchBiasLat = hasValidCoords(formData.latitude, formData.longitude)
+    ? parseFloat(formData.latitude)
+    : storeLat;
+  const searchBiasLng = hasValidCoords(formData.latitude, formData.longitude)
+    ? parseFloat(formData.longitude)
+    : storeLng;
+
   const handleEditAddress = (address) => {
     // Store the original address data to preserve all IDs
     setEditingAddress(address);
@@ -613,8 +620,9 @@ const AddressPage = () => {
               {/* Search + map location */}
               <AddressSearchAutocomplete
                 pinCode={formData.pinCode}
-                biasLat={hasValidCoords(formData.latitude, formData.longitude) ? parseFloat(formData.latitude) : storeLat}
-                biasLng={hasValidCoords(formData.latitude, formData.longitude) ? parseFloat(formData.longitude) : storeLng}
+                biasLat={searchBiasLat}
+                biasLng={searchBiasLng}
+                value={formData.locationLabel}
                 onSelect={handleSearchSelect}
               />
 
