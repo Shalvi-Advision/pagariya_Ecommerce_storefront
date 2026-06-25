@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import AddressMapPicker from './AddressMapPicker';
 import { hasValidCoords } from '../utils/geocoding';
 import { updateAddress, transformAddressToAPI } from '../api/addressApi';
+import { validateLocationForSessionPincode, normalizePincode } from '../utils/addressPincodeValidation';
+import { usePincode } from '../context/PincodeContext';
 import { COLORS } from '../constants/theme';
 
 const ConfirmAddressLocationModal = ({
@@ -12,16 +14,62 @@ const ConfirmAddressLocationModal = ({
   onClose,
   onConfirmed,
 }) => {
+  const { getCurrentPincode } = usePincode();
+  const getLockedPincode = () =>
+    normalizePincode(getCurrentPincode() || address?.pinCode);
+
   const [coords, setCoords] = useState({
     latitude: address?.latitude || '',
     longitude: address?.longitude || '',
-    locationLabel: '',
+    locationLabel: address?.area_id || '',
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const lastValidLocationRef = useRef(
+    hasValidCoords(address?.latitude, address?.longitude)
+      ? {
+          latitude: String(address.latitude),
+          longitude: String(address.longitude),
+          locationLabel: address?.area_id || '',
+        }
+      : null
+  );
 
-  const handleLocationChange = ({ latitude, longitude, locationLabel }) => {
-    setCoords({ latitude, longitude, locationLabel });
+  const handleLocationChange = async ({ latitude, longitude, locationLabel, detectedPinCode }) => {
+    const lockedPinCode = getLockedPincode();
+
+    if (!detectedPinCode) {
+      setCoords({
+        latitude: String(latitude),
+        longitude: String(longitude),
+        locationLabel: locationLabel || coords.locationLabel,
+      });
+      if (error) setError('');
+      return;
+    }
+
+    const validation = await validateLocationForSessionPincode(detectedPinCode, lockedPinCode);
+    if (!validation.ok) {
+      setError(validation.message);
+      if (lastValidLocationRef.current) {
+        setCoords(lastValidLocationRef.current);
+      } else if (hasValidCoords(storeLat, storeLng)) {
+        setCoords({
+          latitude: String(storeLat),
+          longitude: String(storeLng),
+          locationLabel: '',
+        });
+      }
+      return;
+    }
+
+    const update = {
+      latitude: String(latitude),
+      longitude: String(longitude),
+      locationLabel: locationLabel || '',
+    };
+    lastValidLocationRef.current = update;
+    setCoords(update);
     if (error) setError('');
   };
 
@@ -34,8 +82,10 @@ const ConfirmAddressLocationModal = ({
     setSaving(true);
     setError('');
     try {
+      const lockedPinCode = getLockedPincode();
       const apiData = transformAddressToAPI({
         ...address,
+        pinCode: lockedPinCode || address.pinCode,
         latitude: String(coords.latitude),
         longitude: String(coords.longitude),
         area_id: coords.locationLabel || address.area_id || '',
@@ -49,6 +99,7 @@ const ConfirmAddressLocationModal = ({
 
       onConfirmed?.({
         ...address,
+        pinCode: lockedPinCode || address.pinCode,
         latitude: String(coords.latitude),
         longitude: String(coords.longitude),
         area_id: coords.locationLabel || address.area_id || '',
@@ -79,11 +130,11 @@ const ConfirmAddressLocationModal = ({
 
         <div className="p-4 space-y-3">
           <p className="text-sm" style={{ color: COLORS.gray[700] }}>
-            {address?.addressLine1}, {address?.city} - {address?.pinCode}
+            {address?.addressLine1}, {address?.city} - {getLockedPincode() || address?.pinCode}
           </p>
 
           <AddressMapPicker
-            pinCode={address?.pinCode}
+            pinCode={getLockedPincode() || address?.pinCode}
             storeLat={storeLat}
             storeLng={storeLng}
             latitude={coords.latitude}

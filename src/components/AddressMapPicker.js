@@ -7,7 +7,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { MapPinIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import {
   hasValidCoords,
-  reverseGeocode,
+  reverseGeocodeDetails,
   resolveMapCenter,
   getCurrentPosition,
 } from '../utils/geocoding';
@@ -49,10 +49,15 @@ const AddressMapPicker = ({
   const scheduleReverseGeocode = useCallback((lat, lng) => {
     if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
     reverseTimerRef.current = setTimeout(async () => {
-      const rev = await reverseGeocode(lat, lng);
-      if (rev) {
-        setLabel(rev);
-        onChangeRef.current?.({ latitude: lat, longitude: lng, locationLabel: rev });
+      const details = await reverseGeocodeDetails(lat, lng);
+      if (details.label) {
+        setLabel(details.label);
+        onChangeRef.current?.({
+          latitude: lat,
+          longitude: lng,
+          locationLabel: details.label,
+          detectedPinCode: details.pinCode || '',
+        });
       }
     }, 600);
   }, []);
@@ -132,10 +137,15 @@ const AddressMapPicker = ({
       if (locationLabel) {
         setLabel(locationLabel);
       } else if (hasValidCoords(startLat, startLng)) {
-        const rev = await reverseGeocode(startLat, startLng);
-        if (!cancelled && rev) {
-          setLabel(rev);
-          onChangeRef.current?.({ latitude: startLat, longitude: startLng, locationLabel: rev });
+        const details = await reverseGeocodeDetails(startLat, startLng);
+        if (!cancelled && details.label) {
+          setLabel(details.label);
+          onChangeRef.current?.({
+            latitude: startLat,
+            longitude: startLng,
+            locationLabel: details.label,
+            detectedPinCode: details.pinCode || '',
+          });
         }
       } else {
         onChangeRef.current?.({ latitude: startLat, longitude: startLng, locationLabel: '' });

@@ -52,9 +52,9 @@ export const geocodeAddressText = async ({ addressLine1, city, pinCode }) => {
   return geocodePincode(pinCode);
 };
 
-/** Reverse geocode coordinates to a short label. */
-export const reverseGeocode = async (lat, lng) => {
-  if (!hasValidCoords(lat, lng)) return '';
+/** Reverse geocode coordinates to a short label and pincode. */
+export const reverseGeocodeDetails = async (lat, lng) => {
+  if (!hasValidCoords(lat, lng)) return { label: '', pinCode: '' };
   try {
     const resp = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18&addressdetails=1`,
@@ -67,11 +67,20 @@ export const reverseGeocode = async (lat, lng) => {
       a.city || a.town || a.village,
       a.postcode,
     ].filter(Boolean);
-    return parts.join(', ') || data?.display_name || '';
+    return {
+      label: parts.join(', ') || data?.display_name || '',
+      pinCode: a.postcode || '',
+    };
   } catch (e) {
     console.warn('Reverse geocoding failed:', e.message);
   }
-  return '';
+  return { label: '', pinCode: '' };
+};
+
+/** Reverse geocode coordinates to a short label. */
+export const reverseGeocode = async (lat, lng) => {
+  const details = await reverseGeocodeDetails(lat, lng);
+  return details.label;
 };
 
 /** Search addresses via Photon (Komoot / OSM). */
