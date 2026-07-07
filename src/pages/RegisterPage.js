@@ -217,7 +217,7 @@ const RegisterPage = () => {
             Create Your Account
           </h1>
           <p className="mb-6 text-center lg:text-left" style={{ color: COLORS.gray[600] }}>
-            Quick registration with mobile verification
+            Your Basket is Waiting!
           </p>
 
           {/* Error Message */}
