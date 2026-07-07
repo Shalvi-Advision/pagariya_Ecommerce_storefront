@@ -92,6 +92,11 @@ export const ToastProvider = ({ children }) => {
     addToast({ type: 'warning', title, message, duration: 6000 });
   }, [addToast]);
 
+  // Compact snackbar shown at the bottom of the screen
+  const showSnackbar = useCallback((message, type = 'success') => {
+    addToast({ variant: 'snackbar', type, message, duration: 3000 });
+  }, [addToast]);
+
   const value = {
     toasts: state.toasts,
     addToast,
@@ -100,7 +105,8 @@ export const ToastProvider = ({ children }) => {
     showSuccess,
     showError,
     showInfo,
-    showWarning
+    showWarning,
+    showSnackbar
   };
 
   return (

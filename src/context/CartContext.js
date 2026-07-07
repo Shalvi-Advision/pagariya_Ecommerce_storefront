@@ -186,7 +186,7 @@ const initialCartState = {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialCartState);
   const [currentUserId, setCurrentUserId] = React.useState(null);
-  const { showSuccess, showInfo } = useToast();
+  const { showSnackbar } = useToast();
   const debouncedSyncRef = useRef(null);
   const syncCartRef = useRef(null);
 
@@ -506,7 +506,7 @@ export const CartProvider = ({ children }) => {
       });
     }
 
-    showSuccess(`${cartItem.product_name || cartItem.title || 'Item'} added to cart`, 'Added to Cart');
+    showSnackbar(`${cartItem.product_name || cartItem.title || 'Item'} added to cart`, 'success');
 
     // Sync to API if authenticated
     if (isUserAuthenticated()) {
@@ -518,7 +518,7 @@ export const CartProvider = ({ children }) => {
         dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
       }
     }
-  }, [state.items, showSuccess]);
+  }, [state.items, showSnackbar]);
 
   const removeItem = useCallback((itemId) => {
     const removedItem = state.items.find(item =>
@@ -527,13 +527,13 @@ export const CartProvider = ({ children }) => {
 
     dispatch({ type: cartActions.REMOVE_ITEM, payload: itemId });
 
-    showInfo(`${removedItem?.product_name || removedItem?.title || 'Item'} removed from cart`, 'Removed from Cart');
+    showSnackbar(`${removedItem?.product_name || removedItem?.title || 'Item'} removed from cart`, 'info');
 
     // Debounced sync to API
     if (isUserAuthenticated() && debouncedSyncRef.current) {
       debouncedSyncRef.current();
     }
-  }, [state.items, showInfo]);
+  }, [state.items, showSnackbar]);
 
   const updateQuantity = useCallback((itemId, quantity) => {
     // Check if store is enabled before allowing quantity updates

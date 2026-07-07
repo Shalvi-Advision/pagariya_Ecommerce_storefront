@@ -93,24 +93,77 @@ const Toast = ({ toast, onRemove }) => {
   );
 };
 
+// Snackbar Component - compact dark pill shown at the bottom of the screen
+const Snackbar = ({ toast, onRemove }) => {
+  const getSnackbarIcon = () => {
+    switch (toast.type) {
+      case 'success':
+        return <CheckCircleIcon className="w-5 h-5 text-green-400 flex-shrink-0" />;
+      case 'error':
+        return <ExclamationCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0" />;
+      case 'warning':
+        return <ExclamationTriangleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0" />;
+      case 'info':
+      default:
+        return <InformationCircleIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />;
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-gray-900 text-white text-sm px-4 py-3 rounded-lg shadow-xl pointer-events-auto max-w-[90vw] sm:max-w-md animate-slide-up">
+      {getSnackbarIcon()}
+      <span className="flex-1 truncate">{toast.message}</span>
+      <button
+        className="text-gray-400 hover:text-white focus:outline-none flex-shrink-0"
+        onClick={() => onRemove(toast.id)}
+      >
+        <span className="sr-only">Close</span>
+        <XMarkIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+};
+
 // Toast Container Component
 const ToastContainer = ({ toasts, onRemove }) => {
   if (toasts.length === 0) return null;
 
+  const cornerToasts = toasts.filter((toast) => toast.variant !== 'snackbar');
+  const snackbars = toasts.filter((toast) => toast.variant === 'snackbar');
+
   return (
-    <div
-      className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-50 space-y-2"
-      aria-live="assertive"
-      aria-atomic="true"
-    >
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          toast={toast}
-          onRemove={onRemove}
-        />
-      ))}
-    </div>
+    <>
+      {cornerToasts.length > 0 && (
+        <div
+          className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-50 space-y-2"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          {cornerToasts.map((toast) => (
+            <Toast
+              key={toast.id}
+              toast={toast}
+              onRemove={onRemove}
+            />
+          ))}
+        </div>
+      )}
+      {snackbars.length > 0 && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {snackbars.map((toast) => (
+            <Snackbar
+              key={toast.id}
+              toast={toast}
+              onRemove={onRemove}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 };
 
