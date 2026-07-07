@@ -408,7 +408,7 @@ const OtpVerifyPage = () => {
           <div className="mt-6 text-center text-xs" style={{ color: COLORS.gray[500] }}>
             By continuing, you agree to our{' '}
             <Link 
-              to="/terms" 
+              to="/terms-and-conditions"
               className="font-medium transition-colors"
               style={{ color: COLORS.primary[600] }}
               onMouseEnter={(e) => {
@@ -422,7 +422,7 @@ const OtpVerifyPage = () => {
             </Link>
             {' '}and{' '}
             <Link 
-              to="/privacy" 
+              to="/privacy-policy"
               className="font-medium transition-colors"
               style={{ color: COLORS.primary[600] }}
               onMouseEnter={(e) => {

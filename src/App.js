@@ -33,6 +33,7 @@ import AboutUsPage from './pages/AboutUsPage';
 import ContactUsPage from './pages/ContactUsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsAndConditionsPage from './pages/TermsAndConditionsPage';
+import RefundPolicyPage from './pages/RefundPolicyPage';
 import BestsellerProductsPage from './pages/BestsellerProductsPage';
 import AdvertisementProductsPage from './pages/AdvertisementProductsPage';
 import NotificationsPage from './pages/NotificationsPage';
@@ -237,6 +238,7 @@ function AppContent() {
                 <Route path="/contact" element={<ContactUsPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
+                <Route path="/refund-policy" element={<RefundPolicyPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>

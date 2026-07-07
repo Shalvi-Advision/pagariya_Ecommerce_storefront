@@ -275,7 +275,7 @@ const LoginPage = () => {
             <div className="text-sm" style={{ color: COLORS.gray[600] }}>
               By continuing, you agree to our{' '}
               <Link 
-                to="/terms" 
+                to="/terms-and-conditions"
                 className="font-medium transition-colors"
                 style={{ color: COLORS.primary[600] }}
                 onMouseEnter={(e) => {
@@ -289,7 +289,7 @@ const LoginPage = () => {
               </Link>
               ,{' '}
               <Link 
-                to="/refunds" 
+                to="/refund-policy"
                 className="font-medium transition-colors"
                 style={{ color: COLORS.primary[600] }}
                 onMouseEnter={(e) => {
@@ -303,7 +303,7 @@ const LoginPage = () => {
               </Link>
               {' '}and{' '}
               <Link 
-                to="/privacy" 
+                to="/privacy-policy"
                 className="font-medium transition-colors"
                 style={{ color: COLORS.primary[600] }}
                 onMouseEnter={(e) => {
