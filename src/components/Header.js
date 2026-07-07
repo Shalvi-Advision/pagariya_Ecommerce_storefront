@@ -22,7 +22,6 @@ import {
   ChevronDownIcon,
   UserCircleIcon,
   HeartIcon,
-  InformationCircleIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { useFavorite } from '../context/FavoriteContext';
@@ -38,6 +37,16 @@ const hexToRgba = (hex, opacity = 1) => {
   const b = parseInt(result[3], 16);
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
+
+// Pagariya "P" badge used as the About Us icon
+const AboutUsIcon = ({ className = 'w-4 h-4', fontSize = '10px' }) => (
+  <span
+    className={`${className} rounded-full border-2 flex items-center justify-center font-bold leading-none flex-shrink-0`}
+    style={{ borderColor: COLORS.primary[600], color: COLORS.primary[600], fontSize }}
+  >
+    P
+  </span>
+);
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -603,7 +612,7 @@ const Header = () => {
                                 e.currentTarget.style.color = COLORS.gray[700];
                               }}
                             >
-                              <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                              <AboutUsIcon className="w-4 h-4" fontSize="9px" />
                               About Us
                             </Link>
                           </div>
@@ -840,7 +849,7 @@ const Header = () => {
                 aria-label="About Us"
                 title="About Us"
               >
-                <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
+                <AboutUsIcon className="w-5 h-5" fontSize="11px" />
               </Link>
             </div>
           </div>
@@ -890,7 +899,7 @@ const Header = () => {
                 }}
                 aria-label="About Us"
               >
-                <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                <AboutUsIcon className="w-4 h-4" fontSize="9px" />
                 <span>About Us</span>
               </Link>
               {/* Desktop Location Button */}
@@ -1124,7 +1133,7 @@ const Header = () => {
                               e.currentTarget.style.color = COLORS.gray[700];
                             }}
                           >
-                            <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                            <AboutUsIcon className="w-4 h-4" fontSize="9px" />
                             About Us
                           </Link>
                         </div>
