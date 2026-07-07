@@ -86,11 +86,14 @@ const BestsellerProductCard = ({ product }) => {
     : '1.0 UNIT';
 
   // Calculate discount percentage if not provided
-  const calculatedDiscount = discount > 0 
-    ? discount 
+  const calculatedDiscount = discount > 0
+    ? discount
     : displayMrp > 0 && displayPrice < displayMrp
       ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
       : 0;
+
+  // Discount shown to the user is the rupee difference between MRP and selling price
+  const discountAmount = displayMrp > displayPrice ? Math.round(displayMrp - displayPrice) : 0;
 
   const handleFavoriteToggle = (e) => {
     e.preventDefault();
@@ -198,12 +201,12 @@ const BestsellerProductCard = ({ product }) => {
         </button>
 
         {/* Discount Badge - Top Right */}
-        {calculatedDiscount > 0 && (
-          <div 
+        {discountAmount > 0 && (
+          <div
             className="absolute top-2 right-2 z-20 text-white text-xs px-2.5 py-1 rounded font-bold shadow-md"
             style={{ backgroundColor: COLORS.warning[500] }}
           >
-            {calculatedDiscount}% OFF
+            ₹{discountAmount} OFF
           </div>
         )}
 

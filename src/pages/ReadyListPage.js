@@ -350,8 +350,7 @@ const ReadyListPage = () => {
 
       // Mark item as checked
       handleToggleItem(item.id);
-      
-      alert(`${item.name} added to cart!`);
+
       openCartDrawer();
     } catch (error) {
       console.error('Error adding item to cart:', error);

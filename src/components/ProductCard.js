@@ -92,10 +92,8 @@ const ProductCard = ({ product, onAddToCart }) => {
   const safeDiscountPercentage = discount_percentage || 0;
   const safePackageSize = package_size || 0;
 
-  // Calculate discount amount if not provided
-  const discountAmount = safeDiscountPercentage
-    ? Math.round((safeMrp * safeDiscountPercentage) / 100)
-    : Math.round(safeMrp - safePrice);
+  // Discount is always the rupee difference between MRP and selling price
+  const discountAmount = safeMrp > safePrice ? Math.round(safeMrp - safePrice) : 0;
 
   const handleAddToCart = async () => {
     // Debug logging for pcode
@@ -222,10 +220,10 @@ const ProductCard = ({ product, onAddToCart }) => {
         </div>
 
         {/* Discount Badge with Modern Gradient */}
-        {safeDiscountPercentage > 0 && (
+        {discountAmount > 0 && (
           <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 z-20">
             <div className="bg-gradient-to-r from-primary-500 to-primary-700 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-xl animate-pulse">
-              {safeDiscountPercentage}% OFF
+              ₹{discountAmount} OFF
             </div>
           </div>
         )}

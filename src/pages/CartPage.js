@@ -103,7 +103,6 @@ const CartPage = () => {
     if (newQuantity < 0) return;
     if (newQuantity === 0) {
       removeItem(itemId);
-      showSuccess('Item removed from cart');
     } else {
       updateQuantity(itemId, newQuantity);
     }
@@ -111,7 +110,6 @@ const CartPage = () => {
 
   const handleRemoveItem = (itemId) => {
     removeItem(itemId);
-    showSuccess('Item removed from cart');
   };
 
   const handleRemoveAll = async () => {

@@ -23,7 +23,6 @@ import {
   UserCircleIcon,
   HeartIcon,
   InformationCircleIcon,
-  QuestionMarkCircleIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { useFavorite } from '../context/FavoriteContext';
@@ -604,7 +603,7 @@ const Header = () => {
                                 e.currentTarget.style.color = COLORS.gray[700];
                               }}
                             >
-                              <QuestionMarkCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                              <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
                               About Us
                             </Link>
                           </div>
@@ -841,7 +840,7 @@ const Header = () => {
                 aria-label="About Us"
                 title="About Us"
               >
-                <QuestionMarkCircleIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
+                <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-5 h-5" />
               </Link>
             </div>
           </div>
@@ -891,7 +890,7 @@ const Header = () => {
                 }}
                 aria-label="About Us"
               >
-                <QuestionMarkCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
                 <span>About Us</span>
               </Link>
               {/* Desktop Location Button */}
@@ -1125,7 +1124,7 @@ const Header = () => {
                               e.currentTarget.style.color = COLORS.gray[700];
                             }}
                           >
-                            <QuestionMarkCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
+                            <InformationCircleIcon style={{ color: COLORS.primary[600] }} className="w-4 h-4" />
                             About Us
                           </Link>
                         </div>

@@ -242,9 +242,9 @@ const FavoritesPage = () => {
                     onProductImageError(e);
                   }}
                 />
-                {product.discount_percentage > 0 && (
+                {parseFloat(product.product_mrp) > parseFloat(product.our_price) && (
                   <div className="absolute top-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded font-semibold z-10">
-                    ₹ {product.discount_percentage} OFF
+                    ₹ {Math.round(parseFloat(product.product_mrp) - parseFloat(product.our_price))} OFF
                   </div>
                 )}
               </div>

@@ -54,7 +54,7 @@ const useRazorpay = () => {
 
       // Configure Razorpay checkout options
       const options = {
-        key: 'rzp_test_RgWaBOoRN7gWiU',
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_live_Bjc4imRDnbecVa',
         amount: orderResponse.amount, // Amount in paise
         currency: orderResponse.currency,
         name: APP_CONSTANTS.APP_NAME,

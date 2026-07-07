@@ -223,10 +223,12 @@ const ProductDetailsPage = () => {
     return product && product.store_quantity > 0;
   };
 
-  // Helper function to get discount percentage
-  const getDiscountPercentage = () => {
+  // Helper function to get the rupee discount (MRP - selling price)
+  const getDiscountAmount = () => {
     if (!product) return 0;
-    return product.discount_percentage || 0;
+    const mrp = parseFloat(product.product_mrp || 0);
+    const price = parseFloat(product.our_price || 0);
+    return mrp > price ? Math.round(mrp - price) : 0;
   };
 
   console.log('🎨 ProductDetailsPage render - checking conditions');
@@ -364,13 +366,13 @@ const ProductDetailsPage = () => {
                   <span className={`${isMobile ? 'text-lg' : 'text-xl sm:text-2xl lg:text-3xl'} font-bold`} style={{ color: COLORS.primary[600] }}>
                     ₹{formatPrice(product.our_price)}
                   </span>
-                  {getDiscountPercentage() > 0 && (
+                  {getDiscountAmount() > 0 && (
                     <span className={`${isMobile ? 'text-xs' : 'text-xs sm:text-sm'} line-through`} style={{ color: COLORS.gray[500] }}>
                       MRP: ₹{formatPrice(product.product_mrp)}
                     </span>
                   )}
                 </div>
-                {getDiscountPercentage() > 0 && (
+                {getDiscountAmount() > 0 && (
                   <span
                     className={`px-2 py-1 rounded-full ${isMobile ? 'text-xs' : 'text-xs sm:text-sm'} font-medium`}
                     style={{
@@ -378,7 +380,7 @@ const ProductDetailsPage = () => {
                       color: COLORS.warning[800]
                     }}
                   >
-                    {getDiscountPercentage()}% OFF
+                    ₹{getDiscountAmount()} OFF
                   </span>
                 )}
               </div>

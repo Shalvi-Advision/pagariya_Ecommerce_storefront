@@ -1614,12 +1614,12 @@ const CategoryPage = () => {
                           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                           onError={onProductImageError}
                         />
-                {product.discount_percentage > 0 && (
-                  <div 
+                {parseFloat(product.product_mrp) > parseFloat(product.our_price) && (
+                  <div
                     className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-semibold z-10"
                     style={{ backgroundColor: COLORS.warning[500] }}
                   >
-                    ₹ {product.discount_percentage} OFF
+                    ₹ {Math.round(parseFloat(product.product_mrp) - parseFloat(product.our_price))} OFF
                   </div>
                 )}
               </div>

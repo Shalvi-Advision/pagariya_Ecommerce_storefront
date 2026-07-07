@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, useMemo } from 'react';
 import cartService from '../services/cartService';
 import { debounce, retryWithBackoff, isUserAuthenticated, getUserMobile, isStoreEnabled, getStoreMessage } from '../utils/cartUtils';
+import { useToast } from './ToastContext';
 
 // Cart Context
 const CartContext = createContext();
@@ -185,6 +186,7 @@ const initialCartState = {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialCartState);
   const [currentUserId, setCurrentUserId] = React.useState(null);
+  const { showSuccess, showInfo } = useToast();
   const debouncedSyncRef = useRef(null);
   const syncCartRef = useRef(null);
 
@@ -504,6 +506,8 @@ export const CartProvider = ({ children }) => {
       });
     }
 
+    showSuccess(`${cartItem.product_name || cartItem.title || 'Item'} added to cart`, 'Added to Cart');
+
     // Sync to API if authenticated
     if (isUserAuthenticated()) {
       try {
@@ -514,16 +518,22 @@ export const CartProvider = ({ children }) => {
         dispatch({ type: cartActions.SET_SYNC_ERROR, payload: error.message });
       }
     }
-  }, [state.items]);
+  }, [state.items, showSuccess]);
 
   const removeItem = useCallback((itemId) => {
+    const removedItem = state.items.find(item =>
+      item.id === itemId || item.p_code === itemId
+    );
+
     dispatch({ type: cartActions.REMOVE_ITEM, payload: itemId });
+
+    showInfo(`${removedItem?.product_name || removedItem?.title || 'Item'} removed from cart`, 'Removed from Cart');
 
     // Debounced sync to API
     if (isUserAuthenticated() && debouncedSyncRef.current) {
       debouncedSyncRef.current();
     }
-  }, []);
+  }, [state.items, showInfo]);
 
   const updateQuantity = useCallback((itemId, quantity) => {
     // Check if store is enabled before allowing quantity updates

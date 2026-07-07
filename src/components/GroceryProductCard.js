@@ -38,7 +38,7 @@ const GroceryProductCard = ({ product, onAddToCart }) => {
   const displayName = name || product_name || 'Product';
   const displayPrice = price || our_price || 0;
   const displayMrp = mrp || product_mrp || 0;
-  const displayDiscount = discount || discount_percentage || 0;
+  const displayDiscount = displayMrp > displayPrice ? Math.round(displayMrp - displayPrice) : 0;
   const displayImage = image_url || pcode_img || image || DEFAULT_PRODUCT_IMAGE;
   const displayPcode = pcode || id || 'unknown';
 
