@@ -16,7 +16,7 @@ const toastReducer = (state, action) => {
     case toastActions.ADD_TOAST:
       return {
         ...state,
-        toasts: [...state.toasts, { ...action.payload, id: Date.now() + Math.random() }]
+        toasts: [...state.toasts, action.payload]
       };
 
     case toastActions.REMOVE_TOAST:
@@ -52,7 +52,10 @@ export const ToastProvider = ({ children }) => {
       title: toast.title || '',
       message: toast.message || '',
       duration: toast.duration || 5000,
-      ...toast
+      ...toast,
+      // Generate the id here (not in the reducer) so the auto-dismiss
+      // timeout below can reference it
+      id: Date.now() + Math.random()
     };
 
     dispatch({ type: toastActions.ADD_TOAST, payload: toastData });
