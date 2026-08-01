@@ -117,6 +117,24 @@ export const formatTime = (timeString) => {
 };
 
 /**
+ * Check whether a slot's start time is already behind us on a given day
+ * @param {string} slotFrom - Slot start time in HH:MM:SS format
+ * @param {Date} now - Current date/time
+ * @returns {boolean} - True if the slot can no longer be booked today
+ */
+const hasSlotStartPassed = (slotFrom, now) => {
+  if (!slotFrom) return false;
+
+  const [hours, minutes] = slotFrom.split(':').map(Number);
+  if (Number.isNaN(hours)) return false;
+
+  const slotStartMinutes = hours * 60 + (minutes || 0);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  return slotStartMinutes <= nowMinutes;
+};
+
+/**
  * Generate time slots from API delivery slot data
  * @param {Array} apiSlots - Array of delivery slots from API
  * @returns {Array} - Array of formatted time slots
@@ -131,8 +149,8 @@ export const generateTimeSlotsFromAPI = (apiSlots) => {
   const timeSlots = [];
   let slotId = 1;
 
-  // Generate slots for next 2 days
-  for (let i = 1; i <= 2; i++) {
+  // Generate slots for today and tomorrow (index 0 is labelled "Today" in the UI)
+  for (let i = 0; i < 2; i++) {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
 
@@ -153,7 +171,8 @@ export const generateTimeSlotsFromAPI = (apiSlots) => {
       slotsForDate = activeSlots.map(slot => ({
         id: slotId++,
         time: `${formatTime(slot.slotFrom)} - ${formatTime(slot.slotTo)}`,
-        available: true,
+        // A slot on today's tab is only bookable while it is still ahead of us
+        available: i > 0 || !hasSlotStartPassed(slot.slotFrom, today),
         deliverySlotId: slot.iddelivery_slot
       }));
     } else {
@@ -179,7 +198,7 @@ export const generateDefaultTimeSlots = () => {
   const timeSlots = [];
   let slotId = 1;
 
-  for (let i = 1; i <= 2; i++) {
+  for (let i = 0; i < 2; i++) {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
 

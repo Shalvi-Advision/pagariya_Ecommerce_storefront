@@ -52,9 +52,27 @@ const useRazorpay = () => {
         throw new Error(orderResponse.message || 'Failed to create order');
       }
 
+      // Always prefer the key the backend used to create this order - opening
+      // checkout with a key from a different account breaks the UPI QR code.
+      const razorpayKey = orderResponse.key_id || process.env.REACT_APP_RAZORPAY_KEY_ID;
+
+      if (!razorpayKey) {
+        throw new Error('Payment gateway is not configured. Please contact support.');
+      }
+
+      if (
+        orderResponse.key_id &&
+        process.env.REACT_APP_RAZORPAY_KEY_ID &&
+        orderResponse.key_id !== process.env.REACT_APP_RAZORPAY_KEY_ID
+      ) {
+        console.warn(
+          '⚠️ Razorpay key mismatch between frontend and backend - using the backend key.'
+        );
+      }
+
       // Configure Razorpay checkout options
       const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_live_Bjc4imRDnbecVa',
+        key: razorpayKey,
         amount: orderResponse.amount, // Amount in paise
         currency: orderResponse.currency,
         name: APP_CONSTANTS.APP_NAME,

@@ -97,7 +97,7 @@ const CheckoutPageNew = () => {
         selectedAddress: null,
         selectedTimeSlot: null,
         selectedDate: null,
-        paymentMethod: 'cod',
+        paymentMethod: 'card',
     }));
 
     const storeLat = confirmedLocation?.store?.latitude || confirmedLocation?.store?.store_latitude;
@@ -268,7 +268,16 @@ const CheckoutPageNew = () => {
                 const response = await getDeliverySlots();
                 if (response.success && response.data?.length > 0) {
                     const transformed = response.data.map(transformDeliverySlotFromAPI);
-                    setTimeSlots(generateTimeSlotsFromAPI(transformed));
+                    const generatedSlots = generateTimeSlotsFromAPI(transformed);
+                    setTimeSlots(generatedSlots);
+
+                    // Today's slots may all have passed - open on the first day that still has one
+                    const firstDayWithSlot = generatedSlots.findIndex(
+                        dateSlot => dateSlot.slots?.some(slot => slot.available)
+                    );
+                    if (firstDayWithSlot > 0) {
+                        setSelectedDateTab(firstDayWithSlot);
+                    }
                 } else {
                     setSlotsErrorMessage(response.message || 'No slots available');
                 }
@@ -444,10 +453,9 @@ const CheckoutPageNew = () => {
 
     const getPaymentMethodDetails = (mode) => {
         const map = {
-            'POD': { value: 'cod', iconType: 'cod', name: 'Cash on Delivery', desc: 'Pay when you receive' },
             'Online Payment': { value: 'card', iconType: 'card', name: 'Online Payment', desc: 'Cards, UPI, Netbanking' },
         };
-        return map[mode] || { value: 'cod', iconType: 'card', name: mode, desc: '' };
+        return map[mode] || { value: 'card', iconType: 'card', name: mode, desc: '' };
     };
 
     const renderPaymentIcon = (iconType, className = 'w-6 h-6 text-primary-500') => {
@@ -497,11 +505,12 @@ const CheckoutPageNew = () => {
             setShowTimeoutModal(true);
             return;
         }
-        if (checkoutData.paymentMethod === 'card') {
-            await handleRazorpayPayment();
-        } else {
-            await placeOrderAfterPayment(null);
+        // Only prepaid orders are accepted - never place an order without payment
+        if (checkoutData.paymentMethod !== 'card') {
+            showError('Please pay online to place your order.');
+            return;
         }
+        await handleRazorpayPayment();
     };
 
     const handleRazorpayPayment = async () => {
@@ -540,9 +549,9 @@ const CheckoutPageNew = () => {
             if (!storeCode) throw new Error('Store code missing');
 
             const selectedMode = enabledPaymentModes.find(m => mapPaymentModeToUI(m.name) === checkoutData.paymentMethod);
-            const paymentModeId = selectedMode?.idpayment_mode || (checkoutData.paymentMethod === 'cod' ? 1 : 2);
+            const paymentModeId = selectedMode?.idpayment_mode || 2;
 
-            let paymentDetails = { method: checkoutData.paymentMethod === 'cod' ? 'cod' : 'online_payment' };
+            let paymentDetails = { method: 'online_payment' };
             if (paymentResponse) {
                 paymentDetails = {
                     ...paymentDetails,

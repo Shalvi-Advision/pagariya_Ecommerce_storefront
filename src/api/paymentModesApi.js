@@ -107,6 +107,19 @@ export const mapPaymentModeToUI = (apiPaymentModeName) => {
   return modeMap[apiPaymentModeName] || null;
 };
 
+// Only prepaid orders are accepted, so Cash on Delivery (POD) is never offered
+// even when a store still has it enabled in the backend configuration.
+const DISABLED_PAYMENT_MODES = ['POD'];
+
+// Used when a store has no prepaid mode configured, so checkout is never left
+// without a way to pay. idpayment_mode 2 is the Online Payment record.
+const ONLINE_PAYMENT_FALLBACK = {
+  id: 2,
+  idpayment_mode: 2,
+  name: 'Online Payment',
+  isEnabled: true
+};
+
 /**
  * Get enabled payment modes from API
  * @returns {Promise<Array>} - Array of enabled payment modes
@@ -114,21 +127,23 @@ export const mapPaymentModeToUI = (apiPaymentModeName) => {
 export const getEnabledPaymentModes = async () => {
   try {
     const response = await getPaymentModes();
-    
+
     if (response.success && response.data && response.data.length > 0) {
       // Transform and filter enabled payment modes
       const enabledModes = response.data
         .map(transformPaymentModeFromAPI)
-        .filter(mode => mode.isEnabled);
-      
+        .filter(mode => mode.isEnabled)
+        .filter(mode => !DISABLED_PAYMENT_MODES.includes(mode.name));
+
       console.log('✅ Enabled payment modes:', enabledModes);
-      return enabledModes;
+
+      return enabledModes.length > 0 ? enabledModes : [ONLINE_PAYMENT_FALLBACK];
     }
-    
-    return [];
+
+    return [ONLINE_PAYMENT_FALLBACK];
   } catch (error) {
     console.error('❌ Error fetching enabled payment modes:', error);
-    return [];
+    return [ONLINE_PAYMENT_FALLBACK];
   }
 };
 

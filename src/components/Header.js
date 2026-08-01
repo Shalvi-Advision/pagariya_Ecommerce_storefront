@@ -38,16 +38,6 @@ const hexToRgba = (hex, opacity = 1) => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-// Pagariya "P" badge used as the About Us icon
-const AboutUsIcon = ({ className = 'w-4 h-4', fontSize = '10px' }) => (
-  <span
-    className={`${className} rounded-full border-2 flex items-center justify-center font-bold leading-none flex-shrink-0`}
-    style={{ borderColor: COLORS.primary[600], color: COLORS.primary[600], fontSize }}
-  >
-    P
-  </span>
-);
-
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems } = useCart();
@@ -612,7 +602,6 @@ const Header = () => {
                                 e.currentTarget.style.color = COLORS.gray[700];
                               }}
                             >
-                              <AboutUsIcon className="w-4 h-4" fontSize="9px" />
                               About Us
                             </Link>
                           </div>
@@ -830,10 +819,10 @@ const Header = () => {
                 />
               </form>
 
-              {/* About Us Icon */}
+              {/* About Us Link */}
               <Link
                 to="/about"
-                className="inline-flex items-center justify-center p-2 rounded-lg border transition-colors flex-shrink-0"
+                className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border transition-colors flex-shrink-0 text-sm font-medium whitespace-nowrap"
                 style={{
                   borderColor: COLORS.gray[200],
                   color: COLORS.gray[700]
@@ -849,7 +838,7 @@ const Header = () => {
                 aria-label="About Us"
                 title="About Us"
               >
-                <AboutUsIcon className="w-5 h-5" fontSize="11px" />
+                <span>About Us</span>
               </Link>
             </div>
           </div>
@@ -899,7 +888,6 @@ const Header = () => {
                 }}
                 aria-label="About Us"
               >
-                <AboutUsIcon className="w-4 h-4" fontSize="9px" />
                 <span>About Us</span>
               </Link>
               {/* Desktop Location Button */}
@@ -1133,7 +1121,6 @@ const Header = () => {
                               e.currentTarget.style.color = COLORS.gray[700];
                             }}
                           >
-                            <AboutUsIcon className="w-4 h-4" fontSize="9px" />
                             About Us
                           </Link>
                         </div>

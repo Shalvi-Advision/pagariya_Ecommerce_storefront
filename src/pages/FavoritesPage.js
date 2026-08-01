@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { APP_CONSTANTS, DEFAULT_STORE_CODE } from '../constants';
 
 const FavoritesPage = () => {
-  const { isFavorite, toggleFavorite } = useFavorite();
+  const { removeFromFavorites } = useFavorite();
   const { isAuthenticated, user } = useAuth();
   const { addItem } = useCart();
   const { showError, showSuccess } = useToast();
@@ -20,6 +20,7 @@ const FavoritesPage = () => {
   const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState({});
+  const [removingFavorite, setRemovingFavorite] = useState({});
 
   // Helper to get store code
   const getStoreCode = () => {
@@ -196,6 +197,30 @@ const FavoritesPage = () => {
     );
   }
 
+  // Handle removing a product from favorites
+  const handleRemoveFavorite = async (product, e) => {
+    e.stopPropagation();
+    const productId = product.p_code || product._id;
+
+    if (!productId || removingFavorite[productId]) return;
+
+    try {
+      setRemovingFavorite(prev => ({ ...prev, [productId]: true }));
+      await removeFromFavorites(productId);
+
+      // Drop it from the list so the card disappears straight away
+      setFavoriteProducts(prev =>
+        prev.filter(item => (item.p_code || item._id) !== productId)
+      );
+      showSuccess('Removed from favorites');
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+      showError('Failed to remove from favorites');
+    } finally {
+      setRemovingFavorite(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
   // Handle add to cart
   const handleAddToCart = async (product, e) => {
     e.stopPropagation();
@@ -228,8 +253,15 @@ const FavoritesPage = () => {
               <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden p-4">
                 {/* Favorite Button */}
                 <button
-                  disabled
-                  className="absolute top-2 right-2 z-20 p-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg opacity-70 cursor-not-allowed"
+                  onClick={(e) => handleRemoveFavorite(product, e)}
+                  disabled={removingFavorite[product.p_code || product._id]}
+                  aria-label="Remove from favorites"
+                  title="Remove from favorites"
+                  className={`absolute top-2 right-2 z-20 p-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg transition-opacity ${
+                    removingFavorite[product.p_code || product._id]
+                      ? 'opacity-50 cursor-wait'
+                      : 'hover:bg-white cursor-pointer'
+                  }`}
                 >
                   <HeartSolid className="w-4 h-4 text-red-500" />
                 </button>
