@@ -116,22 +116,28 @@ export const formatTime = (timeString) => {
   }
 };
 
+// Minutes of lead time needed before a delivery window closes. A slot stays
+// bookable for most of its window - it is only dropped once there is no longer
+// enough time left to fulfil the order. Set to 0 to allow booking right up to
+// the closing time.
+const SLOT_CUTOFF_BUFFER_MINUTES = 30;
+
 /**
- * Check whether a slot's start time is already behind us on a given day
- * @param {string} slotFrom - Slot start time in HH:MM:SS format
+ * Check whether a slot's delivery window has closed (or is about to) on a given day
+ * @param {string} slotTo - Slot end time in HH:MM:SS format
  * @param {Date} now - Current date/time
  * @returns {boolean} - True if the slot can no longer be booked today
  */
-const hasSlotStartPassed = (slotFrom, now) => {
-  if (!slotFrom) return false;
+const hasSlotWindowClosed = (slotTo, now) => {
+  if (!slotTo) return false;
 
-  const [hours, minutes] = slotFrom.split(':').map(Number);
+  const [hours, minutes] = slotTo.split(':').map(Number);
   if (Number.isNaN(hours)) return false;
 
-  const slotStartMinutes = hours * 60 + (minutes || 0);
+  const slotEndMinutes = hours * 60 + (minutes || 0);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  return slotStartMinutes <= nowMinutes;
+  return nowMinutes >= slotEndMinutes - SLOT_CUTOFF_BUFFER_MINUTES;
 };
 
 /**
@@ -171,8 +177,8 @@ export const generateTimeSlotsFromAPI = (apiSlots) => {
       slotsForDate = activeSlots.map(slot => ({
         id: slotId++,
         time: `${formatTime(slot.slotFrom)} - ${formatTime(slot.slotTo)}`,
-        // A slot on today's tab is only bookable while it is still ahead of us
-        available: i > 0 || !hasSlotStartPassed(slot.slotFrom, today),
+        // A slot on today's tab is bookable until its delivery window closes
+        available: i > 0 || !hasSlotWindowClosed(slot.slotTo, today),
         deliverySlotId: slot.iddelivery_slot
       }));
     } else {
